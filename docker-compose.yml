@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # 1. THE LOG DATABASE
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100" # Loki API port
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - arc_net
+
+  # 2. THE VISUALIZATION
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000" # Grafana UI
+    volumes:
+      # This is the "magic" to auto-add Loki as a datasource
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - loki
+    networks:
+      - arc_net
+
+  # 3. THE "INTERFACE" (OUR OTel COLLECTOR)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./config/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+    depends_on:
+      - loki
+    networks:
+      - arc_net
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    volumes:
+      - ./config/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    ports:
+      - 16686:16686
+
+  swiss-army-go:
+    build:
+      context: ./services/swiss-army
+    container_name: swiss-army-go
+    depends_on:
+      - otel-collector
+    environment:
+      # This is the "contract". Same env var, same endpoint.
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+    networks:
+      - arc_net
+
+
+networks:
+  arc_net:
+    driver: bridge

@@ -1,0 +1,30 @@
+receivers:
+  otlp: # Receives data on ports 4317 (gRPC) and 4318 (HTTP)
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch: # Batches data for efficiency
+
+exporters:
+  # Exporter 1: Send logs to Loki
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    labels:
+      resource:
+        # This is CRITICAL. It tells Loki to use the 'service.name'
+        # from OTel as its 'service' label for searching.
+        service.name: "service"
+
+  # Exporter 2: (For debugging) Spit logs to the console
+  logging:
+    loglevel: debug
+
+service:
+  pipelines:
+    # We only care about the LOGS pipeline for now.
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [loki, logging]
