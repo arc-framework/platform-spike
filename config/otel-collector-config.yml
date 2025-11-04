@@ -8,23 +8,55 @@ processors:
   batch: # Batches data for efficiency
 
 exporters:
-  # Exporter 1: Send logs to Loki
-  loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
-    labels:
-      resource:
-        # This is CRITICAL. It tells Loki to use the 'service.name'
-        # from OTel as its 'service' label for searching.
-        service.name: "service"
+  # Exporter 1: Send logs to Loki via OTLP
+  # The 'loki' exporter is no longer in the default contrib image.
+  # We use the standard otlphttp exporter, as Loki supports OTLP natively.
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp/v1/logs"
+    # OTLP uses HTTP headers for auth, not a specific config block.
+    # Headers can be set here if needed, e.g., for multi-tenancy.
+    # headers:
+    #   "X-Scope-OrgID": "my-tenant"
 
-  # Exporter 2: (For debugging) Spit logs to the console
-  logging:
-    loglevel: debug
+  # Exporter 2: (For debugging) Spit everything to the console
+  # The 'logging' exporter is deprecated and has been replaced by 'debug'.
+  debug:
+    verbosity: detailed # Use 'detailed' for the most verbose output, similar to 'loglevel: debug'
+
+  # Exporter 3: Send traces to Jaeger via OTLP
+  # The dedicated 'jaeger' exporter is deprecated. Jaeger natively supports OTLP.
+  otlp/jaeger:
+    endpoint: jaeger:4317 # Jaeger's OTLP gRPC endpoint
+    tls:
+      insecure: true
+
+  # Exporter 4: Make metrics available for Prometheus to scrape
+  prometheus:
+    endpoint: "0.0.0.0:8889" # An internal port for Prometheus to scrape
+
+extensions:
+  health_check:
+    # The health check extension is available on all interfaces by default.
 
 service:
   pipelines:
-    # We only care about the LOGS pipeline for now.
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus, debug]
+
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [loki, logging]
+      exporters: [otlphttp/loki, debug]
+
+  extensions: [health_check]
+
+  telemetry:
+    logs:
+      level: "debug"

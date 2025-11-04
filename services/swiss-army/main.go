@@ -1,4 +1,4 @@
-package swiss_army
+package main
 
 import (
 	"context"
@@ -17,94 +17,88 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.28.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-var serviceName = semconv.ServiceNameKey.String("swiss-army-go")
+// newOtelProvider initializes and configures the OpenTelemetry SDK, returning a shutdown function.
+func newOtelProvider(ctx context.Context) (func(context.Context) error, error) {
+	// The OTEL_SERVICE_NAME environment variable will be used here.
+	res, err := resource.New(ctx,
+		resource.WithFromEnv(),
+		resource.WithProcess(),
+		resource.WithTelemetrySDK(),
+		resource.WithHost(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
 
-// Initializes an OTLP exporter, and configures the corresponding trace provider.
-func initTracerProvider(ctx context.Context, res *resource.Resource) (func(context.Context) error, error) {
-	// Set up a trace exporter
-	// The exporter will be configured with environment variables.
+	// --- TRACER SETUP ---
+	// Exporters are configured with environment variables (e.g., OTEL_EXPORTER_OTLP_ENDPOINT).
 	traceExporter, err := otlptracegrpc.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
-	// Register the trace exporter with a TracerProvider, using a batch
-	// span processor to aggregate spans before export.
-	bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
-		sdktrace.WithSpanProcessor(bsp),
+		sdktrace.WithBatcher(traceExporter),
 	)
 	otel.SetTracerProvider(tracerProvider)
-
-	// Set global propagator to tracecontext (the default is no-op).
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
-	// Shutdown will flush any remaining spans and shut down the exporter.
-	return tracerProvider.Shutdown, nil
-}
-
-// Initializes an OTLP exporter, and configures the corresponding meter provider.
-func initMeterProvider(ctx context.Context, res *resource.Resource) (func(context.Context) error, error) {
-	// The exporter will be configured with environment variables.
+	// --- METER SETUP ---
 	metricExporter, err := otlpmetricgrpc.New(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
 
 	meterProvider := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter)),
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter, sdkmetric.WithInterval(5*time.Second))),
 		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(meterProvider)
 
-	return meterProvider.Shutdown, nil
+	// Return a function that gracefully shuts down both providers.
+	return func(ctx context.Context) error {
+		// Shutdown providers in reverse order of initialization.
+		if err := meterProvider.Shutdown(ctx); err != nil {
+			return fmt.Errorf("failed to shutdown MeterProvider: %w", err)
+		}
+		if err := tracerProvider.Shutdown(ctx); err != nil {
+			return fmt.Errorf("failed to shutdown TracerProvider: %w", err)
+		}
+		return nil
+	}, nil
 }
 
 func main() {
-	log.Printf("Waiting for connection...")
+	log.Println("Starting swiss-army-go service...")
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
+	// Set up a context that is canceled on an interrupt signal.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			// The service name used to display traces in backends
-			serviceName,
-		),
-	)
+	// Set up OpenTelemetry.
+	shutdown, err := newOtelProvider(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	shutdownTracerProvider, err := initTracerProvider(ctx, res)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Defer the shutdown function to be called when main exits.
 	defer func() {
-		if err := shutdownTracerProvider(ctx); err != nil {
-			log.Fatalf("failed to shutdown TracerProvider: %s", err)
+		// Allow 10 seconds for a graceful shutdown.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := shutdown(shutdownCtx); err != nil {
+			log.Fatalf("failed to shutdown OpenTelemetry provider: %s", err)
 		}
 	}()
 
-	shutdownMeterProvider, err := initMeterProvider(ctx, res)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := shutdownMeterProvider(ctx); err != nil {
-			log.Fatalf("failed to shutdown MeterProvider: %s", err)
-		}
-	}()
-
-	name := "github.com/arc-framework/platform-spike/services/swiss-army"
-	tracer := otel.Tracer(name)
-	meter := otel.Meter(name)
+	// Use the service name from the resource for the tracer/meter names.
+	// It's conventional to use a static name for the tracer/meter.
+	tracer := otel.Tracer("github.com/arc-framework/platform-spike/swiss-army")
+	meter := otel.Meter("github.com/arc-framework/platform-spike/swiss-army")
 
 	// Attributes represent additional key-value descriptors that can be bound
 	// to a metric observer or recorder.
@@ -114,7 +108,7 @@ func main() {
 		attribute.String("attrC", "vanilla"),
 	}
 
-	runCount, err := meter.Int64Counter("run", metric.WithDescription("The number of times the iteration ran"))
+	runCount, err := meter.Int64Counter("run.count", metric.WithDescription("The number of times the iteration ran"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,9 +117,10 @@ func main() {
 	ctx, span := tracer.Start(
 		ctx,
 		"CollectorExporter-Example",
-		trace.WithAttributes(commonAttrs...))
+		trace.WithAttributes(commonAttrs...),
+	)
 	defer span.End()
-	for i := range 10 {
+	for i := 0; i < 10; i++ {
 		_, iSpan := tracer.Start(ctx, fmt.Sprintf("Sample-%d", i))
 		runCount.Add(ctx, 1, metric.WithAttributes(commonAttrs...))
 		log.Printf("Doing really hard work (%d / 10)\n", i+1)

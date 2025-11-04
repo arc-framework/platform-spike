@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. THE LOG DATABASE
   loki:
@@ -27,7 +25,8 @@ services:
 
   # 3. THE "INTERFACE" (OUR OTel COLLECTOR)
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    build:
+      context: ./config/otel-collector
     container_name: otel-collector
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
@@ -35,32 +34,50 @@ services:
     ports:
       - "4317:4317"  # OTLP gRPC
       - "4318:4318"  # OTLP HTTP
+      - "13133:13133" # Health Check extension
+    healthcheck:
+      test: ["CMD", "/health_check", "http://localhost:13133"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     depends_on:
       - loki
     networks:
       - arc_net
 
   prometheus:
-    image: prom/prometheus:v3.7.3
+    image: prom/prometheus:latest # Using latest for simplicity
+    container_name: prometheus
     volumes:
       - ./config/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
-      - 9090:9090
+      - "9090:9090"
+    networks:
+      - arc_net
 
   jaeger:
-    image: jaegertracing/all-in-one:1.60
+    image: jaegertracing/all-in-one:latest # Using latest for simplicity
+    container_name: jaeger
     ports:
-      - 16686:16686
+      - "16686:16686" # Jaeger UI
+      # OTLP ports for Jaeger to receive traces directly if needed
+      - "4317"
+      - "4318"
+    networks:
+      - arc_net
 
   swiss-army-go:
     build:
       context: ./services/swiss-army
     container_name: swiss-army-go
     depends_on:
-      - otel-collector
+      otel-collector:
+        condition: service_healthy
     environment:
       # This is the "contract". Same env var, same endpoint.
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      # Pointing to the gRPC port for the Go app's exporters.
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=swiss-army-go
     networks:
       - arc_net
 
