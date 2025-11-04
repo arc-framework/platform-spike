@@ -1,11 +1,21 @@
 receivers:
   otlp: # Receives data on ports 4317 (gRPC) and 4318 (HTTP)
     protocols:
-      grpc:
-      http:
+      grpc: # Explicitly set the endpoint to listen on all network interfaces.
+        endpoint: 0.0.0.0:4317
+      http: # Do the same for the HTTP receiver for consistency.
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch: # Batches data for efficiency
+  # This processor is crucial for linking logs with traces. It uses OTTL
+  # to copy the trace_id and span_id from the log's context into its attributes.
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["trace_id"], trace_id)
+          - set(attributes["span_id"], span_id)
 
 exporters:
   # Exporter 1: Send logs to Loki via OTLP
@@ -52,7 +62,7 @@ service:
 
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [batch, transform]
       exporters: [otlphttp/loki, debug]
 
   extensions: [health_check]

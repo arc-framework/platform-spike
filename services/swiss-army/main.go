@@ -4,20 +4,26 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+
+	"google.golang.org/grpc"
 )
 
 // newOtelProvider initializes and configures the OpenTelemetry SDK, returning a shutdown function.
@@ -33,9 +39,20 @@ func newOtelProvider(ctx context.Context) (func(context.Context) error, error) {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
+	// Define common gRPC connection options to reduce duplication.
+	// The endpoint is the address of our OpenTelemetry Collector.
+	endpoint := "otel-collector:4317"
+	dialOptions := []grpc.DialOption{grpc.WithBlock()}
+
 	// --- TRACER SETUP ---
-	// Exporters are configured with environment variables (e.g., OTEL_EXPORTER_OTLP_ENDPOINT).
-	traceExporter, err := otlptracegrpc.New(ctx)
+	traceExporter, err := otlptracegrpc.New(ctx,
+		// WithBlock forces the connection to be established on startup.
+		// Combined with the docker-compose healthcheck, this ensures the
+		// collector is ready before the app tries to connect.
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithDialOption(dialOptions...),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
@@ -49,7 +66,12 @@ func newOtelProvider(ctx context.Context) (func(context.Context) error, error) {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	// --- METER SETUP ---
-	metricExporter, err := otlpmetricgrpc.New(ctx)
+	metricExporter, err := otlpmetricgrpc.New(ctx,
+		// Use the same blocking dial option for metrics.
+		otlpmetricgrpc.WithEndpoint(endpoint),
+		otlpmetricgrpc.WithInsecure(),
+		otlpmetricgrpc.WithDialOption(dialOptions...),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
@@ -60,11 +82,33 @@ func newOtelProvider(ctx context.Context) (func(context.Context) error, error) {
 	)
 	otel.SetMeterProvider(meterProvider)
 
+	// --- LOGGER SETUP ---
+	// This is the missing piece. We set up a third exporter for logs.
+	logExporter, err := otlploggrpc.New(ctx,
+		otlploggrpc.WithEndpoint(endpoint),
+		otlploggrpc.WithInsecure(),
+		otlploggrpc.WithDialOption(dialOptions...),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log exporter: %w", err)
+	}
+
+	loggerProvider := sdklog.NewLoggerProvider(
+		sdklog.WithResource(res),
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
+	)
+	// Set the global logger provider. After this, any calls to the standard log package
+	// will be routed through the OpenTelemetry pipeline.
+	global.SetLoggerProvider(loggerProvider)
+
 	// Return a function that gracefully shuts down both providers.
 	return func(ctx context.Context) error {
 		// Shutdown providers in reverse order of initialization.
 		if err := meterProvider.Shutdown(ctx); err != nil {
 			return fmt.Errorf("failed to shutdown MeterProvider: %w", err)
+		}
+		if err := loggerProvider.Shutdown(ctx); err != nil {
+			return fmt.Errorf("failed to shutdown LoggerProvider: %w", err)
 		}
 		if err := tracerProvider.Shutdown(ctx); err != nil {
 			return fmt.Errorf("failed to shutdown TracerProvider: %w", err)
@@ -73,7 +117,24 @@ func newOtelProvider(ctx context.Context) (func(context.Context) error, error) {
 	}, nil
 }
 
+func waitForDNS(host string) {
+	for {
+		log.Printf("Attempting to resolve DNS for %s...", host)
+		_, err := net.LookupHost(host)
+		if err == nil {
+			log.Printf("DNS for %s resolved successfully.", host)
+			return
+		}
+		log.Printf("DNS resolution failed for %s: %v. Retrying in 2 seconds...", host, err)
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func main() {
+	// This is a robust, brute-force method to ensure the otel-collector
+	// is resolvable in the Docker network before we proceed.
+	waitForDNS("otel-collector")
+
 	log.Println("Starting swiss-army-go service...")
 
 	// Set up a context that is canceled on an interrupt signal.
