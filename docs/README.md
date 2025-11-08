@@ -12,7 +12,7 @@ This directory contains all project documentation.
 ## Quick Links
 
 - [Operations Guide](OPERATIONS.md)
-- [Analysis System](analysis/INDEX.md)
+- [Analysis System](analysis/ANALYSIS-INDEX.md)
 - [Latest Reports](reports/2025/11/)
 
 ## Contributing

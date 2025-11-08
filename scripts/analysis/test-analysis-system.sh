@@ -6,7 +6,7 @@ echo "🧪 Testing Repository Analysis System..."
 echo ""
 
 # Test 1: Check if template exists
-if [ -f "tools/analysis/prompt-template.md" ]; then
+if [ -f "prompts/PROMPT-analysis-template.md" ]; then
     echo "✅ Template found"
 else
     echo "❌ Template missing"
@@ -31,10 +31,10 @@ fi
 
 # Test 4: Check documentation files
 docs=(
-    "docs/analysis/INDEX.md"
-    "docs/analysis/QUICK-REF.md"
-    "docs/analysis/SYSTEM-GUIDE.md"
-    "docs/analysis/SETUP.md"
+    "docs/analysis/ANALYSIS-INDEX.md"
+    "docs/analysis/ANALYSIS-QUICK-REF.md"
+    "docs/analysis/ANALYSIS-SYSTEM-GUIDE.md"
+    "docs/analysis/ANALYSIS-SETUP.md"
 )
 
 for doc in "${docs[@]}"; do
@@ -61,9 +61,9 @@ echo ""
 echo "🎉 All tests passed! System is ready to use."
 echo ""
 echo "📚 Quick Reference:"
-echo "   ./scripts/analysis/run-analysis.sh   → Run analysis"
-echo "   cat docs/analysis/QUICK-REF.md       → View quick ref"
-echo "   cat docs/analysis/INDEX.md           → Navigate docs"
+echo "   ./scripts/analysis/run-analysis.sh      → Run analysis"
+echo "   cat docs/analysis/ANALYSIS-QUICK-REF.md → View quick ref"
+echo "   cat docs/analysis/ANALYSIS-INDEX.md     → Navigate docs"
 echo ""
 echo "✨ Ready to analyze repositories!"
 

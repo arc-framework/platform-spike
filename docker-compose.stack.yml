@@ -2,11 +2,10 @@
 # Use together with the base compose in this repo:
 # docker compose -f docker-compose.yml -f docker-compose.stack.yml up -d --build
 
-version: "3.8"
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:latest
     container_name: arc_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-arc}
@@ -27,7 +26,7 @@ services:
       - arc_net
 
   redis:
-    image: redis:7
+    image: redis:latest
     container_name: arc_redis
     volumes:
       - redis-data:/data
@@ -42,7 +41,7 @@ services:
       - arc_net
 
   nats:
-    image: nats:2.9.16-alpine
+    image: nats:latest
     container_name: arc_nats
     ports:
       - "4222:4222"
@@ -56,7 +55,7 @@ services:
       - arc_net
 
   pulsar:
-    image: apachepulsar/pulsar:2.10.2
+    image: apachepulsar/pulsar:latest
     container_name: arc_pulsar
     command: ["bin/pulsar", "standalone", "-nss", "--no-functions-worker"]
     environment:
@@ -73,7 +72,7 @@ services:
       - arc_net
 
   kratos:
-    image: oryd/kratos:v1.17.0
+    image: oryd/kratos:latest
     container_name: arc_kratos
     # Kratos requires a config dir and DB migrations. See config/platform/kratos/README.md
     volumes:
@@ -94,7 +93,7 @@ services:
       - arc_net
 
   unleash:
-    image: unleashorg/unleash-server:4.12.0
+    image: unleashorg/unleash-server:latest
     container_name: arc_unleash
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-arc_db}"
@@ -113,7 +112,7 @@ services:
       - arc_net
 
   infisical:
-    image: infisical/infisical-server:latest
+    image: infisical/infisical:latest
     container_name: arc_infisical
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-arc_db}"
@@ -130,7 +129,7 @@ services:
       - arc_net
 
   traefik:
-    image: traefik:v2.10
+    image: traefik:latest
     container_name: arc_traefik
     command:
       - "--api.insecure=true"

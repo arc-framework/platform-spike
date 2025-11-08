@@ -9,17 +9,17 @@
 
 ### Generate Today's Journal
 ```bash
-./scripts/operations/generate-journal.sh
+./scripts/journal/generate-journal.sh
 ```
 
 ### Generate for Specific Date
 ```bash
-./scripts/operations/generate-journal.sh 2025-11-08
+./scripts/journal/generate-journal.sh 2025-11-08
 ```
 
 ### With Comparison to Previous Day
 ```bash
-./scripts/operations/generate-journal.sh --compare
+./scripts/journal/generate-journal.sh --compare
 ```
 
 ---
@@ -101,7 +101,7 @@ Each journal is a complete markdown file with:
 ### Daily Workflow
 ```bash
 # End of workday (6 PM)
-./scripts/operations/generate-journal.sh
+./scripts/journal/generate-journal.sh
 
 # Review and fill in [bracketed] sections
 vim journal/$(date +%Y/%m/%d)-journal.md
@@ -153,7 +153,7 @@ The script generates an enhancement prompt saved to `/tmp/journal-enhancement-pr
 crontab -e
 
 # Generate journal at 6 PM daily
-0 18 * * * cd /path/to/project && ./scripts/operations/generate-journal.sh
+0 18 * * * cd /path/to/project && ./scripts/journal/generate-journal.sh
 ```
 
 ### Option 2: Git Hook
@@ -184,7 +184,7 @@ vim journal/template.md
 ### Edit Script
 ```bash
 # Change what gets analyzed
-vim scripts/operations/generate-journal.sh
+vim scripts/journal/generate-journal.sh
 ```
 
 ### Custom Sections
@@ -308,10 +308,10 @@ A: Yes! It captures all authors and can be edited collaboratively.
 ### Script Not Running?
 ```bash
 # Make executable
-chmod +x scripts/operations/generate-journal.sh
+chmod +x scripts/journal/generate-journal.sh
 
 # Test
-./scripts/operations/generate-journal.sh --help
+./scripts/journal/generate-journal.sh --help
 ```
 
 ### No Commits Found?
@@ -320,7 +320,7 @@ chmod +x scripts/operations/generate-journal.sh
 git log --since="2025-11-07" --until="2025-11-09"
 
 # Verify dates
-./scripts/operations/generate-journal.sh 2025-11-08
+./scripts/journal/generate-journal.sh 2025-11-08
 ```
 
 ### Want Different Format?
@@ -332,7 +332,7 @@ Edit `journal/template.md` to customize structure.
 
 ```bash
 # Generate your first journal
-./scripts/operations/generate-journal.sh
+./scripts/journal/generate-journal.sh
 
 # View it
 cat journal/$(date +%Y/%m/%d)-journal.md

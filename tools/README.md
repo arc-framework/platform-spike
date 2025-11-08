@@ -4,9 +4,9 @@ This directory contains utilities for development, validation, and analysis.
 
 ## Structure
 
-- **analysis/** - Repository analysis system
-  - `prompt-template.md` - Analysis framework template
-  - Runner script in `../../scripts/analysis/`
+- **analysis/** - Repository analysis system utilities
+  - Analysis scripts located in `../../scripts/analysis/`
+  - Prompt templates in `../../prompts/`
   
 - **validation/** - Configuration and environment validation scripts
   - `validate-env.sh` - Validate environment variables
@@ -19,4 +19,6 @@ This directory contains utilities for development, validation, and analysis.
 Tools are typically executed via Makefile targets or directly from scripts/ directory.
 
 For analysis system: `./scripts/analysis/run-analysis.sh`
+
+**Note:** Prompt templates have been moved to `prompts/` directory for better organization.
 

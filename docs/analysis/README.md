@@ -23,5 +23,5 @@ Reports are stored in `../reports/YYYY/MM/` with format:
 
 ## Usage
 
-See [QUICK-REF.md](QUICK-REF.md) for commands and workflows.
+See [ANALYSIS-QUICK-REF.md](ANALYSIS-QUICK-REF.md) for commands and workflows.
 

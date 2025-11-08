@@ -61,7 +61,7 @@ services:
       - arc_net
 
   prometheus:
-    image: prom/prometheus:latest # Using latest for simplicity
+    image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./config/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml

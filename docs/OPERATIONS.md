@@ -196,7 +196,7 @@ docker exec arc_postgres psql -U arc arc_db < backup.sql
 # Connect to Redis
 make shell-redis
 
-# Monitor operations in real-time
+# Monitor journal in real-time
 MONITOR
 
 # View memory usage

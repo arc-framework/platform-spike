@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 REPORT_DIR="$PROJECT_ROOT/docs/reports"
-TEMPLATE_FILE="$PROJECT_ROOT/tools/analysis/prompt-template.md"
+TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-analysis-template.md"
 
 # Colors for output
 RED='\033[0;31m'

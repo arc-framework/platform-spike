@@ -16,27 +16,26 @@ This system automatically generates daily journal entries by:
 ```
 journal/
 ├── README.md (this file)
-├── template.md (journal entry template)
 ├── 2025/
 │   ├── 11/
 │   │   ├── 08-journal.md
 │   │   ├── 09-journal.md
 │   │   └── ...
-├── scripts/
-│   └── generate-journal.sh
 └── archives/
+
+Note: Journal template is in prompts/PROMPT-journal-template.md
 ```
 
 ## Usage
 
 ### Generate Today's Journal
 ```bash
-./scripts/operations/generate-journal.sh
+./scripts/journal/generate-journal.sh
 ```
 
 ### Generate for Specific Date
 ```bash
-./scripts/operations/generate-journal.sh 2025-11-08
+./scripts/journal/generate-journal.sh 2025-11-08
 ```
 
 ### View Latest Journal
@@ -47,7 +46,7 @@ cat journal/$(date +%Y)/$(date +%m)/$(date +%d)-journal.md
 ### Compare with Previous Day
 ```bash
 # Automatically included in journal generation
-./scripts/operations/generate-journal.sh --compare
+./scripts/journal/generate-journal.sh --compare
 ```
 
 ## What Gets Captured
@@ -114,7 +113,7 @@ The journal system integrates with:
 Add to crontab or CI/CD:
 ```bash
 # Generate journal at end of workday (6 PM)
-0 18 * * * cd /path/to/project && ./scripts/operations/generate-journal.sh
+0 18 * * * cd /path/to/project && ./scripts/journal/generate-journal.sh
 ```
 
 ### Git Hook (Optional)
@@ -122,7 +121,7 @@ Add to `.git/hooks/post-commit`:
 ```bash
 #!/bin/bash
 # Update journal after each commit
-./scripts/operations/generate-journal.sh --update
+./scripts/journal/generate-journal.sh --update
 ```
 
 ## Benefits

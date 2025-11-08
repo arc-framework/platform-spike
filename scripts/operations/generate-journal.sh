@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 JOURNAL_DIR="$PROJECT_ROOT/journal"
-TEMPLATE_FILE="$JOURNAL_DIR/template.md"
+TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-journal-template.md"
 
 # Colors
 RED='\033[0;31m'
