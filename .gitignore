@@ -1,32 +1,76 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Code coverage profiles and other test artifacts
-*.out
-coverage.*
-*.coverprofile
-profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-go.work.sum
-
-# env file
+# Environment & Secrets (CRITICAL: Never commit these)
 .env
+.env.local
+.env.*.local
+config/**/.env
+!config/**/.env.example
+.secrets/
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Docker & Compose
+.docker/
+docker-compose.override.yml
+deployments/docker/*.override.yml
+
+# Generated & Build Artifacts
+dist/
+build/
+*.log
+*.out
+tests/results/
+
+# Reports (keep only markdown, not temp files)
+docs/reports/**/*
+!docs/reports/**/*.md
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.sublime-project
+.sublime-workspace
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+.Python
+
+# Go
+/bin/
+/vendor/
+*.o
+*.a
+
+# Data & Volumes
+data/
+volumes/
+*.db
+*.sqlite3
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+

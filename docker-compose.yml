@@ -22,7 +22,7 @@ services:
       - "3000:3000" # Grafana UI
     volumes:
       # This is the "magic" to auto-add Loki as a datasource
-      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/observability/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       loki:
         condition: service_healthy
