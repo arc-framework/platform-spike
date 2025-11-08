@@ -1,0 +1,149 @@
+# A.R.C. Framework - Observability Plugins
+# ==============================================================================
+# Optional observability stack for logs, metrics, traces, and visualization
+# These services can be swapped with alternatives
+# ==============================================================================
+
+
+services:
+  # ===========================================================================
+  # LOGGING - Loki
+  # ===========================================================================
+  arc_loki:
+    image: grafana/loki:2.9.4
+    container_name: arc_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - arc_loki_data:/loki
+    networks:
+      - arc_net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=logging"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=elasticsearch,splunk,cloudwatch"
+
+  # ===========================================================================
+  # METRICS - Prometheus
+  # ===========================================================================
+  arc_prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: arc_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ../../plugins/observability/metrics/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - arc_prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - arc_net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=metrics"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=influxdb,datadog,cloudwatch"
+
+  # ===========================================================================
+  # TRACING - Jaeger
+  # ===========================================================================
+  arc_jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: arc_jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+      METRICS_STORAGE_TYPE: prometheus
+      PROMETHEUS_SERVER_URL: http://arc_prometheus:9090
+      PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR: "true"
+      PROMETHEUS_QUERY_NAMESPACE: span_metrics
+      PROMETHEUS_QUERY_DURATION_UNIT: s
+    ports:
+      - "16686:16686"  # UI
+      - "14268:14268"  # Collector HTTP
+      - "14250:14250"  # Collector gRPC
+    networks:
+      - arc_net
+    depends_on:
+      arc_prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=tracing"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=zipkin,tempo,x-ray"
+
+  # ===========================================================================
+  # VISUALIZATION - Grafana
+  # ===========================================================================
+  arc_grafana:
+    image: grafana/grafana:10.3.1
+    container_name: arc_grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_LOG_LEVEL: info
+    volumes:
+      - ../../plugins/observability/visualization/grafana/provisioning:/etc/grafana/provisioning:ro
+      - arc_grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - arc_net
+    depends_on:
+      arc_loki:
+        condition: service_healthy
+      arc_prometheus:
+        condition: service_healthy
+      arc_jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=visualization"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=kibana,datadog,newrelic"
+
+

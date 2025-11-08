@@ -1,45 +1,48 @@
-# Service Configurations
+# Configuration Files
 
-Configuration files for all platform services, organized by purpose.
+**Note**: Configuration files have been moved to their respective component directories.
 
-## Structure
+---
 
-- **otel-collector-config.yml** - OpenTelemetry Collector configuration (root level)
+## New Structure
 
-### observability/
-Observability stack configurations:
-- grafana/ - Grafana dashboard and datasources
-- loki/ - Log aggregation configuration
-- prometheus/ - Metrics scraping and storage
-- jaeger/ - Distributed tracing
-- otel-collector/ - Collector build and health check
+Configuration files are now co-located with their components:
 
-### platform/
-Platform service configurations:
-- postgres/ - Database initialization and config
-- redis/ - Cache configuration
-- nats/ - Message broker
-- pulsar/ - Event streaming
-- kratos/ - Identity and authentication
-- unleash/ - Feature flags
-- infisical/ - Secrets management
-- traefik/ - API gateway and reverse proxy
+### Core Services
+- `core/gateway/traefik/` - Traefik configuration
+- `core/telemetry/otel-collector/` - OpenTelemetry Collector configuration
+- `core/messaging/ephemeral/nats/` - NATS configuration
+- `core/messaging/durable/pulsar/` - Pulsar configuration
+- `core/persistence/postgres/` - Postgres configuration
+- `core/caching/redis/` - Redis configuration
+- `core/secrets/infisical/` - Infisical configuration
+- `core/feature-management/unleash/` - Unleash configuration
 
-## Environment Files
+### Plugin Services
+- `plugins/security/identity/kratos/` - Kratos configuration
+- `plugins/observability/logging/loki/` - Loki configuration
+- `plugins/observability/metrics/prometheus/` - Prometheus configuration
+- `plugins/observability/tracing/jaeger/` - Jaeger configuration
+- `plugins/observability/visualization/grafana/` - Grafana configuration
 
-Each service has a `.env.example` file. Copy to `.env` for local customization.
+---
 
-```bash
-# Example
-cp config/platform/postgres/.env.example config/platform/postgres/.env
-```
+## Migration Note
 
-## Usage with Docker Compose
+This directory now serves as a reference only. All actual configuration has been moved to follow the official naming conventions documented in `docs/guides/NAMING-CONVENTIONS.md`.
 
-Paths are referenced from project root:
-```yaml
-volumes:
-  - ./config/observability/grafana/provisioning:/etc/grafana/provisioning
-  - ./config/platform/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-```
+### Why the Change?
+
+1. **Co-location** - Config with component (easier to find)
+2. **Clear ownership** - Component owns its config
+3. **Better organization** - Follows core/plugins architecture
+4. **Standard pattern** - Matches industry best practices
+
+---
+
+## See Also
+
+- [Core Services](../core/) - Core component configurations
+- [Plugins](../plugins/) - Plugin component configurations
+- [Naming Conventions](../docs/guides/NAMING-CONVENTIONS.md) - Official standards
 

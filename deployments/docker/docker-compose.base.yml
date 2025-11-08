@@ -1,0 +1,45 @@
+# A.R.C. Framework Platform - Base Configuration
+# ==============================================================================
+# This file defines shared resources (networks, volumes) used by all services
+# Use with: docker compose -f docker-compose.base.yml -f docker-compose.*.yml
+# ==============================================================================
+
+
+networks:
+  arc_net:
+    name: arc_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Core service volumes
+  arc_postgres_data:
+    name: arc_postgres_data
+    driver: local
+
+  arc_redis_data:
+    name: arc_redis_data
+    driver: local
+
+  arc_pulsar_data:
+    name: arc_pulsar_data
+    driver: local
+
+  # Observability volumes (optional, for data persistence)
+  arc_prometheus_data:
+    name: arc_prometheus_data
+    driver: local
+
+  arc_grafana_data:
+    name: arc_grafana_data
+    driver: local
+
+  arc_loki_data:
+    name: arc_loki_data
+    driver: local
+
+# No services defined - this is imported by other compose files
+services: {}
+
