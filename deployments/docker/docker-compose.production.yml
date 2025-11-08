@@ -1,0 +1,189 @@
+# A.R.C. Framework - Production Configuration Override
+# ==============================================================================
+# Use this override to secure the platform for production deployment
+# Usage: docker compose -f docker-compose.*.yml -f docker-compose.production.yml up
+# Or: COMPOSE_PROFILES=production make up
+# ==============================================================================
+#
+# Security Features:
+# - Removes direct port exposures (access via Traefik only)
+# - Disables development/debug features
+# - Enforces production-grade settings
+#
+# ==============================================================================
+
+services:
+  # ===========================================================================
+  # CORE SERVICES - Production Hardening
+  # ===========================================================================
+
+  # PostgreSQL - Remove direct port exposure (access via internal network only)
+  arc_postgres:
+    ports: []  # Remove 5432:5432 exposure
+
+  # Redis - Remove direct port exposure
+  arc_redis:
+    ports: []  # Remove 6379:6379 exposure
+
+  # NATS - Remove monitoring port, keep only internal client port
+  arc_nats:
+    ports:
+      - "4222:4222"  # Keep client connections for services
+    # Removed: 8222 (monitoring), 6222 (cluster)
+
+  # Pulsar - Remove admin port exposure
+  arc_pulsar:
+    ports:
+      - "6650:6650"  # Keep broker for services
+    # Removed: 8082 (admin HTTP)
+
+  # Infisical - Remove direct port (access via Traefik)
+  arc_infisical:
+    ports: []
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=secrets"
+      - "traefik.enable=true"
+      - "traefik.http.routers.infisical.rule=Host(`infisical.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.infisical.loadbalancer.server.port=8080"
+      - "traefik.http.routers.infisical.entrypoints=websecure"
+      - "traefik.http.routers.infisical.tls=true"
+
+  # Unleash - Remove direct port (access via Traefik)
+  arc_unleash:
+    ports: []
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=feature-management"
+      - "traefik.enable=true"
+      - "traefik.http.routers.unleash.rule=Host(`unleash.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.unleash.loadbalancer.server.port=4242"
+      - "traefik.http.routers.unleash.entrypoints=websecure"
+      - "traefik.http.routers.unleash.tls=true"
+
+  # ===========================================================================
+  # OBSERVABILITY - Production Hardening
+  # ===========================================================================
+
+  # Loki - Remove direct port (internal only)
+  arc_loki:
+    ports: []
+
+  # Prometheus - Remove direct port (access via Grafana or Traefik)
+  arc_prometheus:
+    ports: []
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=metrics"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=influxdb,datadog,cloudwatch"
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
+      # Add authentication middleware
+      - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
+      - "traefik.http.middlewares.prometheus-auth.basicauth.users=${PROMETHEUS_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
+
+  # Jaeger - Remove direct ports (access via Grafana or Traefik)
+  arc_jaeger:
+    ports:
+      - "14268:14268"  # Keep collector HTTP for services
+      - "14250:14250"  # Keep collector gRPC for services
+    # Removed: 16686 (UI)
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=tracing"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=zipkin,tempo,x-ray"
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=16686"
+      - "traefik.http.routers.jaeger.entrypoints=websecure"
+      - "traefik.http.routers.jaeger.tls=true"
+      - "traefik.http.routers.jaeger.middlewares=jaeger-auth"
+      - "traefik.http.middlewares.jaeger-auth.basicauth.users=${JAEGER_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
+
+  # Grafana - Keep exposed but add authentication via Traefik
+  arc_grafana:
+    ports: []
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=visualization"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=kibana,datadog,newrelic"
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+
+  # ===========================================================================
+  # SECURITY - Production Hardening
+  # ===========================================================================
+
+  # Kratos - Remove direct ports (access via Traefik)
+  arc_kratos:
+    ports: []
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=security"
+      - "arc.service.subcategory=identity"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=keycloak,auth0,cognito,okta"
+      # Public API
+      - "traefik.enable=true"
+      - "traefik.http.routers.kratos-public.rule=Host(`auth.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.kratos-public.loadbalancer.server.port=4433"
+      - "traefik.http.routers.kratos-public.entrypoints=websecure"
+      - "traefik.http.routers.kratos-public.tls=true"
+      # Admin API (internal only)
+      - "traefik.http.routers.kratos-admin.rule=Host(`auth-admin.${DOMAIN:-localhost}`)"
+      - "traefik.http.services.kratos-admin.loadbalancer.server.port=4434"
+      - "traefik.http.routers.kratos-admin.entrypoints=websecure"
+      - "traefik.http.routers.kratos-admin.tls=true"
+      - "traefik.http.routers.kratos-admin.middlewares=admin-auth"
+      - "traefik.http.middlewares.admin-auth.basicauth.users=${ADMIN_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
+
+  # ===========================================================================
+  # TELEMETRY - Production Hardening
+  # ===========================================================================
+
+  # OTEL Collector - Keep OTLP ports, remove health check port
+  arc_otel_collector:
+    ports:
+      - "4317:4317"   # OTLP gRPC (required by services)
+      - "4318:4318"   # OTLP HTTP (required by services)
+    # Removed: 13133 (health check), 8888 (Prometheus metrics - use internal)
+
+# ==============================================================================
+# Networks Configuration
+# ==============================================================================
+# All services remain on arc_net but are only accessible via Traefik
+
+# ==============================================================================
+# PRODUCTION DEPLOYMENT NOTES
+# ==============================================================================
+#
+# 1. Set DOMAIN environment variable:
+#    export DOMAIN=yourdomain.com
+#
+# 2. Configure TLS certificates in Traefik
+#
+# 3. Generate basic auth credentials:
+#    htpasswd -nb admin your-password
+#
+# 4. Set authentication env vars:
+#    PROMETHEUS_AUTH=admin:$apr1$...
+#    JAEGER_AUTH=admin:$apr1$...
+#    ADMIN_AUTH=admin:$apr1$...
+#
+# 5. Deploy with production profile:
+#    make up PROFILE=production
+#
+# ==============================================================================
+

@@ -12,7 +12,7 @@
         down-minimal down-observability down-security down-full \
         health-all health-core health-plugins health-observability health-security \
         health-services validate info status version \
-        init-env init-volumes init-network init-all \
+        init-env init-volumes init-network init-all generate-secrets validate-secrets \
         backup-db restore-db reset-db migrate-db \
         logs-core logs-observability logs-security logs-services \
         shell-postgres shell-redis shell-nats test-connectivity \
@@ -27,7 +27,7 @@ COMPOSE := docker compose
 COMPOSE_DIR := deployments/docker
 
 # Compose file references
-COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) -f $(COMPOSE_DIR)/docker-compose.base.yml
+COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
 COMPOSE_CORE := $(COMPOSE_BASE) -f $(COMPOSE_DIR)/docker-compose.core.yml
 COMPOSE_OBS := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.observability.yml
 COMPOSE_SEC := $(COMPOSE_OBS) -f $(COMPOSE_DIR)/docker-compose.security.yml
@@ -66,7 +66,9 @@ help:
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(YELLOW)Initialization:$(NC)"
 	@echo "  $(GREEN)make init$(NC)              Initialize complete environment"
-	@echo "  $(GREEN)make init-env$(NC)          Create .env file from template"
+	@echo "  $(GREEN)make init-env$(NC)          Create .env file (interactive)"
+	@echo "  $(GREEN)make generate-secrets$(NC)  Generate secure random secrets"
+	@echo "  $(GREEN)make validate-secrets$(NC)  Validate secrets configuration"
 	@echo "  $(GREEN)make init-volumes$(NC)      Create Docker volumes"
 	@echo "  $(GREEN)make init-network$(NC)      Create Docker network"
 	@echo ""
@@ -130,12 +132,28 @@ init: init-env init-network init-volumes
 init-env:
 	@echo "$(BLUE)Initializing environment configuration...$(NC)"
 	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "$(GREEN)✓ Created .env from template$(NC)"; \
-		echo "$(YELLOW)⚠ Please review and update .env with your settings$(NC)"; \
+		echo "$(YELLOW)No .env file found. Choose initialization method:$(NC)"; \
+		echo "  1. Generate with secure random secrets (recommended)"; \
+		echo "  2. Copy from template (requires manual configuration)"; \
+		read -p "Enter choice (1 or 2): " choice; \
+		if [ "$$choice" = "1" ]; then \
+			$(SETUP_SCRIPTS)/generate-secrets.sh; \
+		else \
+			cp .env.example .env; \
+			echo "$(GREEN)✓ Created .env from template$(NC)"; \
+			echo "$(YELLOW)⚠ SECURITY WARNING: Update all CHANGE_ME values before deployment!$(NC)"; \
+		fi \
 	else \
 		echo "$(YELLOW)⚠ .env already exists, skipping...$(NC)"; \
 	fi
+
+generate-secrets:
+	@echo "$(BLUE)Generating secure secrets...$(NC)"
+	@$(SETUP_SCRIPTS)/generate-secrets.sh
+
+validate-secrets:
+	@echo "$(BLUE)Validating secrets configuration...$(NC)"
+	@$(SETUP_SCRIPTS)/validate-secrets.sh
 
 init-network:
 	@echo "$(BLUE)Creating Docker network...$(NC)"
@@ -197,7 +215,7 @@ up-security: .env init-network init-volumes
 	@sleep 10
 	@make health-all
 
-up-full: .env init-network init-volumes
+up-full: .env validate-secrets init-network init-volumes
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║  Starting FULL STACK Profile (All Services) - ~6GB RAM           ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"

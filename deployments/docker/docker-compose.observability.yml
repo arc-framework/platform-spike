@@ -4,12 +4,43 @@
 # These services can be swapped with alternatives
 # ==============================================================================
 
+# Shared logging configuration
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "arc.service"
+
+# Shared resource limits for medium services
+x-resources-medium: &resources-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
+
+# Shared resource limits for large services (Prometheus, Grafana)
+x-resources-large: &resources-large
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 2G
+      reservations:
+        cpus: '0.5'
+        memory: 512M
 
 services:
   # ===========================================================================
   # LOGGING - Loki
   # ===========================================================================
   arc_loki:
+    <<: [*default-logging, *resources-large]
     image: grafana/loki:2.9.4
     container_name: arc_loki
     restart: unless-stopped
@@ -37,6 +68,7 @@ services:
   # METRICS - Prometheus
   # ===========================================================================
   arc_prometheus:
+    <<: [*default-logging, *resources-large]
     image: prom/prometheus:v2.49.1
     container_name: arc_prometheus
     restart: unless-stopped
@@ -71,6 +103,7 @@ services:
   # TRACING - Jaeger
   # ===========================================================================
   arc_jaeger:
+    <<: [*default-logging, *resources-medium]
     image: jaegertracing/all-in-one:1.54
     container_name: arc_jaeger
     restart: unless-stopped
@@ -108,12 +141,13 @@ services:
   # VISUALIZATION - Grafana
   # ===========================================================================
   arc_grafana:
+    <<: [*default-logging, *resources-medium]
     image: grafana/grafana:10.3.1
     container_name: arc_grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Error: GRAFANA_ADMIN_PASSWORD must be set in .env file}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_ANALYTICS_REPORTING_ENABLED: "false"

@@ -52,15 +52,15 @@ selfservice:
             - hook: session
 
 log:
-  level: debug
-  format: text
-  leak_sensitive_values: true
+  level: info
+  format: json
+  leak_sensitive_values: false
 
 secrets:
   cookie:
-    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+    - ${KRATOS_SECRET_COOKIE}
   cipher:
-    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
+    - ${KRATOS_SECRET_CIPHER}
 
 ciphers:
   algorithm: xchacha20-poly1305

@@ -4,21 +4,43 @@
 # These services can be swapped with alternatives
 # ==============================================================================
 
+# Shared logging configuration
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "arc.service"
+
+# Shared resource limits for medium services
+x-resources-medium: &resources-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
 
 services:
   # ===========================================================================
   # IDENTITY & AUTHENTICATION - Ory Kratos
   # ===========================================================================
   arc_kratos:
+    <<: [*default-logging, *resources-medium]
     image: oryd/kratos:v1.0.0
     container_name: arc_kratos
     restart: unless-stopped
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     environment:
-      DSN: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:-postgres}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4
+      DSN: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4
       LOG_LEVEL: info
       SERVE_PUBLIC_BASE_URL: http://localhost:4433/
       SERVE_ADMIN_BASE_URL: http://localhost:4434/
+      KRATOS_SECRET_COOKIE: ${KRATOS_SECRET_COOKIE:?Error: KRATOS_SECRET_COOKIE must be set - use 'openssl rand -base64 32'}
+      KRATOS_SECRET_CIPHER: ${KRATOS_SECRET_CIPHER:?Error: KRATOS_SECRET_CIPHER must be set - use 'openssl rand -base64 32'}
     volumes:
       - ../../plugins/security/identity/kratos:/etc/config/kratos:ro
     ports:

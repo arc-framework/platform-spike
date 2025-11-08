@@ -4,12 +4,32 @@
 # These are your custom services built on top of the framework
 # ==============================================================================
 
+# Shared logging configuration
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      labels: "arc.service"
+
+# Shared resource limits for medium services
+x-resources-medium: &resources-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
 
 services:
   # ===========================================================================
   # UTILITY - Swiss Army Service (Demo/Testing)
   # ===========================================================================
   arc_swiss_army:
+    <<: [*default-logging, *resources-medium]
     build:
       context: ../../services/utilities/swiss-army
       dockerfile: Dockerfile
