@@ -127,7 +127,7 @@ make up-observability
 
 Includes:
 - OpenTelemetry Collector
-- Sample application (swiss-army-go)
+- Sample application (toolbox)
 
 ### Full Core (Production)
 ```bash
@@ -187,4 +187,3 @@ make health-nats
 - [Plugins](../plugins/) - Optional plugin services
 - [Services](../services/) - Application services
 - [Operations Guide](../docs/OPERATIONS.md) - Operational procedures
-

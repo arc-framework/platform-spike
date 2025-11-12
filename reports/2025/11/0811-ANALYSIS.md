@@ -271,7 +271,7 @@ networks:
     driver: bridge
 
 # Remove port mappings for internal-only services in production
-# Keep: swiss-army-go:8081, grafana:3000, jaeger:16686
+# Keep: toolbox-go:8081, grafana:3000, jaeger:16686
 # Remove: loki:3100, prometheus:9090 (internal only)
 ```
 

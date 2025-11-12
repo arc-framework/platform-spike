@@ -68,7 +68,7 @@ Supporting services:
 #### Current Services
 ```
 utilities/
-└── swiss-army/           # Multi-purpose utility service
+└── toolbox/           # Multi-purpose utility service
 ```
 
 ---
@@ -143,7 +143,7 @@ The framework auto-detects language from:
 
 ### 1. Choose Category
 - Is it an AI agent? → `agents/`
-- Is it platform infrastructure? → `platform/`
+- Is it a platform infrastructure? → `platform/`
 - Is it a utility? → `utilities/`
 
 ### 2. Use Template
@@ -181,4 +181,3 @@ cd services/agents/my-agent
 - [Plugins](../plugins/) - Optional components
 - [Naming Conventions](../docs/guides/NAMING-CONVENTIONS.md)
 - [Service Templates](./agents/templates/)
-

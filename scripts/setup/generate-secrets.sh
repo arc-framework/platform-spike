@@ -51,14 +51,31 @@ echo "Generating secure secrets..."
 echo ""
 
 # Generate secrets
-POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '=+/')
-INFISICAL_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -d '=+/')
-INFISICAL_AUTH_SECRET=$(openssl rand -base64 32 | tr -d '=+/')
+
+# Core database password
+# Use -hex for passwords to ensure they are URL-safe for connection strings.
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+
+# Secrets management (Infisical)
+# Based on official documentation:
+# ENCRYPTION_KEY must be a 16-byte hex string.
+# AUTH_SECRET must be a 32-byte base64 string.
+INFISICAL_ENCRYPTION_KEY=$(openssl rand -hex 16)
+INFISICAL_AUTH_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+# Feature management (Unleash)
+# API token for server-to-server communication and a client token for applications.
 UNLEASH_API_TOKEN="*:*.$(openssl rand -hex 32)"
 UNLEASH_CLIENT_TOKEN="*:*.$(openssl rand -hex 32)"
-GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d '=+/')
-KRATOS_SECRET_COOKIE=$(openssl rand -base64 32 | tr -d '=+/')
-KRATOS_SECRET_CIPHER=$(openssl rand -base64 32 | tr -d '=+/')
+
+# Observability (Grafana)
+# Initial admin password for the Grafana user interface.
+GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')
+
+# Identity & Authentication (Kratos)
+# Secrets for securing session cookies and internal cryptographic operations.
+KRATOS_SECRET_COOKIE=$(openssl rand -base64 32 | tr -d '\n')
+KRATOS_SECRET_CIPHER=$(openssl rand -base64 32 | tr -d '\n')
 
 # Create .env file
 cat > "${ENV_FILE}" << EOF
@@ -80,7 +97,7 @@ POSTGRES_DB=arc_db
 # Secrets Management - Infisical
 # -----------------------------------------------------------------------------
 INFISICAL_ENCRYPTION_KEY=${INFISICAL_ENCRYPTION_KEY}
-INFISICAL_AUTH_SECRET=${INFISICAL_AUTH_SECRET}
+INFISICAL_AUTH_SECRET="${INFISICAL_AUTH_SECRET}"
 INFISICAL_SITE_URL=http://localhost:3001
 
 # -----------------------------------------------------------------------------
@@ -109,7 +126,7 @@ LOG_LEVEL=info
 
 # -----------------------------------------------------------------------------
 # OpenTelemetry Configuration (Optional Overrides)
-# -----------------------------------------------------------------------------
+# =============================================================================
 # OTEL_EXPORTER_OTLP_ENDPOINT=arc_otel_collector:4317
 # OTEL_EXPORTER_OTLP_INSECURE=true
 EOF
@@ -146,4 +163,3 @@ echo "  1. Review the .env file"
 echo "  2. Run: make up"
 echo "  3. Access services using the credentials above"
 echo ""
-

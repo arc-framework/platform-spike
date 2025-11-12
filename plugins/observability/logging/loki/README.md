@@ -67,7 +67,7 @@ curl http://localhost:3100/ready
 ```bash
 # Via API
 curl -G -s "http://localhost:3100/loki/api/v1/query" \
-  --data-urlencode 'query={service_name="swiss-army-go"}'
+  --data-urlencode 'query={service_name="toolbox-go"}'
 
 # Via Grafana (recommended)
 open http://localhost:3000/explore

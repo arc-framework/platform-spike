@@ -120,7 +120,7 @@ services/
 │   └── gateway-service/
 │
 └── utilities/                         # Utility services
-    ├── swiss-army/                    # Current example
+    ├── toolbox/                       # Current example
     └── health-checker/
 ```
 
@@ -481,7 +481,7 @@ services/
 │   ├── user-service/          # Go
 │   └── auth-api/              # Go
 └── utilities/
-    └── swiss-army/            # Go (current example)
+    └── toolbox/               # Go (current example)
 ```
 
 **Why This Works:**
@@ -797,7 +797,7 @@ services/
 **Migrate to:**
 ```
 services/
-└── swiss-army/                     # ✅ kebab-case
+└── toolbox/                        # ✅ kebab-case
 ```
 
 ---
@@ -872,4 +872,3 @@ When creating new components:
 
 **This is the official naming and folder convention guide for the A.R.C. Framework.**  
 **All new components must follow these standards.**
-

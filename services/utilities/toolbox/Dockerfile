@@ -18,7 +18,7 @@ COPY . .
 # Build the Go application.
 # CGO_ENABLED=0 creates a statically linked binary.
 # -ldflags="-w -s" strips debug information, reducing the binary size.
-RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o /app/swiss-army .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags="-w -s" -o /app/toolbox .
 
 # ---- Final Stage ----
 # Use a minimal, lightweight base image for the final container.
@@ -27,7 +27,7 @@ FROM alpine:latest
 RUN apk add --no-cache tzdata
 
 # Copy the built binary from the 'builder' stage.
-COPY --from=builder /app/swiss-army /swiss-army
+COPY --from=builder /app/toolbox /toolbox
 
 # Command to run the executable when the container starts.
-CMD ["/swiss-army"]
+CMD ["/toolbox"]

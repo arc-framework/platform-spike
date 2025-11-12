@@ -93,24 +93,20 @@ services:
     networks:
       - arc_net
 
-  swiss-army-go:
+  bootstrap:
     build:
-      context: ./services/swiss-army
-    container_name: swiss-army-go
+      context: ./services/toolbox
+    container_name: bootstrap
     depends_on:
       otel-collector:
         condition: service_healthy
     ports:
-      # Expose the application's HTTP port to the host for on-demand work.
-      - "8081:8080"
+      # Bootstrap service HTTP port (mapped for local access)
+      - "7100:7100"
     environment:
-      # This is the "contract". Same env var, same endpoint.
-      # Pointing to the gRPC port for the Go app's exporters.
-      # The gRPC endpoint should be host:port without a protocol scheme.
-      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317 
-      # Explicitly disable TLS for the OTLP exporter.
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
-      - OTEL_SERVICE_NAME=swiss-army-go
+      - OTEL_SERVICE_NAME=bootstrap
     networks:
       - arc_net
 

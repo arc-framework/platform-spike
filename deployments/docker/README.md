@@ -152,7 +152,7 @@ make up
 
 | Service | Category | Location |
 |---------|----------|----------|
-| `arc_swiss_army` | Utility | `services/utilities/swiss-army/` |
+| `arc_toolbox` | Utility | `services/utilities/toolbox/` |
 
 ---
 
@@ -172,7 +172,7 @@ All volume mounts reference the actual directory structure:
 ./plugins/security/identity/kratos
 
 # Application services
-./services/utilities/swiss-army
+./services/utilities/toolbox
 ```
 
 **Note:** All paths are relative to the repository root, not this directory.
@@ -197,7 +197,7 @@ arc_prometheus
 arc_jaeger
 arc_grafana
 arc_kratos
-arc_swiss_army
+arc_toolbox
 ```
 
 ---
@@ -397,4 +397,3 @@ make logs
 **Last Updated:** November 9, 2025  
 **Version:** 2.0.0  
 **Status:** ✅ Production Ready
-

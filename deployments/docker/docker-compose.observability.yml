@@ -35,13 +35,36 @@ x-resources-large: &resources-large
         cpus: '0.5'
         memory: 512M
 
+# Combined templates
+x-medium-service: &medium-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
+
+x-large-service: &large-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 2G
+      reservations:
+        cpus: '0.5'
+        memory: 512M
+
 services:
   # ===========================================================================
   # LOGGING - Loki
   # ===========================================================================
   arc_loki:
-    <<: [*default-logging, *resources-large]
-    image: grafana/loki:2.9.4
+    <<: *large-service
+    image: grafana/loki:3
     container_name: arc_loki
     restart: unless-stopped
     command: -config.file=/etc/loki/local-config.yaml
@@ -68,8 +91,8 @@ services:
   # METRICS - Prometheus
   # ===========================================================================
   arc_prometheus:
-    <<: [*default-logging, *resources-large]
-    image: prom/prometheus:v2.49.1
+    <<: *large-service
+    image: prom/prometheus:v3.7.3
     container_name: arc_prometheus
     restart: unless-stopped
     command:
@@ -103,8 +126,8 @@ services:
   # TRACING - Jaeger
   # ===========================================================================
   arc_jaeger:
-    <<: [*default-logging, *resources-medium]
-    image: jaegertracing/all-in-one:1.54
+    <<: *medium-service
+    image: jaegertracing/all-in-one:1.74.0
     container_name: arc_jaeger
     restart: unless-stopped
     environment:
@@ -141,13 +164,13 @@ services:
   # VISUALIZATION - Grafana
   # ===========================================================================
   arc_grafana:
-    <<: [*default-logging, *resources-medium]
-    image: grafana/grafana:10.3.1
+    <<: *medium-service
+    image: grafana/grafana:latest
     container_name: arc_grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Error: GRAFANA_ADMIN_PASSWORD must be set in .env file}
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?Error: GRAFANA_ADMIN_PASSWORD must be set in .env file}"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_ANALYTICS_REPORTING_ENABLED: "false"
@@ -180,4 +203,25 @@ services:
       - "arc.service.swappable=true"
       - "arc.service.alternatives=kibana,datadog,newrelic"
 
-
+  # ===========================================================================
+  # MESSAGING UI - Pulsar Dashboard
+  # ===========================================================================
+  arc_pulsar_dashboard:
+    <<: *medium-service
+    image: apachepulsar/pulsar-dashboard:latest
+    container_name: arc_pulsar_dashboard
+    restart: unless-stopped
+    environment:
+      - PULSAR_BROKER_URL=pulsar://arc_pulsar:6650
+      - PULSAR_ADMIN_URL=http://arc_pulsar:8080
+    ports:
+      - "8083:80"
+    networks:
+      - arc_net
+    depends_on:
+      arc_pulsar:
+        condition: service_healthy
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=dashboard"

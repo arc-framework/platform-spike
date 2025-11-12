@@ -264,7 +264,7 @@ ENV_FILE=.env.prod make up
 
 **Multi-Stage Builds:**
 ```dockerfile
-# services/utilities/swiss-army/Dockerfile
+# services/utilities/toolbox/Dockerfile
 FROM golang:1.25-alpine AS builder  # Build stage
 RUN CGO_ENABLED=0 go build -ldflags="-w -s"  # Static binary
 
@@ -649,7 +649,7 @@ groups:
 
 **Service Dependencies:**
 ```yaml
-# swiss-army service depends on multiple services
+# toolbox service depends on multiple services
 depends_on:
   arc_otel_collector:
     condition: service_healthy

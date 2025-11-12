@@ -46,13 +46,47 @@ x-resources-large: &resources-large
         cpus: '0.5'
         memory: 512M
 
+# Combined templates (logging + resources)
+x-small-service: &small-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 512M
+      reservations:
+        cpus: '0.1'
+        memory: 128M
+
+x-medium-service: &medium-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
+
+x-large-service: &large-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 2G
+      reservations:
+        cpus: '0.5'
+        memory: 512M
+
 services:
   # ===========================================================================
   # GATEWAY - API Gateway & Reverse Proxy
   # ===========================================================================
   arc_traefik:
-    <<: [*default-logging, *resources-small]
-    image: traefik:v3.0
+    <<: *small-service
+    image: traefik:latest
     container_name: arc_traefik
     restart: unless-stopped
     command:
@@ -66,6 +100,7 @@ services:
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
+      - "8080:8080"  # Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../../core/gateway/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -85,7 +120,7 @@ services:
   # TELEMETRY - OpenTelemetry Collector
   # ===========================================================================
   arc_otel_collector:
-    <<: [*default-logging, *resources-medium]
+    <<: *medium-service
     build:
       context: ../../core/telemetry/otel-collector
       dockerfile: Dockerfile
@@ -118,13 +153,13 @@ services:
   # PERSISTENCE - PostgreSQL with pgvector
   # ===========================================================================
   arc_postgres:
-    <<: [*default-logging, *resources-large]
+    <<: *large-service
     image: pgvector/pgvector:pg17
     container_name: arc_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-arc}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set in .env file}"
       POSTGRES_DB: ${POSTGRES_DB:-arc_db}
       POSTGRES_INITDB_ARGS: "-E UTF8"
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -150,7 +185,7 @@ services:
   # CACHING - Redis
   # ===========================================================================
   arc_redis:
-    <<: [*default-logging, *resources-medium]
+    <<: *medium-service
     image: redis:7-alpine
     container_name: arc_redis
     restart: unless-stopped
@@ -159,7 +194,7 @@ services:
       --appendonly yes
       --appendfsync everysec
       --maxmemory 512mb
-      --maxmemory-policy allkeys-lru
+      --maxmemory-policy noeviction
     volumes:
       - arc_redis_data:/data
     ports:
@@ -180,8 +215,8 @@ services:
   # MESSAGING (EPHEMERAL) - NATS
   # ===========================================================================
   arc_nats:
-    <<: [*default-logging, *resources-small]
-    image: nats:2.10-alpine
+    <<: *small-service
+    image: nats:2.12.1
     container_name: arc_nats
     restart: unless-stopped
     command: >
@@ -197,7 +232,7 @@ services:
     networks:
       - arc_net
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -211,8 +246,8 @@ services:
   # MESSAGING (DURABLE) - Apache Pulsar
   # ===========================================================================
   arc_pulsar:
-    <<: [*default-logging, *resources-large]
-    image: apachepulsar/pulsar:3.3.0
+    <<: *large-service
+    image: apachepulsar/pulsar:latest
     container_name: arc_pulsar
     restart: unless-stopped
     command: >
@@ -230,10 +265,10 @@ services:
     networks:
       - arc_net
     healthcheck:
-      test: ["CMD", "bin/pulsar-admin", "brokers", "healthcheck"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/admin/v2/brokers/health || exit 1"]
       interval: 15s
       timeout: 10s
-      retries: 5
+      retries: 10
       start_period: 30s
     labels:
       - "arc.service.layer=core"
@@ -244,17 +279,21 @@ services:
   # SECRETS - Infisical
   # ===========================================================================
   arc_infisical:
-    <<: [*default-logging, *resources-medium]
-    image: infisical/infisical:v0.46.0-postgres
+    <<: *medium-service
+    image: infisical/infisical:latest-postgres
     container_name: arc_infisical
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable
-      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY:?Error: INFISICAL_ENCRYPTION_KEY must be set - use 'openssl rand -base64 32'}
-      AUTH_SECRET: ${INFISICAL_AUTH_SECRET:?Error: INFISICAL_AUTH_SECRET must be set - use 'openssl rand -base64 32'}
+      DB_CONNECTION_URI: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/infisical_db?sslmode=disable"
+      REDIS_URL: "redis://arc_redis:6379"
+      ENCRYPTION_KEY: "${INFISICAL_ENCRYPTION_KEY:?Error: INFISICAL_ENCRYPTION_KEY must be set}"
+      AUTH_SECRET: "${INFISICAL_AUTH_SECRET:?Error: INFISICAL_AUTH_SECRET must be set}"
       SITE_URL: ${INFISICAL_SITE_URL:-http://localhost:3001}
+      TELEMETRY_ENABLED: "false"
     depends_on:
       arc_postgres:
+        condition: service_healthy
+      arc_redis:
         condition: service_healthy
     ports:
       - "3001:8080"
@@ -264,8 +303,8 @@ services:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/status"]
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 120s
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=secrets"
@@ -274,16 +313,14 @@ services:
   # FEATURE MANAGEMENT - Unleash
   # ===========================================================================
   arc_unleash:
-    <<: [*default-logging, *resources-medium]
-    image: unleashorg/unleash-server:5.11
+    <<: *medium-service
+    image: unleashorg/unleash-server:7.0.6
     container_name: arc_unleash
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable
+      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable"
       DATABASE_SSL: "false"
       LOG_LEVEL: info
-      INIT_FRONTEND_API_TOKENS: ${UNLEASH_API_TOKEN:?Error: UNLEASH_API_TOKEN must be set - use 'openssl rand -hex 32'}
-      INIT_CLIENT_API_TOKENS: ${UNLEASH_CLIENT_TOKEN:?Error: UNLEASH_CLIENT_TOKEN must be set - use 'openssl rand -hex 32'}
     depends_on:
       arc_postgres:
         condition: service_healthy
@@ -300,5 +337,3 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=feature-management"
-
-

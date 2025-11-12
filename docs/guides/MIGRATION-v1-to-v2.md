@@ -43,7 +43,7 @@ All containers now use the `arc_` prefix for consistency:
 | `prometheus` | `arc_prometheus` |
 | `jaeger` | `arc_jaeger` |
 | `otel-collector` | `arc_otel_collector` |
-| `swiss-army-go` | `arc_swiss_army` |
+| `toolbox` | `arc_toolbox` |
 | `nats` | `arc_nats` |
 | `pulsar` | `arc_pulsar` |
 
@@ -54,7 +54,7 @@ All containers now use the `arc_` prefix for consistency:
 ./config/observability/grafana/provisioning
 ./config/platform/postgres/init.sql
 ./config/platform/kratos
-./services/swiss-army  # Wrong path
+./services/toolbox  # Wrong path
 ```
 
 **New Paths (correct):**
@@ -62,7 +62,7 @@ All containers now use the `arc_` prefix for consistency:
 ./plugins/observability/visualization/grafana/provisioning
 ./core/persistence/postgres/init.sql
 ./plugins/security/identity/kratos
-./services/utilities/swiss-army  # Correct path
+./services/utilities/toolbox  # Correct path
 ```
 
 ### 4. Deployment Profiles Added
@@ -265,7 +265,7 @@ After migration, verify:
 - [ ] Jaeger shows traces
 - [ ] Loki receives logs
 - [ ] OTel Collector accepts telemetry
-- [ ] Swiss Army service responds
+- [ ] Toolbox service responds
 
 ---
 
@@ -463,4 +463,3 @@ If you encounter issues:
 ---
 
 **Questions or Issues?** Review `reports/2025/11/0911-MAKEFILE-ARCHITECTURE-ANALYSIS.md` for detailed analysis.
-

@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
@@ -326,8 +329,47 @@ func (a *App) onDemandWorkHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "On-demand work complete!")
 }
 
+// health result structures
+type checkResult struct {
+	OK        bool   `json:"ok"`
+	LatencyMS int64  `json:"latency_ms,omitempty"`
+	Error     string `json:"error,omitempty"`
+}
+
+// probeTCP performs a TCP dial to host:port with timeout
+func probeTCP(ctx context.Context, addr string, timeout time.Duration) checkResult {
+	start := time.Now()
+	dialer := &net.Dialer{}
+	cctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	conn, err := dialer.DialContext(cctx, "tcp", addr)
+	lat := time.Since(start).Milliseconds()
+	if err != nil {
+		return checkResult{OK: false, LatencyMS: lat, Error: err.Error()}
+	}
+	_ = conn.Close()
+	return checkResult{OK: true, LatencyMS: lat}
+}
+
+// probeHTTP performs an HTTP GET and considers 2xx success
+func probeHTTP(ctx context.Context, url string, timeout time.Duration) checkResult {
+	start := time.Now()
+	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Do(req)
+	lat := time.Since(start).Milliseconds()
+	if err != nil {
+		return checkResult{OK: false, LatencyMS: lat, Error: err.Error()}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return checkResult{OK: true, LatencyMS: lat}
+	}
+	return checkResult{OK: false, LatencyMS: lat, Error: fmt.Sprintf("status=%d", resp.StatusCode)}
+}
+
 func main() {
-	slog.Info("Starting swiss-army-go service...")
+	slog.Info("Starting bootstrap (init) service...")
 
 	// Set up a context that is canceled on an interrupt signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -349,8 +391,8 @@ func main() {
 	}()
 
 	// Use a conventional naming scheme for tracer and meter.
-	tracer := otel.Tracer("github.com/dgtalbug/arc-platform-spike/swiss-army-go")
-	meter := otel.Meter("github.com/dgtalbug/arc-platform-spike/swiss-army-go")
+	tracer := otel.Tracer("github.com/dgtalbug/arc-platform-spike/bootstrap")
+	meter := otel.Meter("github.com/dgtalbug/arc-platform-spike/toolbox-go")
 
 	// --- Initialize Metrics ---
 	// Create metrics once and reuse them to be more efficient.
@@ -376,37 +418,178 @@ func main() {
 	// Start the background worker in a goroutine.
 	go app.runBackgroundWorker(ctx)
 
-	// Set up and start the HTTP server in a goroutine.
-	// Wrap the handler with otelhttp.NewHandler to automatically create spans
-	// for incoming requests and propagate the trace context.
-	otelHandler := otelhttp.NewHandler(http.HandlerFunc(app.onDemandWorkHandler), "HTTP GET /ondemand-work")
+	// --- HTTP Server (gin) ---
+	servicePort := os.Getenv("SERVICE_PORT")
+	if servicePort == "" {
+		servicePort = os.Getenv("SWISS_ARMY_PORT")
+		if servicePort == "" {
+			servicePort = "7100"
+		}
+	}
 
-	mux := http.NewServeMux()
-	// Chain the logging middleware with the OpenTelemetry handler.
-	mux.Handle("/ondemand-work", loggingMiddleware(otelHandler))
+	// Create gin router and routes
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
 
-	server := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
+	// Logging middleware reuses existing logging by bridging gin to slog
+	r.Use(func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		slog.Info("request",
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"status", c.Writer.Status(),
+			"duration", time.Since(start).String(),
+		)
+	})
+
+	// Shallow health endpoint (fast) for Docker healthcheck
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "time": time.Now().UTC().Format(time.RFC3339)})
+	})
+
+	// Deep health endpoint - gated by env or query param
+	r.GET("/health/deep", func(c *gin.Context) {
+		mode := c.Query("mode")
+		enabled := os.Getenv("ENABLE_DEEP_HEALTH") == "true"
+		if mode != "deep" && !enabled {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "deep health checks are disabled. Use ?mode=deep or set ENABLE_DEEP_HEALTH=true"})
+			return
+		}
+
+		// Build checks list and targets from env with sensible defaults
+		postgresHost := os.Getenv("POSTGRES_HOST")
+		if postgresHost == "" {
+			postgresHost = "arc_postgres"
+		}
+		postgresPort := os.Getenv("POSTGRES_PORT")
+		if postgresPort == "" {
+			postgresPort = "5432"
+		}
+		redisHost := os.Getenv("REDIS_HOST")
+		if redisHost == "" {
+			redisHost = "arc_redis"
+		}
+		redisPort := os.Getenv("REDIS_PORT")
+		if redisPort == "" {
+			redisPort = "6379"
+		}
+		infisicalURL := os.Getenv("INFISICAL_URL")
+		if infisicalURL == "" {
+			infisicalURL = "http://arc_infisical:8080/api/status"
+		}
+		unleashURL := os.Getenv("UNLEASH_URL")
+		if unleashURL == "" {
+			unleashURL = "http://arc_unleash:4242/health"
+		}
+
+		// per-check timeout
+		checkTimeoutMs := int64(3000)
+		if v := os.Getenv("CHECK_TIMEOUT_MS"); v != "" {
+			if parsed, err := time.ParseDuration(v + "ms"); err == nil {
+				checkTimeoutMs = parsed.Milliseconds()
+			}
+		}
+		timeout := time.Duration(checkTimeoutMs) * time.Millisecond
+
+		// concurrent probes
+		var wg sync.WaitGroup
+		results := map[string]checkResult{}
+		mu := sync.Mutex{}
+		ctxTimeout, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+
+		checks := map[string]func(){
+			"postgres": func() {
+				res := probeTCP(ctxTimeout, net.JoinHostPort(postgresHost, postgresPort), timeout)
+				mu.Lock()
+				results["postgres"] = res
+				mu.Unlock()
+				wg.Done()
+			},
+			"redis": func() {
+				res := probeTCP(ctxTimeout, net.JoinHostPort(redisHost, redisPort), timeout)
+				mu.Lock()
+				results["redis"] = res
+				mu.Unlock()
+				wg.Done()
+			},
+			"infisical": func() {
+				res := probeHTTP(ctxTimeout, infisicalURL, timeout)
+				mu.Lock()
+				results["infisical"] = res
+				mu.Unlock()
+				wg.Done()
+			},
+			"unleash": func() {
+				res := probeHTTP(ctxTimeout, unleashURL, timeout)
+				mu.Lock()
+				results["unleash"] = res
+				mu.Unlock()
+				wg.Done()
+			},
+		}
+
+		wg.Add(len(checks))
+		for _, fn := range checks {
+			go fn()
+		}
+		wg.Wait()
+
+		// aggregate
+		allOK := true
+		failed := 0
+		for _, r := range results {
+			if !r.OK {
+				allOK = false
+				failed++
+			}
+		}
+
+		summary := fmt.Sprintf("%d/%d checks failed", failed, len(results))
+		status := "ok"
+		code := http.StatusOK
+		if !allOK {
+			status = "degraded"
+			code = http.StatusServiceUnavailable
+		}
+
+		c.JSON(code, gin.H{"status": status, "summary": summary, "checks": results, "timestamp": time.Now().UTC().Format(time.RFC3339)})
+	})
+
+	// On-demand work endpoint (preserve existing handler)
+	r.GET("/ondemand-work", func(c *gin.Context) {
+		// Wrap the existing onDemandWorkHandler so OTEL instrumentation continues to work
+		// Use the otelhttp handler to ensure traces are created for the function
+		handler := otelhttp.NewHandler(http.HandlerFunc(app.onDemandWorkHandler), "HTTP GET /ondemand-work")
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+
+	// Build and start server
+	srv := &http.Server{
+		Addr:    ":" + servicePort,
+		Handler: r,
 	}
 
 	go func() {
-		slog.Info("API server listening on http://localhost:8080")
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		slog.Info("API server listening", "addr", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("API server failed", "error", err)
 		}
 	}()
 
 	// Wait for an interrupt signal.
 	<-ctx.Done()
-	slog.Info("Shutdown signal received, gracefully shutting down...")
 
-	// Create a context with a timeout for the server shutdown.
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Graceful shutdown of HTTP server
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		slog.Error("API server shutdown failed", "error", err)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("server forced to shutdown", "error", err)
 	}
+
+	// ...existing code... (deferred otel shutdown will run)
 }
 
 // responseWriter is a wrapper around http.ResponseWriter to capture the status code.

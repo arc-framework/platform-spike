@@ -288,12 +288,12 @@ Use Traefik for load balancing:
 ```yaml
 # docker-compose.stack.yml
 services:
-  swiss-army-go:
+  toolbox:
     deploy:
       replicas: 3
     labels:
       traefik.enable: "true"
-      traefik.http.services.swiss-army.loadbalancer.server.port: "8080"
+      traefik.http.services.toolbox.loadbalancer.server.port: "8081"
 ```
 
 ### Vertical Scaling (Resource Limits)
@@ -456,10 +456,10 @@ make logs-service SERVICE=kratos
 
 ```bash
 # Test DNS resolution
-docker exec swiss-army-go nslookup postgres
+docker exec toolbox nslookup postgres
 
 # Test port connectivity
-docker exec swiss-army-go nc -zv postgres 5432
+docker exec toolbox nc -zv postgres 5432
 
 # Check network
 docker network inspect arc_net
@@ -555,4 +555,3 @@ For issues not covered here:
 4. Review [README.md](./README.md) Service Reference
 5. Check A.R.C. framework documentation: https://github.com/arc-framework
 6. Open an issue with diagnostics attached
-

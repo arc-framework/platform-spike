@@ -1,306 +1,704 @@
-# Arc Framework - Platform Spike (Observability + Infrastructure)
+# A.R.C. Framework - Platform Spike
 
-This project is a technical spike demonstrating a complete, production-ready platform for the **A.R.C. (Agentic Reasoning Core)** framework. It showcases:
+**Agentic Reasoning Core** - A production-ready platform demonstrating enterprise-grade infrastructure for AI agent systems.
 
-1. **End-to-end observability** (OpenTelemetry, Prometheus, Loki, Jaeger, Grafana)
-2. **Production infrastructure** (Postgres + pgvector, Redis, NATS, Pulsar, Traefik, Kratos, Unleash, Infisical)
-3. **Enterprise-grade service orchestration** (Makefile, multi-compose overlays, per-service `.env` configs)
-
-The project serves as a blueprint for building, deploying, and scaling stateful AI agents with a battery-included platform.
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+[![Security](https://img.shields.io/badge/security-hardened-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
----
+Get the entire platform running in 3 commands:
 
-## Architecture Overview
+```bash
+# 1. Generate secure secrets
+make generate-secrets
 
-The A.R.C. platform is composed of three logical layers:
-
-### Layer 1: Base Application
-- **`swiss-army-go`** - Sample Go app emitting telemetry (logs, metrics, traces) via OpenTelemetry SDK.
-
-### Layer 2: Observability (Base Compose)
-Deployed with `docker-compose.yml` by default:
-
-| Service | Purpose | Port | Dashboard |
-|---------|---------|------|-----------|
-| **otel-collector** | Telemetry collector (gRPC/HTTP receivers) | 4317/4318, 13133 | Health: http://localhost:13133 |
-| **loki** | Log storage and indexing | 3100 | API: http://localhost:3100 |
-| **prometheus** | Metrics scraper and time-series DB | 9090 | Query: http://localhost:9090 |
-| **jaeger** | Distributed trace storage and visualization | 16686 | UI: http://localhost:16686 |
-| **grafana** | Unified visualization & dashboards | 3000 | UI: http://localhost:3000 |
-
-### Layer 3: Platform Infrastructure (Stack Overlay)
-Deployed with `docker-compose.stack.yml` overlay (optional):
-
-| Service | Purpose | Port(s) | Config `.env` |
-|---------|---------|--------|-----------|
-| **postgres** | Primary data store + pgvector (for RAG/embeddings) | 5432 | `config/postgres/.env.example` |
-| **redis** | Cache, sessions, rate limiting | 6379 | `config/redis/.env.example` |
-| **nats** | Ephemeral messaging / job queues | 4222, 8222 | `config/nats/.env.example` |
-| **pulsar** | Durable event streaming (Conveyor Belt) | 6650, 8080 | `config/pulsar/.env.example` |
-| **kratos** | Identity & authentication (Ory) | 4433, 4434 | `config/kratos/.env.example` |
-| **unleash** | Feature flags and experiments | 4242 | `config/unleash/.env.example` |
-| **infisical** | Secrets management (self-hosted vault) | 3001 | `config/infisical/.env.example` |
-| **traefik** | API gateway + auto-discovery reverse proxy | 80, 443, 8080 | `config/traefik/.env.example` |
-- Make (for service orchestration)
----
-
-## Service Management with Make
-
-All services are orchestrated via a comprehensive **Makefile**. Key commands:
-
-# Initialize environment files for all services
-make .env
-
-# Start all services (observability + platform stack)
+# 2. Start all services (Core + Observability + Security + Apps)
 make up
 
-# Check health status
+# 3. View service URLs and credentials
+make info
+```
+
+**That's it!** The platform is now running with:
+- ✅ PostgreSQL + pgvector
+- ✅ Redis cache
+- ✅ NATS & Pulsar messaging
+- ✅ Prometheus, Loki, Jaeger, Grafana
+- ✅ Traefik gateway
+- ✅ Kratos identity
+- ✅ Unleash feature flags
+- ✅ Infisical secrets
+
+**Access the dashboards:**
+- 📊 **Grafana**: http://localhost:3000 (credentials in `make info`)
+- 🔍 **Jaeger**: http://localhost:16686
+- 📈 **Prometheus**: http://localhost:9090
+- 🔐 **Unleash**: http://localhost:4242
+
+---
+
+## 📋 Prerequisites
+
+- **Docker** 24.0+ & **Docker Compose** v2.20+
+- **Make** (built-in on macOS/Linux)
+- **4GB+ RAM** for full stack (2GB for minimal)
+- **OpenSSL** (for secret generation)
+
+**macOS:**
+```bash
+brew install --cask docker
+```
+
+**Linux:**
+```bash
+# Install Docker Engine
+curl -fsSL https://get.docker.com | sh
+
+# Install Docker Compose
+sudo apt-get install docker-compose-plugin
+```
+
+---
+
+## 🎯 What This Platform Provides
+
+### Layer 1: Core Services
+Required infrastructure that every service depends on:
+
+| Service | Purpose | Port | Status |
+|---------|---------|------|--------|
+| **PostgreSQL** | Primary data store + pgvector | 5432 | ✅ Required |
+| **Redis** | Cache & sessions | 6379 | ✅ Required |
+| **NATS** | Ephemeral messaging | 4222 | ✅ Required |
+| **Pulsar** | Durable event streaming | 6650 | ✅ Required |
+| **Traefik** | API gateway | 80/443 | ✅ Required |
+| **OpenTelemetry** | Telemetry collection | 4317/4318 | ✅ Required |
+| **Infisical** | Secrets management | 3001 | ✅ Required |
+| **Unleash** | Feature flags | 4242 | ✅ Required |
+
+### Layer 2: Observability Stack
+Optional but recommended for production:
+
+| Service | Purpose | Port | Status |
+|---------|---------|------|--------|
+| **Loki** | Log aggregation | 3100 | 🔌 Plugin |
+| **Prometheus** | Metrics collection | 9090 | 🔌 Plugin |
+| **Jaeger** | Distributed tracing | 16686 | 🔌 Plugin |
+| **Grafana** | Unified visualization | 3000 | 🔌 Plugin |
+
+### Layer 3: Security Stack
+Production-ready identity and authentication:
+
+| Service | Purpose | Port | Status |
+|---------|---------|------|--------|
+| **Kratos** | Identity & authentication | 4433/4434 | 🔌 Plugin |
+
+### Layer 4: Application Services
+Your custom services built on the framework:
+
+| Service | Purpose | Port | Status |
+|---------|---------|------|--------|
+| **Toolbox** | Demo utility service | 8081 | 📋 Example |
+
+---
+
+## 🛠️ Make Commands
+
+### Essential Commands
+
+```bash
+# Start everything (recommended for development)
+make up
+
+# Stop all services (preserves data)
+make down
+
+# Check health of all services
 make health-all
 
 # View service URLs and credentials
 make info
+
+# Stream logs from all services
+make logs
 ```
 
-### Next Steps
-- **View observability**: Open http://localhost:3000 (Grafana, admin/admin)
-- **Explore traces**: Open http://localhost:16686 (Jaeger)
-- **Trigger app work**: `curl http://localhost:8081/ondemand-work`
-- **Stop all services**: `make down`
-
-For detailed per-service setup, see [Service Reference](#service-reference) below.
-
-## Components
-
-The `docker-compose.yml` file orchestrates the following services:
-
--   **`swiss-army-go`**: The sample Go application that generates telemetry data (logs, metrics, traces).
--   **`otel-collector`**: The OpenTelemetry Collector receives telemetry from the Go app, processes it (e.g., adds trace context to logs), and exports it to the appropriate backends.
--   **`loki`**: The log aggregation backend, which stores logs received from the collector.
--   **`prometheus`**: The time-series database that scrapes and stores metrics from the collector.
--   **`jaeger`**: The distributed tracing backend that stores and visualizes traces.
--   **`grafana`**: The primary visualization dashboard for viewing logs from Loki and metrics from Prometheus.
-
-### Common Makefile Targets
+### Initialization Commands
 
 ```bash
-# Lifecycle
-make up                    # Start all services
-make up-observability      # Start observability only
-make up-stack              # Start platform stack only
-make down                  # Stop all services
-make restart               # Restart all services
-make clean                 # Remove all containers, volumes, networks
+# Initialize environment (interactive)
+make init
 
-# Diagnostics
-make ps                    # List running containers
-make logs                  # Stream logs from all services
-make logs-service SERVICE=postgres  # Stream logs from one service
-make health-all            # Check health of all services
+# Generate secure random secrets
+make generate-secrets
 
-# Database Operations
-make init-postgres         # Initialize Postgres with pgvector
-make migrate-kratos        # Run Kratos migrations
-make shell-postgres        # Open psql shell
-make shell-redis           # Open redis-cli shell
+# Validate secrets configuration
+make validate-secrets
 
-# Information
-make info                  # Display all service URLs and credentials
-make status                # Show running containers and health
-make help                  # Display all available targets
+# Create Docker volumes
+make init-volumes
+
+# Create Docker network
+make init-network
 ```
 
-For the full list of targets, run `make help`.
+### Deployment Profiles
 
----
-
-## Service Reference: Detailed Setup & Troubleshooting
-
-### 1. Postgres (Data Storage)
-
-**Purpose**: Primary relational database with pgvector extension for AI embeddings and semantic search.
-
-**Quick Start**:
 ```bash
-make health-postgres
-make shell-postgres
+# Minimal - Core services only (~2GB RAM)
+make up-minimal
+
+# Dev - Core + application services (~3GB RAM)
+make up-dev
+
+# Observability - Core + monitoring (~4GB RAM)
+make up-observability
+
+# Security - Core + monitoring + auth (~5GB RAM)
+make up-security
+
+# Full - Everything including app services (~6GB RAM)
+make up-full
+# Alias: make up
 ```
 
-**Configuration**:
-- Config: `config/postgres/.env.example`
-- Init SQL: `config/postgres/init.sql` (auto-runs on first start to enable pgvector)
-- Port: 5432
-- Default credentials: `arc` / `postgres` (from `.env`)
+### Lifecycle Management
 
-**Common Operations**:
 ```bash
-# Check Postgres is ready
-make health-postgres
+# Restart all services
+make restart
 
-# Connect to Postgres CLI
-make shell-postgres
+# Rebuild custom images
+make build
 
-# Create a new database for an application
-docker exec arc_postgres createdb -U arc my_app_db
+# Stop and remove containers (keeps volumes)
+make clean
+
+# Complete reset (removes everything)
+make reset
+
+# List running containers
+make ps
+
+# Show comprehensive status
+make status
+```
+
+### Health Checks
+
+```bash
+# Check all services
+make health-all
+
+# Check core services only
+make health-core
+
+# Check observability stack
+make health-observability
+
+# Check security services
+make health-security
+```
+
+### Log Management
+
+```bash
+# Stream all logs
+make logs
+
+# Core services logs
+make logs-core
+
+# Observability logs
+make logs-observability
+
+# Security services logs
+make logs-security
+
+# Application services logs
+make logs-services
+```
+
+### Database Operations
+
+```bash
+# Run database migrations
+make migrate-db
 
 # Backup database
-docker exec arc_postgres pg_dump -U arc arc_db > backup.sql
+make backup-db
 
-# Restore database
-docker exec arc_postgres psql -U arc arc_db < backup.sql
-```
+# Restore from backup
+make restore-db
 
-**Troubleshooting**:
-- Connection refused → Wait 10s after start; Postgres needs time to initialize.
-- pgvector not available → Run `make init-postgres` after first start.
-- Out of space → Check Docker volume: `docker volume ls | grep postgres`
-
----
-
-### 2. Redis (Cache & Sessions)
-
-**Purpose**: In-memory data store for caching, sessions, and rate limiting.
-
-**Quick Start**:
-```bash
-make health-redis
-make shell-redis
-```
-
-**Configuration**:
-- Config: `config/redis/.env.example`
-- Port: 6379
-- Volume: `redis-data:/data` (persistent)
-
-**Common Operations**:
-```bash
-# Check Redis is ready
-make health-redis
+# Open PostgreSQL shell
+make shell-postgres
 
 # Open Redis CLI
 make shell-redis
-
-# Inside Redis CLI:
-PING                       # Check connectivity
-INFO stats                 # View stats
-KEYS *                     # List all keys
-FLUSHALL                   # Clear all data
 ```
 
-**Troubleshooting**:
-- Connection refused → Wait 5s and retry.
-- Memory full → Check `REDIS_MAXMEMORY_POLICY` in `config/redis/.env.example` or run `FLUSHALL`.
+### Validation & Testing
+
+```bash
+# Run all validations
+make validate
+
+# Validate architecture alignment
+make validate-architecture
+
+# Validate docker-compose files
+make validate-compose
+
+# Test service connectivity
+make test-connectivity
+
+# Validate secrets before deployment
+make validate-secrets
+```
+
+### Information
+
+```bash
+# Display all service URLs and credentials
+make info
+
+# Show component versions
+make version
+
+# Show help menu
+make help
+```
 
 ---
 
-### 3. NATS (Ephemeral Messaging)
+## 🔒 Security & Configuration
 
-**Purpose**: Lightweight message broker for fire-and-forget messaging and job queues.
+### Initial Setup
 
-**Quick Start**:
+The platform requires secure configuration before first use:
+
 ```bash
-make health-nats
+# Option 1: Automated (Recommended)
+make generate-secrets  # Generates cryptographically secure secrets
+
+# Option 2: Manual
+cp .env.example .env
+# Edit .env and replace all CHANGE_ME values
+make validate-secrets  # Validate configuration
 ```
 
-**Configuration**:
-- Config: `config/nats/.env.example`
-- Ports: 4222 (server), 8222 (monitoring)
-- Monitoring: http://localhost:8222
+### Security Features
 
-**Common Operations**:
+- ✅ **No weak defaults** - All passwords must be explicitly set
+- ✅ **Automated validation** - Pre-flight checks before deployment
+- ✅ **Resource limits** - CPU/memory limits on all services
+- ✅ **Log rotation** - Prevents disk exhaustion (10MB × 3 files)
+- ✅ **Secured admin interfaces** - No public exposure in production
+- ✅ **Environment-based secrets** - No hardcoded credentials
+
+### Configuration Files
+
 ```bash
-# Check NATS is ready
-make health-nats
-
-# View NATS monitoring dashboard
-curl http://localhost:8222
-
-# Test NATS connectivity
-docker exec arc_nats nats sub test_subject
-# In another terminal:
-docker exec arc_nats nats pub test_subject "hello"
+.env                    # Main configuration (auto-generated)
+.env.example            # Template with documentation
+deployments/docker/     # Docker Compose files
+  ├── docker-compose.base.yml
+  ├── docker-compose.core.yml
+  ├── docker-compose.observability.yml
+  ├── docker-compose.security.yml
+  ├── docker-compose.services.yml
+  └── docker-compose.production.yml  # Production overrides
 ```
 
-**Troubleshooting**:
-- Connection refused → NATS needs 5-10s to start.
-- Check monitoring at http://localhost:8222 for connection stats.
+---## 🏗️ Architecture
+
+### Three-Layer Design
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Application Layer                         │
+│  (Your Services: Agents, APIs, Workers)                     │
+└─────────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                      Plugin Layer                            │
+│  Observability: Loki, Prometheus, Jaeger, Grafana          │
+│  Security: Kratos (Identity & Auth)                         │
+│  Search: (Future: Typesense, Meilisearch)                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                       Core Layer                             │
+│  Gateway: Traefik                                            │
+│  Telemetry: OpenTelemetry Collector                         │
+│  Persistence: PostgreSQL + pgvector                          │
+│  Caching: Redis                                              │
+│  Messaging: NATS (ephemeral) + Pulsar (durable)            │
+│  Secrets: Infisical                                          │
+│  Features: Unleash                                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Swappable Components
+
+Every component follows a **swappable design** pattern:
+
+- **Observability**: Loki → Elasticsearch | Prometheus → InfluxDB | Jaeger → Zipkin
+- **Database**: PostgreSQL → MySQL, MongoDB
+- **Cache**: Redis → Memcached, Valkey
+- **Messaging**: NATS → RabbitMQ | Pulsar → Kafka
+- **Gateway**: Traefik → Kong, Nginx
+- **Identity**: Kratos → Keycloak, Auth0
+- **Secrets**: Infisical → HashiCorp Vault
+
+### Data Flow
+
+```
+Application Service
+    │
+    ├─→ OpenTelemetry SDK
+    │       ├─→ Logs → OTEL Collector → Loki → Grafana
+    │       ├─→ Metrics → OTEL Collector → Prometheus → Grafana
+    │       └─→ Traces → OTEL Collector → Jaeger → Grafana
+    │
+    ├─→ PostgreSQL (persistent data)
+    ├─→ Redis (cache, sessions)
+    ├─→ NATS (ephemeral messages)
+    ├─→ Pulsar (durable events)
+    ├─→ Traefik (HTTP routing)
+    ├─→ Kratos (authentication)
+    └─→ Unleash (feature flags)
+```
 
 ---
 
-### 4. Apache Pulsar (Durable Streaming)
+## 🚦 Deployment Profiles
 
-**Purpose**: Enterprise-grade event streaming for the "Conveyor Belt" (durable log of all system events).
+Choose the right profile for your needs:
 
-**Quick Start**:
+### Development (2GB RAM)
 ```bash
-make health-pulsar
+make up-minimal  # Core services only
 ```
+**Includes**: PostgreSQL, Redis, NATS, Pulsar, OTEL, Traefik, Infisical, Unleash
 
-**Configuration**:
-- Config: `config/pulsar/.env.example`
-- Ports: 6650 (broker), 8080 (HTTP/metrics)
-- Mode: Standalone (local dev)
-- Memory: 128MB–512MB (adjustable in compose for production)
-
-**Common Operations**:
+### Staging (4GB RAM)
 ```bash
-# Check Pulsar is ready
-make health-pulsar
-
-# View Pulsar metrics
-curl http://localhost:8080/metrics | grep -i pulsar
-
-# Create a topic
-docker exec arc_pulsar ./bin/pulsar-admin topics create persistent://public/default/my-topic
-
-# Publish to a topic
-docker exec arc_pulsar ./bin/pulsar-client produce persistent://public/default/my-topic -m "hello"
-
-# Consume from a topic
-docker exec arc_pulsar ./bin/pulsar-client consume persistent://public/default/my-topic -s my-subscription -n 10
+make up-observability  # Core + monitoring
 ```
+**Includes**: Minimal + Loki, Prometheus, Jaeger, Grafana
 
-**Important Notes**:
-- Pulsar is memory-intensive; consider removing it from `docker-compose.stack.yml` if you have <4GB RAM available.
-- Standalone mode is for development only; production setups require Zookeeper + BookKeeper.
+### Production-like (5GB RAM)
+```bash
+make up-security  # Core + monitoring + security
+```
+**Includes**: Observability + Kratos
 
-**Troubleshooting**:
-- Slow startup → Pulsar can take 30-60s to initialize. Check logs: `make logs-service SERVICE=pulsar`
-- Out of memory → Reduce `PULSAR_MEM` in `config/pulsar/.env.example`.
+### Full Stack (6GB RAM)
+```bash
+make up  # Everything including demo apps
+```
+**Includes**: Security + Toolbox service
 
 ---
 
-### 5. Ory Kratos (Identity & Authentication)
+## 📖 Documentation
 
-**Purpose**: Production-grade identity platform for user registration, login, and account recovery.
+### Getting Started
+- [Operations Guide](docs/OPERATIONS.md) - Deployment and management
+- [Security Fixes](docs/guides/SECURITY-FIXES.md) - Security hardening details
+- [Environment Migration](docs/guides/ENV-MIGRATION.md) - Configuration updates
 
-**Quick Start** (requires configuration):
+### Architecture
+- [Architecture Overview](docs/architecture/README.md) - Design patterns and principles
+- [Naming Conventions](docs/guides/NAMING-CONVENTIONS.md) - Coding standards
+
+### Guides
+- [Setup Scripts](scripts/setup/README.md) - Secret management tools
+- [Migration Guide](docs/guides/MIGRATION-v1-to-v2.md) - Upgrade instructions
+
+### Reports
+- [Analysis Reports](reports/) - System analysis and recommendations
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### "POSTGRES_PASSWORD must be set"
+**Solution:**
 ```bash
-make health-kratos
+make generate-secrets
 ```
 
-**Configuration**:
-- Config guide: `config/kratos/README.md`
-- Config template: `config/kratos/.env.example`
-- Ports: 4433 (public), 4434 (admin)
-- Database: Uses Postgres (auto-initialized on first start)
-
-**Setup Steps** (one-time):
-1. Copy `.env` from `config/kratos/.env.example` to `config/kratos/.env`
-2. Create `config/kratos/kratos.yml` with identity configuration (see Ory docs)
-3. Run migrations: `make migrate-kratos`
-4. Start services: `make up` or `make up-stack`
-
-**Common Operations**:
+#### "Cannot connect to PostgreSQL"
+**Solution:**
 ```bash
-# Check Kratos admin API is ready
-make health-kratos
+# Wait for services to start (10-30 seconds)
+make health-all
 
-# View Kratos admin API docs
+# Check logs
+make logs-core
+```
+
+#### "Port already in use"
+**Solution:**
+```bash
+# Find what's using the port
+lsof -i :5432  # or whatever port
+
+# Stop conflicting service or change port in .env
+```
+
+#### Services won't start
+**Solution:**
+```bash
+# Clean restart
+make down
+make clean
+make up
+```
+
+#### Out of disk space
+**Solution:**
+```bash
+# Clean up Docker
+docker system prune -a --volumes
+
+# Or keep data but remove old images
+docker system prune -a
+```
+
+### Health Check Failures
+
+```bash
+# Check individual service health
+make health-core
+make health-observability
+
+# View detailed logs for failing service
+docker logs arc_postgres
+docker logs arc_redis
+
+# Restart specific service
+docker restart arc_postgres
+```
+
+### Performance Issues
+
+```bash
+# Check resource usage
+docker stats
+
+# Review resource limits
+cat deployments/docker/docker-compose.core.yml | grep -A 5 resources
+
+# Adjust limits in .env or use smaller profile
+make up-minimal  # Instead of make up
+```
+
+---
+
+## 🧪 Testing
+
+### Service Connectivity
+
+```bash
+# Test all services
+make test-connectivity
+
+# Manual tests
+curl http://localhost:3000/api/health      # Grafana
+curl http://localhost:9090/-/healthy       # Prometheus
+curl http://localhost:16686                # Jaeger
+curl http://localhost:4242/health          # Unleash
+```
+
+### Database Connectivity
+
+```bash
+# PostgreSQL
+make shell-postgres
+# Inside psql: \l (list databases), \dt (list tables)
+
+# Redis
+make shell-redis
+# Inside redis-cli: PING, INFO, KEYS *
+```
+
+### NATS Messaging
+
+```bash
+# Subscribe to test subject
+docker exec arc_nats nats sub test
+
+# Publish message (in another terminal)
+docker exec arc_nats nats pub test "Hello World"
+```
+
+---
+
+## 📊 Monitoring
+
+### Access Dashboards
+
+```bash
+# Get all URLs and credentials
+make info
+```
+
+### Grafana Setup
+
+1. Open http://localhost:3000
+2. Login with credentials from `make info`
+3. Pre-configured data sources:
+   - Loki (logs)
+   - Prometheus (metrics)
+   - Jaeger (traces)
+
+### Prometheus Queries
+
+Access http://localhost:9090 and try:
+
+```promql
+# CPU usage by service
+rate(container_cpu_usage_seconds_total[5m])
+
+# Memory usage by service
+container_memory_usage_bytes / 1024 / 1024
+
+# HTTP request rate
+rate(http_requests_total[5m])
+```
+
+### Jaeger Tracing
+
+1. Open http://localhost:16686
+2. Select service: `toolbox`
+3. Click "Find Traces"
+4. Explore distributed trace waterfall
+
+---
+
+## 🔐 Production Deployment
+
+### Pre-flight Checklist
+
+- [ ] Run `make generate-secrets`
+- [ ] Run `make validate-secrets`
+- [ ] Review `.env` configuration
+- [ ] Set up TLS certificates for Traefik
+- [ ] Configure backup strategy
+- [ ] Set up monitoring alerts
+- [ ] Review resource limits
+- [ ] Test disaster recovery
+
+### Production Mode
+
+```bash
+# Use production compose override
+docker compose \
+  -f deployments/docker/docker-compose.base.yml \
+  -f deployments/docker/docker-compose.core.yml \
+  -f deployments/docker/docker-compose.observability.yml \
+  -f deployments/docker/docker-compose.security.yml \
+  -f deployments/docker/docker-compose.production.yml \
+  up -d
+```
+
+### Security Hardening
+
+The platform includes:
+- ✅ No weak default passwords
+- ✅ No hardcoded secrets
+- ✅ Resource limits on all services
+- ✅ Log rotation configured
+- ✅ Minimal port exposure in production
+- ✅ Traefik-based routing with auth
+- ✅ Automated secret validation
+
+See [SECURITY-FIXES.md](docs/guides/SECURITY-FIXES.md) for details.
+
+---
+
+## 🤝 Contributing
+
+### Development Workflow
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/my-feature
+
+# 2. Make changes and test
+make up
+make test-connectivity
+make validate
+
+# 3. Commit changes
+git add .
+git commit -m "feat: add new feature"
+
+# 4. Push and create PR
+git push origin feature/my-feature
+```
+
+### Coding Standards
+
+- Follow [Naming Conventions](docs/guides/NAMING-CONVENTIONS.md)
+- Document all changes in appropriate README files
+- Add health checks to new services
+- Include resource limits
+- Update Makefile with new targets
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙋 Support
+
+- **Documentation**: Check [docs/](docs/) directory
+- **Issues**: Create an issue with detailed description
+- **Questions**: Start a discussion
+
+---
+
+## 🎯 Project Status
+
+**Current Version**: 2.0.0  
+**Status**: Active Development  
+**Security Audit**: 67% Complete (12/18 issues fixed)  
+**Last Updated**: November 9, 2025
+
+### Recent Updates
+- ✅ All critical security issues resolved
+- ✅ Automated secret management
+- ✅ Resource limits on all services
+- ✅ Log rotation configured
+- ✅ Production deployment mode
+- ✅ Centralized configuration
+
+### Roadmap
+- [ ] TLS/SSL configuration
+- [ ] Automated backup strategy
+- [ ] Prometheus alerting rules
+- [ ] Network segmentation
+- [ ] CI/CD pipeline
+
+See [PROGRESS.md](PROGRESS.md) for detailed status.
+
+---
+
+**Built with ❤️ for the A.R.C. Framework**# View Kratos admin API docs
 curl http://localhost:4434/admin/
 
 # List identities
@@ -468,7 +866,7 @@ make health-otel
 ### Observability Only (for testing telemetry pipeline)
 ```bash
 make up-observability
-# Services: loki, prometheus, jaeger, grafana, otel-collector, swiss-army-go
+# Services: loki, prometheus, jaeger, grafana, otel-collector, toolbox-go
 ```
 
 ### Observability + Data Layer (for agent development)

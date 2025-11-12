@@ -24,29 +24,41 @@ x-resources-medium: &resources-medium
         cpus: '0.25'
         memory: 256M
 
+# Combined template
+x-medium-service: &medium-service
+  <<: *default-logging
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+      reservations:
+        cpus: '0.25'
+        memory: 256M
+
 services:
   # ===========================================================================
-  # UTILITY - Swiss Army Service (Demo/Testing)
+  # UTILITY - Toolbox Service (Demo/Testing)
   # ===========================================================================
-  arc_swiss_army:
-    <<: [*default-logging, *resources-medium]
+  arc_toolbox:
+    <<: *medium-service
     build:
-      context: ../../services/utilities/swiss-army
+      context: ../../services/utilities/toolbox
       dockerfile: Dockerfile
-    image: arc/swiss-army:latest
-    container_name: arc_swiss_army
+    image: arc/toolbox:latest
+    container_name: arc_toolbox
     restart: unless-stopped
     environment:
       # OpenTelemetry Configuration
       OTEL_EXPORTER_OTLP_ENDPOINT: arc_otel_collector:4317
       OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: swiss-army
+      OTEL_SERVICE_NAME: toolbox
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=1.0.0
       # Application Configuration
-      SERVICE_PORT: ${SWISS_ARMY_PORT:-8080}
+      SERVICE_PORT: ${TOOLBOX_PORT:-8081}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
-      - "8081:8080"
+      - "8081:8081"
     networks:
       - arc_net
     depends_on:
@@ -56,8 +68,12 @@ services:
         condition: service_healthy
       arc_redis:
         condition: service_healthy
+      arc_infisical:
+        condition: service_healthy
+      arc_unleash:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -67,8 +83,8 @@ services:
       - "arc.service.category=utility"
       - "arc.service.type=microservice"
       - "traefik.enable=true"
-      - "traefik.http.routers.swiss-army.rule=Host(`swiss-army.localhost`)"
-      - "traefik.http.services.swiss-army.loadbalancer.server.port=8080"
+      - "traefik.http.routers.bootstrap.rule=Host(`bootstrap.localhost`)"
+      - "traefik.http.services.bootstrap.loadbalancer.server.port=8081"
 
   # ===========================================================================
   # AGENT SERVICES - Placeholder for future agent implementations
@@ -92,5 +108,3 @@ services:
   #     - "arc.service.layer=application"
   #     - "arc.service.category=agent"
   #     - "arc.service.type=ai-agent"
-
-

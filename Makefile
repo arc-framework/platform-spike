@@ -8,15 +8,16 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help init up down restart clean build ps logs health \
-        up-minimal up-observability up-security up-full \
-        down-minimal down-observability down-security down-full \
-        health-all health-core health-plugins health-observability health-security \
+        up-minimal up-dev up-observability up-security up-full \
+        down-minimal down-dev down-observability down-security down-full \
+        health-success health-all health-core health-plugins health-observability health-security \
         health-services validate info status version \
-        init-env init-volumes init-network init-all generate-secrets validate-secrets \
+        init-env init-network init-all generate-secrets validate-secrets \
         backup-db restore-db reset-db migrate-db \
         logs-core logs-observability logs-security logs-services \
         shell-postgres shell-redis shell-nats test-connectivity \
-        validate-architecture validate-compose validate-paths ci-validate
+        validate-architecture validate-compose validate-paths ci-validate \
+        wait-for-core wait-for-all info-core
 
 # ==============================================================================
 # Configuration Variables
@@ -29,6 +30,7 @@ COMPOSE_DIR := deployments/docker
 # Compose file references
 COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
 COMPOSE_CORE := $(COMPOSE_BASE) -f $(COMPOSE_DIR)/docker-compose.core.yml
+COMPOSE_DEV := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.services.yml
 COMPOSE_OBS := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.observability.yml
 COMPOSE_SEC := $(COMPOSE_OBS) -f $(COMPOSE_DIR)/docker-compose.security.yml
 COMPOSE_FULL := $(COMPOSE_SEC) -f $(COMPOSE_DIR)/docker-compose.services.yml
@@ -46,6 +48,9 @@ export CYAN := \033[0;36m
 export WHITE := \033[1;37m
 export NC := \033[0m
 
+# Docker Compose optimization
+export COMPOSE_BAKE := true
+
 # Script paths
 SCRIPTS_DIR := ./scripts
 SETUP_SCRIPTS := $(SCRIPTS_DIR)/setup
@@ -61,53 +66,34 @@ help:
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(WHITE)Architecture: Core + Plugins Pattern$(NC)"
-	@echo "$(WHITE)Deployment Profiles: minimal | observability | security | full$(NC)"
+	@echo "$(WHITE)Deployment Profiles: minimal | dev | observability | security | full$(NC)"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(YELLOW)Initialization:$(NC)"
-	@echo "  $(GREEN)make init$(NC)              Initialize complete environment"
+	@echo "  $(GREEN)make init$(NC)              Initialize complete environment (creates .env and network)"
 	@echo "  $(GREEN)make init-env$(NC)          Create .env file (interactive)"
 	@echo "  $(GREEN)make generate-secrets$(NC)  Generate secure random secrets"
 	@echo "  $(GREEN)make validate-secrets$(NC)  Validate secrets configuration"
-	@echo "  $(GREEN)make init-volumes$(NC)      Create Docker volumes"
 	@echo "  $(GREEN)make init-network$(NC)      Create Docker network"
 	@echo ""
-	@echo "$(YELLOW)Deployment Profiles:$(NC)"
-	@echo "  $(GREEN)make up-minimal$(NC)        Start core services only (~2GB RAM)"
-	@echo "  $(GREEN)make up-observability$(NC)  Start core + observability (~4GB RAM)"
-	@echo "  $(GREEN)make up-security$(NC)       Start core + observability + security (~5GB RAM)"
+	@echo "$(YELLOW)Common Development Commands:$(NC)"
+	@echo "  $(GREEN)make up-dev$(NC)            Start core services + application services (~3GB RAM)"
+	@echo "  $(GREEN)make up-observability$(NC)  Start core + observability services (~4GB RAM)"
 	@echo "  $(GREEN)make up-full$(NC)           Start all services (~6GB RAM)"
-	@echo "  $(GREEN)make up$(NC)                Alias for up-full (default)"
 	@echo ""
 	@echo "$(YELLOW)Lifecycle Management:$(NC)"
+	@echo "  $(GREEN)make up$(NC)                Alias for up-full (default)"
 	@echo "  $(GREEN)make down$(NC)              Stop all services (preserves data)"
 	@echo "  $(GREEN)make restart$(NC)           Restart all services"
 	@echo "  $(GREEN)make build$(NC)             Rebuild custom images"
-	@echo "  $(GREEN)make clean$(NC)             Remove containers and networks (keeps volumes)"
-	@echo "  $(GREEN)make reset$(NC)             Complete reset (removes everything)"
+	@echo "  $(GREEN)make clean$(NC)             Remove containers, networks, and all data volumes"
+	@echo "  $(GREEN)make reset$(NC)             Alias for 'make clean' with confirmation"
 	@echo ""
 	@echo "$(YELLOW)Diagnostics & Monitoring:$(NC)"
 	@echo "  $(GREEN)make ps$(NC)                List running containers"
 	@echo "  $(GREEN)make status$(NC)            Show comprehensive status"
 	@echo "  $(GREEN)make health-all$(NC)        Check health of all services"
-	@echo "  $(GREEN)make health-core$(NC)       Check health of core services"
-	@echo "  $(GREEN)make health-observability$(NC) Check observability plugins"
 	@echo "  $(GREEN)make logs$(NC)              Stream logs from all services"
-	@echo "  $(GREEN)make logs-core$(NC)         Stream logs from core services"
-	@echo "  $(GREEN)make logs-observability$(NC) Stream logs from observability"
-	@echo ""
-	@echo "$(YELLOW)Database Operations:$(NC)"
-	@echo "  $(GREEN)make migrate-db$(NC)        Run database migrations"
-	@echo "  $(GREEN)make backup-db$(NC)         Backup database"
-	@echo "  $(GREEN)make restore-db$(NC)        Restore database from backup"
-	@echo "  $(GREEN)make shell-postgres$(NC)    Open PostgreSQL shell"
-	@echo "  $(GREEN)make shell-redis$(NC)       Open Redis CLI"
-	@echo ""
-	@echo "$(YELLOW)Validation & Testing:$(NC)"
-	@echo "  $(GREEN)make validate$(NC)          Run all validations"
-	@echo "  $(GREEN)make validate-architecture$(NC) Validate architecture alignment"
-	@echo "  $(GREEN)make validate-compose$(NC)  Validate docker-compose files"
-	@echo "  $(GREEN)make test-connectivity$(NC) Test service connectivity"
 	@echo ""
 	@echo "$(YELLOW)Information:$(NC)"
 	@echo "  $(GREEN)make info$(NC)              Display service URLs and credentials"
@@ -121,13 +107,12 @@ help:
 # ==============================================================================
 # Initialization
 # ==============================================================================
-init: init-env init-network init-volumes
+init: init-env init-network
 	@echo "$(GREEN)✓ Environment initialized successfully$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Next steps:$(NC)"
 	@echo "  1. Review and update .env file with your settings"
-	@echo "  2. Run: make up-minimal (for development)"
-	@echo "  3. Or:  make up-full (for full stack)"
+	@echo "  2. Run: make up-minimal"
 
 init-env:
 	@echo "$(BLUE)Initializing environment configuration...$(NC)"
@@ -157,18 +142,12 @@ validate-secrets:
 
 init-network:
 	@echo "$(BLUE)Creating Docker network...$(NC)"
-	@docker network inspect arc_net >/dev/null 2>&1 || \
-		(docker network create arc_net && echo "$(GREEN)✓ Network 'arc_net' created$(NC)") || \
-		echo "$(YELLOW)⚠ Network 'arc_net' already exists$(NC)"
-
-init-volumes:
-	@echo "$(BLUE)Creating Docker volumes...$(NC)"
-	@for vol in arc_postgres_data arc_redis_data arc_pulsar_data \
-	            arc_prometheus_data arc_grafana_data arc_loki_data; do \
-		docker volume inspect $$vol >/dev/null 2>&1 || \
-			(docker volume create $$vol && echo "$(GREEN)✓ Volume '$$vol' created$(NC)") || \
-			echo "$(YELLOW)⚠ Volume '$$vol' already exists$(NC)"; \
-	done
+	@if ! docker network inspect arc_net >/dev/null 2>&1; then \
+		docker network create arc_net --driver bridge --subnet 172.20.0.0/16; \
+		echo "$(GREEN)✓ Network 'arc_net' created$(NC)"; \
+	else \
+		echo "$(YELLOW)✓ Network 'arc_net' already exists$(NC)"; \
+	fi
 
 # Environment check (dependency for most targets)
 .env:
@@ -181,53 +160,45 @@ init-volumes:
 # ==============================================================================
 # Deployment Profiles
 # ==============================================================================
-up-minimal: .env init-network init-volumes
+up-minimal: .env init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║  Starting MINIMAL Profile (Core Services Only) - ~2GB RAM        ║$(NC)"
+	@echo "$(CYAN)║  Starting MINIMAL Profile (Core Services Only)                     ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
-	@echo ""
-	@echo "$(BLUE)Services:$(NC) Traefik, OTel Collector, Postgres, Redis, NATS, Pulsar, Infisical, Unleash"
 	@echo ""
 	$(COMPOSE_CORE) up -d --build
-	@sleep 5
-	@make health-core
+	@make wait-for-core
 
-up-observability: .env init-network init-volumes
+up-dev: .env validate-secrets init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║  Starting OBSERVABILITY Profile (Core + Observability) - ~4GB RAM║$(NC)"
+	@echo "$(CYAN)║  Starting DEV Profile (Core + Application Services)              ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(BLUE)Services:$(NC) Core + Loki, Prometheus, Jaeger, Grafana"
+	$(COMPOSE_DEV) up -d --build
+	@make wait-for-all
+
+up-observability: .env init-network
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║  Starting OBSERVABILITY Profile (Core + Observability)           ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	$(COMPOSE_OBS) up -d --build
-	@sleep 10
-	@make health-core
-	@make health-observability
+	@make wait-for-all
 
-up-security: .env init-network init-volumes
+up-security: .env init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║  Starting SECURITY Profile (Core + Obs + Security) - ~5GB RAM    ║$(NC)"
+	@echo "$(CYAN)║  Starting SECURITY Profile (Core + Obs + Security)               ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
-	@echo ""
-	@echo "$(BLUE)Services:$(NC) Core + Observability + Kratos"
 	@echo ""
 	$(COMPOSE_SEC) up -d --build
-	@sleep 10
-	@make health-all
+	@make wait-for-all
 
-up-full: .env validate-secrets init-network init-volumes
+up-full: .env validate-secrets init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║  Starting FULL STACK Profile (All Services) - ~6GB RAM           ║$(NC)"
+	@echo "$(CYAN)║  Starting FULL STACK Profile (All Services)                      ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(BLUE)Services:$(NC) All core, observability, security, and application services"
-	@echo ""
 	$(COMPOSE_FULL) up -d --build
-	@sleep 10
-	@make health-all
-	@echo ""
-	@echo "$(GREEN)✓ Full stack is running!$(NC)"
-	@echo "$(YELLOW)Run 'make info' for service URLs$(NC)"
+	@make wait-for-all
 
 # Default up target points to full stack
 up: up-full
@@ -239,6 +210,11 @@ down-minimal:
 	@echo "$(BLUE)Stopping minimal profile...$(NC)"
 	$(COMPOSE_CORE) down
 	@echo "$(GREEN)✓ Core services stopped$(NC)"
+
+down-dev:
+	@echo "$(BLUE)Stopping dev profile...$(NC)"
+	$(COMPOSE_DEV) down
+	@echo "$(GREEN)✓ Dev services stopped$(NC)"
 
 down-observability:
 	@echo "$(BLUE)Stopping observability profile...$(NC)"
@@ -267,10 +243,10 @@ build: .env
 	$(COMPOSE_FULL) build --parallel
 	@echo "$(GREEN)✓ Images built successfully$(NC)"
 
-clean: down
-	@echo "$(BLUE)Cleaning up containers and networks...$(NC)"
-	docker system prune -f
-	@echo "$(GREEN)✓ Cleanup complete (volumes preserved)$(NC)"
+clean:
+	@echo "$(BLUE)Stopping and removing containers, networks, and all data volumes...$(NC)"
+	$(COMPOSE_FULL) down -v
+	@echo "$(GREEN)✓ Cleanup complete$(NC)"
 
 reset:
 	@echo "$(RED)⚠ WARNING: This will remove ALL containers, volumes, and networks!$(NC)"
@@ -278,8 +254,7 @@ reset:
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		echo "$(BLUE)Removing everything...$(NC)"; \
-		$(COMPOSE_FULL) down -v; \
+		make clean; \
 		docker network rm arc_net 2>/dev/null || true; \
 		echo "$(GREEN)✓ Complete reset done$(NC)"; \
 	else \
@@ -287,7 +262,7 @@ reset:
 	fi
 
 # ==============================================================================
-# Container Management
+# Container Management & Health
 # ==============================================================================
 ps:
 	@echo "$(BLUE)Running containers:$(NC)"
@@ -297,31 +272,44 @@ status: ps
 	@echo ""
 	@make health-all
 
-# ==============================================================================
-# Logging
-# ==============================================================================
-logs:
-	$(COMPOSE_FULL) logs -f
+wait-for-core:
+	@echo "$(BLUE)Waiting for core services to become healthy... (up to 120s)$(NC)"
+	@bash -c ' \
+		for i in $$(seq 1 24); do \
+			if ! $(MAKE) health-core | grep "Unhealthy"; then \
+				$(MAKE) health-success; \
+				$(MAKE) health-core; \
+				$(MAKE) info-core; \
+				exit 0; \
+			fi; \
+			echo "  - Still waiting for some services to become healthy..."; \
+			sleep 5; \
+		done; \
+		echo "$(RED)✗ Timed out waiting for core services to become healthy.$(NC)"; \
+		$(MAKE) health-core; \
+		exit 1; \
+	'
 
-logs-core:
-	$(COMPOSE_CORE) logs -f
+wait-for-all:
+	@echo "$(BLUE)Waiting for all services to become healthy... (up to 180s)$(NC)"
+	@bash -c ' \
+		for i in $$(seq 1 36); do \
+			if ! $(MAKE) health-all | grep "Unhealthy"; then \
+				echo "$(GREEN)✓ All services are healthy!$(NC)"; \
+				$(MAKE) info; \
+				exit 0; \
+			fi; \
+			echo "  - Still waiting for some services to become healthy..."; \
+			sleep 5; \
+		done; \
+		echo "$(RED)✗ Timed out waiting for all services to become healthy.$(NC)"; \
+		$(MAKE) health-all; \
+		exit 1; \
+	'
 
-logs-observability:
-	@docker logs -f arc_loki & \
-	 docker logs -f arc_prometheus & \
-	 docker logs -f arc_jaeger & \
-	 docker logs -f arc_grafana & \
-	 wait
+health-success:
+	@echo  "$(GREEN)✓ All services are healthy!$(NC)";
 
-logs-security:
-	@docker logs -f arc_kratos
-
-logs-services:
-	@docker logs -f arc_swiss_army
-
-# ==============================================================================
-# Health Checks (Enterprise Grade)
-# ==============================================================================
 health-all: health-core health-observability health-security health-services
 
 health-core:
@@ -330,17 +318,17 @@ health-core:
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@printf "  %-25s" "Traefik (Gateway):"
-	@docker exec arc_traefik traefik healthcheck --ping 2>/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@curl -sf http://localhost:80/ping >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "OTel Collector:"
-	@docker exec arc_otel_collector /health_check http://localhost:13133 2>/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc_otel_collector /health_check http://localhost:13133 >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "PostgreSQL:"
-	@docker exec arc_postgres pg_isready -U arc 2>/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc_postgres pg_isready -U arc -q && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Redis:"
-	@docker exec arc_redis redis-cli ping 2>/dev/null | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc_redis redis-cli ping | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "NATS:"
 	@curl -sf http://localhost:8222/healthz >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Pulsar:"
-	@docker exec arc_pulsar bin/pulsar-admin brokers healthcheck 2>/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc_pulsar bin/pulsar-admin brokers healthcheck >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Infisical:"
 	@curl -sf http://localhost:3001/api/status >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Unleash:"
@@ -376,7 +364,7 @@ health-services:
 	@echo "$(CYAN)║  Application Services Health Status                              ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@printf "  %-25s" "Swiss Army:"
+	@printf "  %-25s" "Toolbox:"
 	@curl -sf http://localhost:8081/health >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy/Not Running$(NC)"
 	@echo ""
 
@@ -416,10 +404,9 @@ reset-db:
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker exec arc_postgres psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
-		docker exec arc_postgres psql -U arc -c "CREATE DATABASE arc_db;"; \
-		make migrate-db; \
-		echo "$(GREEN)✓ Database reset complete$(NC)"; \
+		make clean; \
+		docker network rm arc_net 2>/dev/null || true; \
+		echo "$(GREEN)✓ Complete reset done$(NC)"; \
 	else \
 		echo "$(YELLOW)Reset cancelled$(NC)"; \
 	fi
@@ -446,6 +433,7 @@ validate-compose:
 	@echo "$(BLUE)Validating docker-compose files...$(NC)"
 	@$(COMPOSE_BASE) config > /dev/null && echo "$(GREEN)✓ Base compose valid$(NC)" || echo "$(RED)✗ Base compose invalid$(NC)"
 	@$(COMPOSE_CORE) config > /dev/null && echo "$(GREEN)✓ Core compose valid$(NC)" || echo "$(RED)✗ Core compose invalid$(NC)"
+	@$(COMPOSE_DEV) config > /dev/null && echo "$(GREEN)✓ Dev compose valid$(NC)" || echo "$(RED)✗ Dev compose invalid$(NC)"
 	@$(COMPOSE_OBS) config > /dev/null && echo "$(GREEN)✓ Observability compose valid$(NC)" || echo "$(RED)✗ Observability compose invalid$(NC)"
 	@$(COMPOSE_SEC) config > /dev/null && echo "$(GREEN)✓ Security compose valid$(NC)" || echo "$(RED)✗ Security compose invalid$(NC)"
 	@$(COMPOSE_FULL) config > /dev/null && echo "$(GREEN)✓ Full compose valid$(NC)" || echo "$(RED)✗ Full compose invalid$(NC)"
@@ -467,7 +455,7 @@ validate-paths:
 		core/gateway/traefik/traefik.yml \
 		plugins/observability/visualization/grafana/provisioning \
 		plugins/observability/metrics/prometheus/prometheus.yaml \
-		services/utilities/swiss-army; do \
+		services/utilities/toolbox; do \
 		if [ -e "$$path" ]; then \
 			echo "$(GREEN)✓ $$path$(NC)"; \
 		else \
@@ -487,32 +475,33 @@ ci-validate: validate build
 # ==============================================================================
 # Information & Utilities
 # ==============================================================================
-info:
-	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║        A.R.C. Framework - Service Information                     ║$(NC)"
-	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+info-core:
 	@echo ""
 	@echo "$(YELLOW)━━━ Core Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Traefik (Gateway):$(NC)      http://localhost:8080 (dashboard)"
-	@echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc, pass: postgres)"
+	@. $(ENV_FILE); echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc, pass: $${POSTGRES_PASSWORD})"
 	@echo "  $(WHITE)Redis:$(NC)                  localhost:6379"
 	@echo "  $(WHITE)NATS:$(NC)                   localhost:4222 (monitoring: http://localhost:8222)"
 	@echo "  $(WHITE)Pulsar:$(NC)                 localhost:6650 (admin: http://localhost:8082)"
 	@echo "  $(WHITE)Infisical:$(NC)              http://localhost:3001"
 	@echo "  $(WHITE)Unleash:$(NC)                http://localhost:4242"
 	@echo ""
+
+info:
+	@make info-core
 	@echo "$(YELLOW)━━━ Observability Plugins ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Grafana:$(NC)                http://localhost:3000 (admin/admin)"
 	@echo "  $(WHITE)Prometheus:$(NC)             http://localhost:9090"
 	@echo "  $(WHITE)Jaeger:$(NC)                 http://localhost:16686"
 	@echo "  $(WHITE)Loki:$(NC)                   http://localhost:3100"
+	@echo "  $(WHITE)Pulsar Dashboard:$(NC)       http://localhost:8083"
 	@echo ""
 	@echo "$(YELLOW)━━━ Security Plugins ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Kratos (Public):$(NC)        http://localhost:4433"
 	@echo "  $(WHITE)Kratos (Admin):$(NC)         http://localhost:4434"
 	@echo ""
 	@echo "$(YELLOW)━━━ Application Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(WHITE)Swiss Army:$(NC)             http://localhost:8081"
+	@echo "  $(WHITE)Toolbox:$(NC)                http://localhost:8081"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation:$(NC)           docs/OPERATIONS.md"
@@ -533,11 +522,10 @@ version:
 # ==============================================================================
 # Development Helpers
 # ==============================================================================
-dev: up-observability
+dev: up-dev
 	@echo "$(GREEN)✓ Development environment ready$(NC)"
-	@echo "$(YELLOW)Core + Observability services are running$(NC)"
+	@echo "$(YELLOW)Core + Application services are running$(NC)"
 
 prod: up-full
 	@echo "$(GREEN)✓ Production environment ready$(NC)"
 	@echo "$(YELLOW)All services are running$(NC)"
-
