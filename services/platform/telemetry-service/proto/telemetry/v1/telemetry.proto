@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package telemetry.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/dgtalbug/arc-platform-spike/telemetry-service/gen/telemetry/v1;telemetryv1";
+
+// TelemetryEvent is the single, unified envelope for all observability signals
+// sent through Pulsar. This ensures that every piece of telemetry has a
+// consistent set of mandatory metadata.
+message TelemetryEvent {
+  // --- Mandatory Metadata (The Data Contract) ---
+  // The name of the service emitting the telemetry (e.g., "voice-agent").
+  string service_name = 1;
+  // The version of the service (e.g., "1.2.0" or a git SHA).
+  string service_version = 2;
+  // The hostname or container ID of the instance.
+  string hostname = 3;
+  // The precise time the event was generated in the source service.
+  google.protobuf.Timestamp timestamp = 4;
+
+  // The payload can be one of the three signal types. Using a `oneof`
+  // ensures that each message contains exactly one type of signal.
+  oneof payload {
+    LogRecord log_record = 10;
+    SpanData span_data = 11;
+    MetricData metric_data = 12;
+  }
+}
+
+// LogSeverity follows the OpenTelemetry Log Severity specification.
+enum LogSeverity {
+  UNSPECIFIED = 0;
+  TRACE = 1;
+  DEBUG = 5;
+  INFO = 9;
+  WARN = 13;
+  ERROR = 17;
+  FATAL = 21;
+}
+
+// LogRecord captures a single, structured log entry.
+message LogRecord {
+  // For correlating logs with traces.
+  string trace_id = 1;
+  string span_id = 2;
+
+  LogSeverity severity_number = 3;
+  string severity_text = 4; // e.g., "INFO"
+
+  // The main log message.
+  string body = 5;
+
+  // Structured key-value attributes associated with the log.
+  map<string, string> attributes = 6;
+}
+
+// SpanData transports a single OTel span.
+// By using `bytes`, we transport the span in its native, pre-serialized
+// OTel Protobuf format. This is incredibly robust and future-proof.
+// The producer (Python) serializes an OTel Span to bytes.
+// The consumer (Go) deserializes these bytes back into an OTel Span.
+message SpanData {
+  bytes otel_span_proto = 1;
+}
+
+// MetricData transports a single OTel metric data point.
+// Like with spans, we transport the metric in its native OTel Protobuf format.
+// This handles all metric types (Counters, Gauges, Histograms) correctly
+// without us needing to reinvent the complex data models.
+message MetricData {
+  bytes otel_metric_proto = 1;
+}

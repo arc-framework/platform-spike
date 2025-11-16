@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  pulsar:
+    image: apachepulsar/pulsar:3.2.0
+    container_name: pulsar_standalone
+    ports:
+      - "6650:6650"  # Pulsar client port
+      - "8080:8080"  # Pulsar admin web port
+    command: >
+      bash -c "bin/apply-config-from-env.py conf/standalone.conf && 
+               bin/pulsar standalone"
+    environment:
+      # These settings are important for running on modern systems (like M1/M2 Macs)
+      # and for development to avoid high resource usage.
+      PULSAR_MEM: " -Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m"
+      PULSAR_PREFIX_acknowledgmentAtSyncEnabled: "true" # Recommended for standalone
+      PULSAR_PREFIX_nettyMaxFrameSizeBytes: "5253120"
