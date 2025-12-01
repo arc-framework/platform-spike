@@ -1,0 +1,18 @@
+name: 💾 Publish - Data Services
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-data:
+    uses: ./.github/workflows/reusable-publish.yml
+    with:
+      group_name: "Data Layer"
+      image_list: |
+        apachepulsar/pulsar:latest = arc-strange-stream
+        nats:alpine = arc-flash-pulse
+        postgres:17-alpine = arc-oracle-sql
+        redis:alpine = arc-sonic-cache
+        minio/minio:latest = arc-holocron-storage
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
