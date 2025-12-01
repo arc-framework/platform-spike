@@ -1,11 +1,11 @@
-name: 🛡️ Mirror - Gateway
+name: 🛡️ Package - Gateway
 
 on:
   workflow_dispatch: 
 
 jobs:
   sync-gateway:
-    uses: ./.github/workflows/reusable-mirror.yml
+    uses: ./.github/workflows/reusable-publish.yml
     with:
       group_name: "Gateway & Identity"
       image_list: |
