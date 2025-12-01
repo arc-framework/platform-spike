@@ -1,11 +1,11 @@
-name: 💾 Mirror - Data
+name: 💾 Publish - Data Services
 
 on:
   workflow_dispatch:
 
 jobs:
   sync-data:
-    uses: ./.github/workflows/reusable-mirror.yml
+    uses: ./.github/workflows/reusable-publish.yml
     with:
       group_name: "Data Layer"
       image_list: |
