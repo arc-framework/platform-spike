@@ -1,7 +1,7 @@
 #!/bin/bash
 # Repository Analysis Runner Script
 # Version: 1.0
-# Usage: ./scripts/run-analysis.sh [MMDD] [--compare]
+# Usage: ./tools/analysis/run-analysis.sh [MMDD] [--compare]
 
 set -e
 

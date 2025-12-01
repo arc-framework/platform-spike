@@ -16,7 +16,7 @@ However, production readiness remains blocked. The Traefik control plane is agai
 
 - **Observability-first design:** OpenTelemetry collector + spanmetrics pipeline (`core/telemetry/otel-collector-config.yml`) exports logs, metrics, traces to Grafana, Prometheus, Loki, and Jaeger with clear wiring.
 - **Layered architecture:** Compose bundles cleanly separate core, plugin, and app services; labels (e.g., in `deployments/docker/docker-compose.core.yml`) declare layer/category data for governance.
-- **Operational tooling:** Make targets (`Makefile` `make up-*`, `make validate-*`) and operations scripts (`scripts/operations/diagnose-health.sh`) promote repeatable workflows.
+- **Operational tooling:** Make targets (`Makefile` `make up-*`, `make validate-*`) and documented runbooks (`scripts/operations/README.md`) promote repeatable workflows.
 - **Where to improve:** Service mesh features (mTLS, retries), container image pinning (`traefik:latest`, `infisical/infisical:latest-postgres`) and formal CNCF conformance evidence are still pending.
 
 ## 2. CONFIGURATION STABILITY & DEPLOYMENT

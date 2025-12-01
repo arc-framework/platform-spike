@@ -5,13 +5,15 @@ AI prompt templates for automated analysis and documentation generation.
 ## Available Prompts
 
 ### PROMPT-analysis-template.md
+
 **Purpose:** Repository analysis framework  
-**Used by:** `scripts/analysis/run-analysis.sh`  
+**Used by:** `tools/analysis/run-analysis.sh`  
 **Generates:** Comprehensive repository analysis reports
 
 **Usage:**
+
 ```bash
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 # Generates analysis using this prompt template
 ```
 
@@ -20,13 +22,15 @@ AI prompt templates for automated analysis and documentation generation.
 ---
 
 ### PROMPT-journal-template.md
+
 **Purpose:** Daily journal entry template  
-**Used by:** `scripts/operations/generate-journal.sh`  
+**Used by:** `tools/journal/generate-journal.sh`  
 **Generates:** Daily project journals with technical and non-technical summaries
 
 **Usage:**
+
 ```bash
-./scripts/journal/generate-journal.sh
+./tools/journal/generate-journal.sh
 # Generates journal using this prompt template
 ```
 
@@ -37,16 +41,20 @@ AI prompt templates for automated analysis and documentation generation.
 ## Creating New Prompts
 
 ### Naming Convention
+
 All prompt templates should follow: `PROMPT-<purpose>-template.md`
 
 Examples:
+
 - `PROMPT-analysis-template.md`
 - `PROMPT-journal-template.md`
 - `PROMPT-documentation-template.md`
 - `PROMPT-review-template.md`
 
 ### Template Structure
+
 Each prompt should include:
+
 1. **Purpose** - What the prompt generates
 2. **Scope** - What aspects it analyzes
 3. **Output Format** - Structure of generated content
@@ -54,7 +62,9 @@ Each prompt should include:
 5. **Examples** - Sample outputs (if applicable)
 
 ### Integration
-Link prompts to scripts in `scripts/` directory:
+
+Link prompts to the corresponding tool scripts:
+
 ```bash
 TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-<name>-template.md"
 ```
@@ -64,18 +74,21 @@ TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-<name>-template.md"
 ## Prompt Categories
 
 ### Analysis Prompts
+
 - Repository health checks
 - Code quality assessments
 - Architecture reviews
 - Security audits
 
 ### Documentation Prompts
+
 - Daily journals
 - Sprint summaries
 - Technical documentation
 - API documentation
 
 ### Review Prompts
+
 - Code review templates
 - PR descriptions
 - Release notes
@@ -86,21 +99,27 @@ TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-<name>-template.md"
 ## Best Practices
 
 ### 1. Keep Prompts Focused
+
 Each prompt should have a single, clear purpose.
 
 ### 2. Use Structured Format
+
 Consistent markdown structure makes prompts reusable.
 
 ### 3. Include Context
+
 Provide enough context for AI to understand the project.
 
 ### 4. Define Output Format
+
 Specify exact format, sections, and structure expected.
 
 ### 5. Add Examples
+
 Include sample outputs to guide generation.
 
 ### 6. Version Control
+
 Track prompt changes to improve over time.
 
 ---
@@ -108,21 +127,24 @@ Track prompt changes to improve over time.
 ## Using Prompts with AI
 
 ### With Scripts (Automated)
+
 ```bash
 # Analysis
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 
 # Journal
-./scripts/journal/generate-journal.sh
+./tools/journal/generate-journal.sh
 ```
 
 Scripts automatically:
+
 1. Load the prompt template
 2. Add current project context
 3. Generate enhanced prompt
 4. Create output files
 
 ### Manual Use
+
 ```bash
 # Copy prompt to clipboard
 cat prompts/PROMPT-analysis-template.md | pbcopy
@@ -132,6 +154,7 @@ cat prompts/PROMPT-analysis-template.md
 ```
 
 Then paste into:
+
 - GitHub Copilot
 - ChatGPT
 - Claude
@@ -142,15 +165,17 @@ Then paste into:
 ## Customization
 
 ### Modify Existing Prompts
+
 ```bash
 # Edit prompt template
 vim prompts/PROMPT-analysis-template.md
 
 # Test changes
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 ```
 
 ### Create New Prompts
+
 ```bash
 # Create new template
 cat > prompts/PROMPT-custom-template.md << 'EOF'
@@ -167,17 +192,21 @@ TEMPLATE_FILE="$PROJECT_ROOT/prompts/PROMPT-custom-template.md"
 ## Maintenance
 
 ### Regular Reviews
+
 - Review prompt effectiveness monthly
 - Update based on output quality
 - Refine instructions for clarity
 
 ### Version History
+
 Track changes in git:
+
 ```bash
 git log -- prompts/
 ```
 
 ### Feedback Loop
+
 1. Use prompt
 2. Review output
 3. Note improvements needed
@@ -196,14 +225,14 @@ git log -- prompts/
          │
          ▼
 ┌─────────────────┐
-│  scripts/       │
+│  tools/         │
 │  Automation     │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  docs/reports/  │
-│  journal/       │
+│  reports/       │
+│  tools/journal/ │
 │  Generated      │
 └─────────────────┘
 ```
@@ -213,6 +242,7 @@ git log -- prompts/
 ## Tips
 
 ### For Better Results
+
 - Keep prompts up-to-date with project evolution
 - Add specific project context
 - Include examples of desired output
@@ -220,6 +250,7 @@ git log -- prompts/
 - Iterate based on feedback
 
 ### Common Issues
+
 - **Generic output**: Add more specific context to prompt
 - **Missing sections**: Update template structure
 - **Wrong format**: Clarify output format in prompt
@@ -229,10 +260,10 @@ git log -- prompts/
 
 ## Quick Reference
 
-| Prompt | Purpose | Script | Output |
-|--------|---------|--------|--------|
-| `PROMPT-analysis-template.md` | Repo analysis | `scripts/analysis/run-analysis.sh` | `docs/reports/` |
-| `PROMPT-journal-template.md` | Daily journal | `scripts/operations/generate-journal.sh` | `journal/YYYY/MM/` |
+| Prompt                        | Purpose       | Script                              | Output                   |
+| ----------------------------- | ------------- | ----------------------------------- | ------------------------ |
+| `PROMPT-analysis-template.md` | Repo analysis | `tools/analysis/run-analysis.sh`    | `reports/YYYY/MM/`       |
+| `PROMPT-journal-template.md`  | Daily journal | `tools/journal/generate-journal.sh` | `tools/journal/entries/` |
 
 ---
 
@@ -245,6 +276,5 @@ git log -- prompts/
 
 ---
 
-*Prompt templates for AI-assisted development*  
-*Part of A.R.C. Platform Spike*
-
+_Prompt templates for AI-assisted development_  
+_Part of A.R.C. Platform Spike_
