@@ -1,0 +1,19 @@
+name: 🔭 Mirror - Observability
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-observability:
+    uses: ./.github/workflows/reusable-mirror.yml
+    with:
+      group_name: "Observability Stack"
+      image_list: |
+        otel/opentelemetry-collector:latest = arc-widow-otel
+        prom/prometheus:latest = arc-mercy-metrics
+        grafana/loki:latest = arc-watson-logs
+        grafana/tempo:latest = arc-rorschach-traces
+        grafana/grafana:latest = arc-friday-viz
+        grafana/promtail:latest = arc-hermes-shipper
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
