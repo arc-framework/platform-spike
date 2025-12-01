@@ -12,5 +12,7 @@ jobs:
         ghcr.io/chaos-mesh/chaos-mesh:latest = arc-terminator-chaos
         roadiehq/community-backstage-image:latest = arc-architect-portal
         mailhog/mailhog:latest = arc-hedwig-mailer
+        temporalio/auto-setup:latest = arc-kang-flow
+        dkron/dkron:latest = arc-doc-time
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
