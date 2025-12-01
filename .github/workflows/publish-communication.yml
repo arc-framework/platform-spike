@@ -1,4 +1,4 @@
-name: 🗣️ Mirror - Voice & Media Communication
+name: 🗣️ Publish - Voice & Media Communication
 
 on:
   workflow_dispatch:
