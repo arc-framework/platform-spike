@@ -1,0 +1,16 @@
+name: ⚡ Mirror - Resilience & Tools
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-tools:
+    uses: ./.github/workflows/reusable-mirror.yml
+    with:
+      group_name: "Resilience & Tools"
+      image_list: |
+        ghcr.io/chaos-mesh/chaos-mesh:latest = arc-terminator-chaos
+        roadiehq/community-backstage-image:latest = arc-architect-portal
+        mailhog/mailhog:latest = arc-hedwig-mailer
+    secrets:
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
