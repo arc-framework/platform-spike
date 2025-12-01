@@ -1,4 +1,4 @@
-name: ♻️ Reusable Mirror
+name: ♻️ Reusable Package Publish
 
 on:
   workflow_call:
