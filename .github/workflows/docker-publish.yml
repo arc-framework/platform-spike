@@ -78,7 +78,7 @@ jobs:
             ["oryd/kratos:latest"]="arc-deckard-identity"
             ["infisical/infisical:latest"]="arc-fury-vault"
           )
-          process_group "Gateway & Identity" GROUP_GATEWAY
+          # process_group "Gateway & Identity" GROUP_GATEWAY
 
           # ------------------------------------------------------------------
           # 2. 💾 Data & Messaging
@@ -91,7 +91,7 @@ jobs:
             ["qdrant/qdrant:latest"]="arc-cerebro-vector"
             ["minio/minio:latest"]="arc-holocron-storage"
           )
-          # process_group "Data & Messaging" GROUP_DATA
+          process_group "Data & Messaging" GROUP_DATA
 
           # ------------------------------------------------------------------
           # 3. 🔭 Observability
