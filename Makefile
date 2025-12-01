@@ -8,16 +8,18 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help init up down restart clean build ps logs health \
-        up-minimal up-dev up-observability up-security up-full \
-        down-minimal down-dev down-observability down-security down-full \
-        health-success health-all health-core health-plugins health-observability health-security \
-        health-services validate info status version \
+        up-minimal up-core-services up-dev up-observability up-security up-full \
+        down-minimal down-core-services down-dev down-observability down-security down-full \
+        health-success health-all health-core health-plugins health-observability health-security health-services \
+        health-core-services health-dev health-observability-profile health-security-profile \
+        wait-for-core wait-for-core-services wait-for-dev wait-for-observability-profile wait-for-security-profile wait-for-full \
+        validate info status version \
         init-env init-network init-all generate-secrets validate-secrets \
         backup-db restore-db reset-db migrate-db \
         logs-core logs-observability logs-security logs-services \
         shell-postgres shell-redis shell-nats test-connectivity \
         validate-architecture validate-compose validate-paths ci-validate \
-        wait-for-core wait-for-all info-core
+        info-core
 
 # ==============================================================================
 # Configuration Variables
@@ -30,8 +32,9 @@ COMPOSE_DIR := deployments/docker
 # Compose file references
 COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
 COMPOSE_CORE := $(COMPOSE_BASE) -f $(COMPOSE_DIR)/docker-compose.core.yml
-COMPOSE_DEV := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.services.yml
+COMPOSE_CORE_SERVICES := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.services.yml
 COMPOSE_OBS := $(COMPOSE_CORE) -f $(COMPOSE_DIR)/docker-compose.observability.yml
+COMPOSE_CORE_OBS_SERVICES := $(COMPOSE_OBS) -f $(COMPOSE_DIR)/docker-compose.services.yml
 COMPOSE_SEC := $(COMPOSE_OBS) -f $(COMPOSE_DIR)/docker-compose.security.yml
 COMPOSE_FULL := $(COMPOSE_SEC) -f $(COMPOSE_DIR)/docker-compose.services.yml
 
@@ -66,7 +69,7 @@ help:
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@echo "$(WHITE)Architecture: Core + Plugins Pattern$(NC)"
-	@echo "$(WHITE)Deployment Profiles: minimal | dev | observability | security | full$(NC)"
+	@echo "$(WHITE)Deployment Profiles: minimal | core-services | dev | observability | security | full$(NC)"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(YELLOW)Initialization:$(NC)"
@@ -77,7 +80,8 @@ help:
 	@echo "  $(GREEN)make init-network$(NC)      Create Docker network"
 	@echo ""
 	@echo "$(YELLOW)Common Development Commands:$(NC)"
-	@echo "  $(GREEN)make up-dev$(NC)            Start core services + application services (~3GB RAM)"
+	@echo "  $(GREEN)make up-core-services$(NC)  Start core services + application services (~3GB RAM)"
+	@echo "  $(GREEN)make up-dev$(NC)            Start core + observability + application services (~5GB RAM)"
 	@echo "  $(GREEN)make up-observability$(NC)  Start core + observability services (~4GB RAM)"
 	@echo "  $(GREEN)make up-full$(NC)           Start all services (~6GB RAM)"
 	@echo ""
@@ -168,13 +172,21 @@ up-minimal: .env init-network
 	$(COMPOSE_CORE) up -d --build
 	@make wait-for-core
 
-up-dev: .env validate-secrets init-network
+up-core-services: .env validate-secrets init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║  Starting DEV Profile (Core + Application Services)              ║$(NC)"
+	@echo "$(CYAN)║  Starting CORE + SERVICES Profile (Core + Application Services)  ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	$(COMPOSE_DEV) up -d --build
-	@make wait-for-all
+	$(COMPOSE_CORE_SERVICES) up -d --build
+	@make wait-for-core-services
+
+up-dev: .env validate-secrets init-network
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║  Starting DEV Profile (Core + Observability + Application Services)║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	$(COMPOSE_CORE_OBS_SERVICES) up -d --build
+	@make wait-for-dev
 
 up-observability: .env init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
@@ -182,15 +194,15 @@ up-observability: .env init-network
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	$(COMPOSE_OBS) up -d --build
-	@make wait-for-all
+	@make wait-for-observability-profile
 
 up-security: .env init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║  Starting SECURITY Profile (Core + Obs + Security)               ║$(NC)"
-	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo "$(CYYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	$(COMPOSE_SEC) up -d --build
-	@make wait-for-all
+	@make wait-for-security-profile
 
 up-full: .env validate-secrets init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
@@ -198,7 +210,7 @@ up-full: .env validate-secrets init-network
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	$(COMPOSE_FULL) up -d --build
-	@make wait-for-all
+	@make wait-for-full
 
 # Default up target points to full stack
 up: up-full
@@ -211,10 +223,15 @@ down-minimal:
 	$(COMPOSE_CORE) down
 	@echo "$(GREEN)✓ Core services stopped$(NC)"
 
+down-core-services:
+	@echo "$(BLUE)Stopping core + services profile...$(NC)"
+	$(COMPOSE_CORE_SERVICES) down
+	@echo "$(GREEN)✓ Core and application services stopped$(NC)"
+
 down-dev:
-	@echo "$(BLUE)Stopping dev profile...$(NC)"
-	$(COMPOSE_DEV) down
-	@echo "$(GREEN)✓ Dev services stopped$(NC)"
+	@echo "$(BLUE)Stopping dev profile (core + observability + services)...$(NC)"
+	$(COMPOSE_CORE_OBS_SERVICES) down
+	@echo "$(GREEN)✓ Core, observability, and application services stopped$(NC)"
 
 down-observability:
 	@echo "$(BLUE)Stopping observability profile...$(NC)"
@@ -272,45 +289,53 @@ status: ps
 	@echo ""
 	@make health-all
 
-wait-for-core:
-	@echo "$(BLUE)Waiting for core services to become healthy... (up to 120s)$(NC)"
+# Generic wait function
+# Usage: $(call _wait-for,TARGET_NAME,TIMEOUT,HEALTH_TARGET,INFO_TARGET)
+define _wait-for
+	@echo "$(BLUE)Waiting for $(1) to become healthy... (up to $(2)s)$(NC)"
 	@bash -c ' \
-		for i in $$(seq 1 24); do \
-			if ! $(MAKE) health-core | grep "Unhealthy"; then \
-				$(MAKE) health-success; \
-				$(MAKE) health-core; \
-				$(MAKE) info-core; \
+		for i in $$(seq 1 $$(($(2) / 5))); do \
+			if ! $(MAKE) $(3) | grep "Unhealthy"; then \
+				echo "$(GREEN)✓ $(1) are healthy!$(NC)"; \
+				$(if $(4),$(MAKE) info-$(4),$(MAKE) info); \
 				exit 0; \
 			fi; \
 			echo "  - Still waiting for some services to become healthy..."; \
 			sleep 5; \
 		done; \
-		echo "$(RED)✗ Timed out waiting for core services to become healthy.$(NC)"; \
-		$(MAKE) health-core; \
+		echo "$(RED)✗ Timed out waiting for $(1) to become healthy.$(NC)"; \
+		$(MAKE) $(3); \
 		exit 1; \
 	'
+endef
 
-wait-for-all:
-	@echo "$(BLUE)Waiting for all services to become healthy... (up to 180s)$(NC)"
-	@bash -c ' \
-		for i in $$(seq 1 36); do \
-			if ! $(MAKE) health-all | grep "Unhealthy"; then \
-				echo "$(GREEN)✓ All services are healthy!$(NC)"; \
-				$(MAKE) info; \
-				exit 0; \
-			fi; \
-			echo "  - Still waiting for some services to become healthy..."; \
-			sleep 5; \
-		done; \
-		echo "$(RED)✗ Timed out waiting for all services to become healthy.$(NC)"; \
-		$(MAKE) health-all; \
-		exit 1; \
-	'
+wait-for-core:
+	$(call _wait-for,"core services",120,health-core,core)
+
+wait-for-core-services:
+	$(call _wait-for,"core and application services",180,health-core-services,core)
+
+wait-for-dev:
+	$(call _wait-for,"core, observability, and application services",180,health-dev,core)
+
+wait-for-observability-profile:
+	$(call _wait-for,"core and observability services",180,health-observability-profile,core)
+
+wait-for-security-profile:
+	$(call _wait-for,"core, observability, and security services",180,health-security-profile,core)
+
+wait-for-full:
+	$(call _wait-for,"all services",180,health-all,) # No specific info target, so call generic info
 
 health-success:
 	@echo  "$(GREEN)✓ All services are healthy!$(NC)";
 
 health-all: health-core health-observability health-security health-services
+
+health-core-services: health-core health-services
+health-dev: health-core health-observability health-services
+health-observability-profile: health-core health-observability
+health-security-profile: health-core health-observability health-security
 
 health-core:
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
@@ -433,8 +458,9 @@ validate-compose:
 	@echo "$(BLUE)Validating docker-compose files...$(NC)"
 	@$(COMPOSE_BASE) config > /dev/null && echo "$(GREEN)✓ Base compose valid$(NC)" || echo "$(RED)✗ Base compose invalid$(NC)"
 	@$(COMPOSE_CORE) config > /dev/null && echo "$(GREEN)✓ Core compose valid$(NC)" || echo "$(RED)✗ Core compose invalid$(NC)"
-	@$(COMPOSE_DEV) config > /dev/null && echo "$(GREEN)✓ Dev compose valid$(NC)" || echo "$(RED)✗ Dev compose invalid$(NC)"
+	@$(COMPOSE_CORE_SERVICES) config > /dev/null && echo "$(GREEN)✓ Core Services compose valid$(NC)" || echo "$(RED)✗ Core Services compose invalid$(NC)"
 	@$(COMPOSE_OBS) config > /dev/null && echo "$(GREEN)✓ Observability compose valid$(NC)" || echo "$(RED)✗ Observability compose invalid$(NC)"
+	@$(COMPOSE_CORE_OBS_SERVICES) config > /dev/null && echo "$(GREEN)✓ Core Observability Services compose valid$(NC)" || echo "$(RED)✗ Core Observability Services compose invalid$(NC)"
 	@$(COMPOSE_SEC) config > /dev/null && echo "$(GREEN)✓ Security compose valid$(NC)" || echo "$(RED)✗ Security compose invalid$(NC)"
 	@$(COMPOSE_FULL) config > /dev/null && echo "$(GREEN)✓ Full compose valid$(NC)" || echo "$(RED)✗ Full compose invalid$(NC)"
 
@@ -524,7 +550,7 @@ version:
 # ==============================================================================
 dev: up-dev
 	@echo "$(GREEN)✓ Development environment ready$(NC)"
-	@echo "$(YELLOW)Core + Application services are running$(NC)"
+	@echo "$(YELLOW)Core + Observability + Application services are running$(NC)"
 
 prod: up-full
 	@echo "$(GREEN)✓ Production environment ready$(NC)"
