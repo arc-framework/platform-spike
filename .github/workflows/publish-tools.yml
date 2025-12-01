@@ -1,11 +1,11 @@
-name: ⚡ Mirror - Resilience & Tools
+name: ⚡ Publish - Resilience & Tools
 
 on:
   workflow_dispatch:
 
 jobs:
   sync-tools:
-    uses: ./.github/workflows/reusable-mirror.yml
+    uses: ./.github/workflows/reusable-publish.yml
     with:
       group_name: "Resilience & Tools"
       image_list: |
