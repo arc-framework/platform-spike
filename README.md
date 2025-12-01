@@ -24,6 +24,7 @@ make info
 ```
 
 **That's it!** The platform is now running with:
+
 - ✅ PostgreSQL + pgvector
 - ✅ Redis cache
 - ✅ NATS & Pulsar messaging
@@ -34,6 +35,7 @@ make info
 - ✅ Infisical secrets
 
 **Access the dashboards:**
+
 - 📊 **Grafana**: http://localhost:3000 (credentials in `make info`)
 - 🔍 **Jaeger**: http://localhost:16686
 - 📈 **Prometheus**: http://localhost:9090
@@ -49,11 +51,13 @@ make info
 - **OpenSSL** (for secret generation)
 
 **macOS:**
+
 ```bash
 brew install --cask docker
 ```
 
 **Linux:**
+
 ```bash
 # Install Docker Engine
 curl -fsSL https://get.docker.com | sh
@@ -67,41 +71,45 @@ sudo apt-get install docker-compose-plugin
 ## 🎯 What This Platform Provides
 
 ### Layer 1: Core Services
+
 Required infrastructure that every service depends on:
 
-| Service | Purpose | Port | Status |
-|---------|---------|------|--------|
-| **PostgreSQL** | Primary data store + pgvector | 5432 | ✅ Required |
-| **Redis** | Cache & sessions | 6379 | ✅ Required |
-| **NATS** | Ephemeral messaging | 4222 | ✅ Required |
-| **Pulsar** | Durable event streaming | 6650 | ✅ Required |
-| **Traefik** | API gateway | 80/443 | ✅ Required |
-| **OpenTelemetry** | Telemetry collection | 4317/4318 | ✅ Required |
-| **Infisical** | Secrets management | 3001 | ✅ Required |
-| **Unleash** | Feature flags | 4242 | ✅ Required |
+| Service           | Purpose                       | Port      | Status      |
+| ----------------- | ----------------------------- | --------- | ----------- |
+| **PostgreSQL**    | Primary data store + pgvector | 5432      | ✅ Required |
+| **Redis**         | Cache & sessions              | 6379      | ✅ Required |
+| **NATS**          | Ephemeral messaging           | 4222      | ✅ Required |
+| **Pulsar**        | Durable event streaming       | 6650      | ✅ Required |
+| **Traefik**       | API gateway                   | 80/443    | ✅ Required |
+| **OpenTelemetry** | Telemetry collection          | 4317/4318 | ✅ Required |
+| **Infisical**     | Secrets management            | 3001      | ✅ Required |
+| **Unleash**       | Feature flags                 | 4242      | ✅ Required |
 
 ### Layer 2: Observability Stack
+
 Optional but recommended for production:
 
-| Service | Purpose | Port | Status |
-|---------|---------|------|--------|
-| **Loki** | Log aggregation | 3100 | 🔌 Plugin |
-| **Prometheus** | Metrics collection | 9090 | 🔌 Plugin |
-| **Jaeger** | Distributed tracing | 16686 | 🔌 Plugin |
-| **Grafana** | Unified visualization | 3000 | 🔌 Plugin |
+| Service        | Purpose               | Port  | Status    |
+| -------------- | --------------------- | ----- | --------- |
+| **Loki**       | Log aggregation       | 3100  | 🔌 Plugin |
+| **Prometheus** | Metrics collection    | 9090  | 🔌 Plugin |
+| **Jaeger**     | Distributed tracing   | 16686 | 🔌 Plugin |
+| **Grafana**    | Unified visualization | 3000  | 🔌 Plugin |
 
 ### Layer 3: Security Stack
+
 Production-ready identity and authentication:
 
-| Service | Purpose | Port | Status |
-|---------|---------|------|--------|
+| Service    | Purpose                   | Port      | Status    |
+| ---------- | ------------------------- | --------- | --------- |
 | **Kratos** | Identity & authentication | 4433/4434 | 🔌 Plugin |
 
 ### Layer 4: Application Services
+
 Your custom services built on the framework:
 
-| Service | Purpose | Port | Status |
-|---------|---------|------|--------|
+| Service     | Purpose              | Port | Status     |
+| ----------- | -------------------- | ---- | ---------- |
 | **Toolbox** | Demo utility service | 8081 | 📋 Example |
 
 ---
@@ -382,27 +390,35 @@ Application Service
 Choose the right profile for your needs:
 
 ### Development (2GB RAM)
+
 ```bash
 make up-minimal  # Core services only
 ```
+
 **Includes**: PostgreSQL, Redis, NATS, Pulsar, OTEL, Traefik, Infisical, Unleash
 
 ### Staging (4GB RAM)
+
 ```bash
 make up-observability  # Core + monitoring
 ```
+
 **Includes**: Minimal + Loki, Prometheus, Jaeger, Grafana
 
 ### Production-like (5GB RAM)
+
 ```bash
 make up-security  # Core + monitoring + security
 ```
+
 **Includes**: Observability + Kratos
 
 ### Full Stack (6GB RAM)
+
 ```bash
 make up  # Everything including demo apps
 ```
+
 **Includes**: Security + Toolbox service
 
 ---
@@ -410,19 +426,23 @@ make up  # Everything including demo apps
 ## 📖 Documentation
 
 ### Getting Started
+
 - [Operations Guide](docs/OPERATIONS.md) - Deployment and management
 - [Security Fixes](docs/guides/SECURITY-FIXES.md) - Security hardening details
 - [Environment Migration](docs/guides/ENV-MIGRATION.md) - Configuration updates
 
 ### Architecture
+
 - [Architecture Overview](docs/architecture/README.md) - Design patterns and principles
 - [Naming Conventions](docs/guides/NAMING-CONVENTIONS.md) - Coding standards
 
 ### Guides
+
 - [Setup Scripts](scripts/setup/README.md) - Secret management tools
 - [Migration Guide](docs/guides/MIGRATION-v1-to-v2.md) - Upgrade instructions
 
 ### Reports
+
 - [Analysis Reports](reports/) - System analysis and recommendations
 
 ---
@@ -432,13 +452,17 @@ make up  # Everything including demo apps
 ### Common Issues
 
 #### "POSTGRES_PASSWORD must be set"
+
 **Solution:**
+
 ```bash
 make generate-secrets
 ```
 
 #### "Cannot connect to PostgreSQL"
+
 **Solution:**
+
 ```bash
 # Wait for services to start (10-30 seconds)
 make health-all
@@ -448,7 +472,9 @@ make logs-core
 ```
 
 #### "Port already in use"
+
 **Solution:**
+
 ```bash
 # Find what's using the port
 lsof -i :5432  # or whatever port
@@ -457,7 +483,9 @@ lsof -i :5432  # or whatever port
 ```
 
 #### Services won't start
+
 **Solution:**
+
 ```bash
 # Clean restart
 make down
@@ -466,7 +494,9 @@ make up
 ```
 
 #### Out of disk space
+
 **Solution:**
+
 ```bash
 # Clean up Docker
 docker system prune -a --volumes
@@ -615,13 +645,12 @@ docker compose \
 ### Security Hardening
 
 The platform includes:
-- ✅ No weak default passwords
-- ✅ No hardcoded secrets
-- ✅ Resource limits on all services
-- ✅ Log rotation configured
-- ✅ Minimal port exposure in production
-- ✅ Traefik-based routing with auth
-- ✅ Automated secret validation
+
+- ✅ No weak default credentials checked into git
+- 🔒 TLS entrypoint configured for service exposure
+- 🔐 Traefik dashboard disabled by default; enable via secure override only
+- 🛡️ Hardened compose profiles (no insecure legacy services)
+- 🧪 Health checks wired into `make health-*`
 
 See [SECURITY-FIXES.md](docs/guides/SECURITY-FIXES.md) for details.
 
@@ -680,6 +709,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Last Updated**: November 9, 2025
 
 ### Recent Updates
+
 - ✅ All critical security issues resolved
 - ✅ Automated secret management
 - ✅ Resource limits on all services
@@ -688,6 +718,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - ✅ Centralized configuration
 
 ### Roadmap
+
 - [ ] TLS/SSL configuration
 - [ ] Automated backup strategy
 - [ ] Prometheus alerting rules
@@ -702,11 +733,14 @@ See [PROGRESS.md](PROGRESS.md) for detailed status.
 curl http://localhost:4434/admin/
 
 # List identities
+
 curl http://localhost:4434/admin/identities
 
 # Get health status
+
 curl http://localhost:4434/health/alive
-```
+
+````
 
 **Troubleshooting**:
 - "config not found" → Create `config/kratos/kratos.yml` (see `config/kratos/README.md`).
@@ -722,20 +756,23 @@ curl http://localhost:4434/health/alive
 **Quick Start**:
 ```bash
 make health-unleash
-```
+````
 
 **Configuration**:
+
 - Config: `config/unleash/.env.example`
 - Port: 4242
 - Database: Uses Postgres
 - Default URL: http://localhost:4242
 
 **First Access**:
+
 1. Open http://localhost:4242
 2. Click "Sign Up" to create an admin account
 3. Log in and enable/create feature flags
 
 **Common Operations**:
+
 ```bash
 # Check Unleash is ready
 make health-unleash
@@ -751,6 +788,7 @@ curl http://localhost:4242/client/features
 ```
 
 **Troubleshooting**:
+
 - "Database error" → Ensure Postgres is healthy: `make health-postgres`
 - UI not loading → Wait 10-20s for migrations to complete; check logs: `make logs-service SERVICE=unleash`
 
@@ -761,22 +799,26 @@ curl http://localhost:4242/client/features
 **Purpose**: Self-hosted vault for managing API keys, credentials, and sensitive configuration.
 
 **Quick Start**:
+
 ```bash
 make health-infisical
 ```
 
 **Configuration**:
+
 - Config: `config/infisical/.env.example`
 - Port: 3001
 - Database: Uses Postgres
 - Default URL: http://localhost:3001
 
 **First Access**:
+
 1. Open http://localhost:3001
 2. Click "Sign Up" to create an account
 3. Create a project and add secrets
 
 **Troubleshooting**:
+
 - "Database error" → Ensure Postgres is healthy: `make health-postgres`
 - Master key issues → Check logs: `make logs-service SERVICE=infisical`
 
@@ -787,34 +829,48 @@ make health-infisical
 **Purpose**: Reverse proxy and auto-discovery gateway for routing traffic to microservices.
 
 **Quick Start**:
+
 ```bash
 make health-traefik
 ```
 
 **Configuration**:
-- Config: `config/traefik/traefik.yml`
-- Env: `config/traefik/.env.example`
-- Ports: 80 (HTTP), 443 (HTTPS), 8080 (dashboard)
-- Dashboard: http://localhost:8080/dashboard/
+
+- Config: `core/gateway/traefik/traefik.yml`
+- Env: project-level `.env`
+- Ports: 80 (HTTP), 443 (HTTPS)
+- Dashboard: internal-only; expose via Traefik router when needed
 
 **How It Works**:
+
 - Traefik watches Docker container labels and auto-discovers services.
 - Services expose themselves via Docker labels (e.g., `traefik.enable=true`).
 - Example: See `docker-compose.yml` for how services can add labels.
 
 **Common Operations**:
+
 ```bash
-# Access Traefik dashboard
-open http://localhost:8080/dashboard/
+# Temporarily expose the dashboard via secure router override
+cat <<'EOF' > docker-compose.override.yml
+services:
+  arc_traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:?Set secure credentials}"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
+EOF
+make up
 
-# View active routes
-curl http://localhost:8080/api/http/routers
-
-# View services
-curl http://localhost:8080/api/http/services
+# Check Traefik health (ping endpoint exposed internally)
+docker compose -f deployments/docker/docker-compose.core.yml exec arc_traefik traefik healthcheck --ping
 ```
 
 **Troubleshooting**:
+
 - Dashboard not loading → Check logs: `make logs-service SERVICE=traefik`
 - Routes not auto-discovered → Ensure Docker labels are correct on services.
 
@@ -825,31 +881,37 @@ curl http://localhost:8080/api/http/services
 These services are core to the observability layer and should be started first via `make up-observability`.
 
 **Grafana (Visualization)**:
+
 - URL: http://localhost:3000
 - Login: admin / admin (change on first login in production)
 - Auto-provisioned data sources: Prometheus, Loki, Jaeger
 
 **Prometheus (Metrics)**:
+
 - URL: http://localhost:9090
 - Scrapes metrics from OTel Collector and infra services
 - Retention: 15d (configurable)
 
 **Jaeger (Distributed Tracing)**:
+
 - URL: http://localhost:16686
 - Stores traces from OTel Collector
 - In-memory storage (production should use Elasticsearch or Badger)
 
 **Loki (Log Aggregation)**:
+
 - URL: http://localhost:3100
 - Stores logs from OTel Collector
 - Lightweight and cost-efficient for high-volume logging
 
 **OTel Collector (Telemetry Pipeline)**:
+
 - Ports: 4317 (gRPC), 4318 (HTTP), 13133 (health)
 - Receives signals from apps and exports to Jaeger, Prometheus, Loki
 - Config: `config/otel-collector-config.yml`
 
 **Health Checks**:
+
 ```bash
 make health-observability
 make health-grafana
@@ -864,21 +926,25 @@ make health-otel
 ## Running Specific Service Combinations
 
 ### Observability Only (for testing telemetry pipeline)
+
 ```bash
 make up-observability
 # Services: loki, prometheus, jaeger, grafana, otel-collector, toolbox-go
 ```
 
 ### Observability + Data Layer (for agent development)
+
 ```bash
 make up  # Starts all services
 
 # Or selectively:
 make up-observability
-make up postgres redis  # Add data layer only
+make up-minimal  # Core services only
+make up-core-services  # Core + platform utilities
 ```
 
 ### Full Platform (for end-to-end testing)
+
 ```bash
 make up  # Starts everything
 make health-all
@@ -890,46 +956,17 @@ make health-all
 
 ### Multi-Service `.env` Strategy
 
-Each service has its own `.env.example` file in `config/{service}/.env.example`:
-
-```
-config/
-  postgres/.env.example       # Database config
-  redis/.env.example          # Cache config
-  kratos/.env.example         # Identity config
-  unleash/.env.example        # Feature flags config
-  ... (one per service)
-```
-
-**Security Best Practices**:
-
-1. **Never commit `.env` files**:
-   ```bash
-   echo ".env" >> .gitignore
-   echo "config/**/.env" >> .gitignore
-   ```
-
-2. **Use `.env.example` for templates** (safe to commit):
-   ```bash
-   # Repository contains only .env.example (no secrets)
-   # Users must copy and customize locally:
-   cp config/postgres/.env.example config/postgres/.env
-   # Edit config/postgres/.env with real values
-   ```
-
-3. **For production**, use Docker secrets or environment variable injection:
-   ```bash
-   # Example with Docker secrets
-   docker secret create db_password <(echo "my-secure-password")
-   ```
-
-4. **Rotate secrets regularly** and use strong, unique passwords for each service.
+All configuration is centralized in the root `.env` file generated by
+`make generate-secrets`. Service-level `.env.example` files remain only as
+deprecation stubs that point developers to the new workflow. See
+`docs/guides/ENV-MIGRATION.md` for the mapping and migration steps.
 
 ---
 
 ## Troubleshooting & Common Issues
 
 ### All Services Fail to Start
+
 ```bash
 # Check Docker and compose versions
 docker --version
@@ -946,6 +983,7 @@ make .env
 ```
 
 ### Port Already in Use
+
 ```bash
 # Find what's using a port (example: 5432 for Postgres)
 lsof -i :5432
@@ -954,6 +992,7 @@ lsof -i :5432
 ```
 
 ### Out of Memory
+
 ```bash
 # Check Docker resources
 docker stats
@@ -967,6 +1006,7 @@ make restart
 ```
 
 ### Services Won't Connect
+
 ```bash
 # Test connectivity between services
 make test-connectivity
@@ -980,6 +1020,7 @@ make down && make up
 ```
 
 ### Persistent Data Loss on Restart
+
 ```bash
 # Ensure volumes are persistent
 docker volume ls | grep arc_
@@ -994,16 +1035,19 @@ make clean       # Removes volumes
 ## Performance & Resource Requirements
 
 ### Minimum (Observability Only)
+
 - CPU: 2 cores
 - Memory: 2GB
 - Disk: 10GB
 
 ### Recommended (Observability + Platform Stack)
+
 - CPU: 4 cores
 - Memory: 8GB
 - Disk: 20GB
 
 ### Production (with HA, clustering, external storage)
+
 - CPU: 16+ cores
 - Memory: 32+GB
 - Disk: 100+GB

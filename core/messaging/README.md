@@ -16,6 +16,7 @@ The A.R.C. Framework uses **two messaging systems** for different purposes:
 ## Categories
 
 ### [Ephemeral](./ephemeral/)
+
 **Purpose:** Real-time agent-to-agent communication
 
 - Fast, sub-millisecond latency
@@ -26,6 +27,7 @@ The A.R.C. Framework uses **two messaging systems** for different purposes:
 **Implementation:** [NATS](./ephemeral/nats/)
 
 ### [Durable](./durable/)
+
 **Purpose:** Event streaming and "Conveyor Belt" pattern
 
 - Persistent storage
@@ -39,15 +41,15 @@ The A.R.C. Framework uses **two messaging systems** for different purposes:
 
 ## When to Use Which?
 
-| Use Case | Use This |
-|----------|----------|
-| Agent asks another agent to do something | NATS (ephemeral) |
-| Distribute work across workers | NATS (queue groups) |
-| Request/reply pattern | NATS |
-| Record events for audit log | Pulsar (durable) |
-| Event sourcing / CQRS | Pulsar (durable) |
-| Replay historical events | Pulsar (durable) |
-| Cross-service event distribution | Pulsar (durable) |
+| Use Case                                 | Use This            |
+| ---------------------------------------- | ------------------- |
+| Agent asks another agent to do something | NATS (ephemeral)    |
+| Distribute work across workers           | NATS (queue groups) |
+| Request/reply pattern                    | NATS                |
+| Record events for audit log              | Pulsar (durable)    |
+| Event sourcing / CQRS                    | Pulsar (durable)    |
+| Replay historical events                 | Pulsar (durable)    |
+| Cross-service event distribution         | Pulsar (durable)    |
 
 ---
 
@@ -69,48 +71,3 @@ Event Store & Replay
 
 - [Core Services](../README.md)
 - [Architecture Guide](../../docs/architecture/)
-# Gateway
-
-API Gateway and reverse proxy services for the A.R.C. Framework.
-
----
-
-## Overview
-
-The gateway layer provides:
-- Unified entry point for all services
-- Dynamic service discovery
-- Load balancing
-- SSL/TLS termination
-- Request routing
-
----
-
-## Implementations
-
-### [Traefik](./traefik/)
-**Status:** ✅ Active  
-**Type:** Cloud-native API Gateway
-
-- Automatic service discovery via Docker labels
-- Dynamic configuration
-- Let's Encrypt support
-- Dashboard for monitoring
-
----
-
-## Alternatives
-
-The gateway is **swappable**. Alternative implementations:
-- **Kong** - Plugin-based API gateway
-- **Envoy** - CNCF service proxy
-- **NGINX** - Traditional reverse proxy
-- **Caddy** - Modern web server with auto-HTTPS
-
----
-
-## See Also
-
-- [Core Services](../README.md)
-- [Operations Guide](../../docs/OPERATIONS.md)
-

@@ -26,14 +26,15 @@
 
 ### 1.1 Universal Rules
 
-| Rule | Pattern | Example | Rationale |
-|------|---------|---------|-----------|
-| **Top-level** | `lowercase` | `core/`, `plugins/`, `services/` | Universal standard, clean URLs |
-| **Components** | `kebab-case` | `user-service/`, `api-gateway/` | DNS-friendly, portable, readable |
-| **Categories** | `lowercase` | `observability/`, `security/` | Organizational clarity |
-| **Implementations** | `kebab-case` | `traefik/`, `otel-collector/` | Consistent with product names |
+| Rule                | Pattern      | Example                          | Rationale                        |
+| ------------------- | ------------ | -------------------------------- | -------------------------------- |
+| **Top-level**       | `lowercase`  | `core/`, `plugins/`, `services/` | Universal standard, clean URLs   |
+| **Components**      | `kebab-case` | `user-service/`, `api-gateway/`  | DNS-friendly, portable, readable |
+| **Categories**      | `lowercase`  | `observability/`, `security/`    | Organizational clarity           |
+| **Implementations** | `kebab-case` | `traefik/`, `otel-collector/`    | Consistent with product names    |
 
 **Never Use:**
+
 - ❌ `snake_case` (Python-specific, not universal)
 - ❌ `PascalCase` (Language-specific, harder to type)
 - ❌ `UPPERCASE` (Reserved for constants/env vars)
@@ -125,6 +126,7 @@ services/
 ```
 
 **Service Naming Pattern**: `[domain]-[type]`
+
 - Examples: `user-service`, `auth-api`, `reasoning-agent`, `code-agent`
 - Type suffixes: `-service`, `-api`, `-agent`, `-worker`, `-job`
 
@@ -134,22 +136,23 @@ services/
 
 ### 2.1 By File Type
 
-| File Type | Convention | Examples | Standard Source |
-|-----------|------------|----------|-----------------|
-| **Docker** | `Dockerfile` (exact) | `Dockerfile`, `Dockerfile.alpine` | Docker official |
-| **Docker Compose** | `docker-compose[.env].yml` | `docker-compose.yml`, `docker-compose.dev.yml` | Docker official |
-| **Documentation** | `UPPERCASE.md` | `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` | GitHub standard |
-| **Configuration** | `kebab-case.yml/yaml` | `app-config.yml`, `traefik.yml` | Kubernetes/YAML standard |
-| **Scripts** | `kebab-case.sh` | `deploy.sh`, `run-tests.sh` | Unix convention |
-| **Environment** | `.env[.environment]` | `.env`, `.env.dev`, `.env.prod` | 12-factor app |
-| **Kubernetes** | `kebab-case.yaml` | `deployment.yaml`, `service.yaml` | K8s standard |
-| **Terraform** | `lowercase.tf` | `main.tf`, `variables.tf` | Terraform standard |
-| **Templates** | `template-[name].md` | `template-analysis.md` | Your current standard |
-| **Generated** | `YYYYMMDD-[type].md` | `20251109-analysis.md` | ISO date prefix |
+| File Type          | Convention                 | Examples                                       | Standard Source          |
+| ------------------ | -------------------------- | ---------------------------------------------- | ------------------------ |
+| **Docker**         | `Dockerfile` (exact)       | `Dockerfile`, `Dockerfile.alpine`              | Docker official          |
+| **Docker Compose** | `docker-compose[.env].yml` | `docker-compose.yml`, `docker-compose.dev.yml` | Docker official          |
+| **Documentation**  | `UPPERCASE.md`             | `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` | GitHub standard          |
+| **Configuration**  | `kebab-case.yml/yaml`      | `app-config.yml`, `traefik.yml`                | Kubernetes/YAML standard |
+| **Scripts**        | `kebab-case.sh`            | `deploy.sh`, `run-tests.sh`                    | Unix convention          |
+| **Environment**    | `.env[.environment]`       | `.env`, `.env.dev`, `.env.prod`                | 12-factor app            |
+| **Kubernetes**     | `kebab-case.yaml`          | `deployment.yaml`, `service.yaml`              | K8s standard             |
+| **Terraform**      | `lowercase.tf`             | `main.tf`, `variables.tf`                      | Terraform standard       |
+| **Templates**      | `template-[name].md`       | `template-analysis.md`                         | Your current standard    |
+| **Generated**      | `YYYYMMDD-[type].md`       | `20251109-analysis.md`                         | ISO date prefix          |
 
 ### 2.2 Special Cases
 
 #### Multi-Stage Dockerfiles
+
 ```
 Dockerfile              # Default
 Dockerfile.alpine       # Alpine variant
@@ -157,6 +160,7 @@ Dockerfile.debian       # Debian variant
 ```
 
 #### Docker Compose Overlays
+
 ```
 docker-compose.yml              # Base
 docker-compose.dev.yml          # Development overlay
@@ -166,6 +170,7 @@ docker-compose.override.yml     # Local overrides (gitignored)
 ```
 
 #### Service-Specific Compose Files
+
 ```
 docker-compose.traefik.yml
 docker-compose.postgres.yml
@@ -188,6 +193,7 @@ services/
 ```
 
 **Why This Works:**
+
 - Clear separation of AI workloads from platform services
 - Easy to scale agents independently
 - Aligns with your "Agentic Reasoning Core" mission
@@ -196,6 +202,7 @@ services/
 ### 3.2 Service Directory Structure
 
 **Standard Service Layout:**
+
 ```
 service-name/
 ├── README.md                   # Service documentation
@@ -220,6 +227,7 @@ service-name/
 **Format**: `[domain]-[type]`
 
 **Type Suffixes:**
+
 - `-service` - RESTful/gRPC service (general)
 - `-api` - HTTP API specifically
 - `-agent` - AI agent service
@@ -228,6 +236,7 @@ service-name/
 - `-gateway` - API gateway/proxy
 
 **Examples:**
+
 ```
 ✅ user-service         # General service
 ✅ auth-api             # HTTP API
@@ -258,6 +267,7 @@ internal-registry/team/order-api:prod             # Environment tag
 ```
 
 **Tag Strategy:**
+
 ```
 :latest                  # ❌ Never use in production
 :v1.2.3                  # ✅ Semantic version (recommended)
@@ -270,6 +280,7 @@ internal-registry/team/order-api:prod             # Environment tag
 ### 4.2 Dockerfile Location & Naming
 
 **Standard Location**: Root of service directory
+
 ```
 services/
 └── user-service/
@@ -279,6 +290,7 @@ services/
 ```
 
 **Build Context**: Always from service root
+
 ```bash
 docker build -t user-service:v1.0.0 -f Dockerfile .
 ```
@@ -286,6 +298,7 @@ docker build -t user-service:v1.0.0 -f Dockerfile .
 ### 4.3 Docker Compose File Organization
 
 **Your Current Pattern** (Recommended):
+
 ```
 # Root level
 docker-compose.yml              # Base observability stack
@@ -300,6 +313,7 @@ core/messaging/ephemeral/nats/
 ```
 
 **Compose File Naming Rules:**
+
 1. Base file: `docker-compose.yml`
 2. Environment overlays: `docker-compose.[env].yml`
 3. Service-specific: `docker-compose.[service].yml`
@@ -346,19 +360,20 @@ config/
 
 ### 5.2 Configuration File Types
 
-| Type | Naming | Example | Use Case |
-|------|--------|---------|----------|
-| **App Config** | `[service].yml` | `traefik.yml`, `kratos.yml` | Main configuration |
-| **Environment** | `.env.example` | `.env.example` | Environment template |
-| **Secrets Template** | `.env.example` | Never `.env` in git | Secrets documentation |
-| **Init Scripts** | `init.[ext]` | `init.sql` | Initialization |
-| **Dynamic Config** | `dynamic-[name].yml` | `dynamic-config.yml` | Runtime config |
+| Type                 | Naming               | Example                     | Use Case              |
+| -------------------- | -------------------- | --------------------------- | --------------------- |
+| **App Config**       | `[service].yml`      | `traefik.yml`, `kratos.yml` | Main configuration    |
+| **Environment**      | `.env.example`       | `.env.example`              | Environment template  |
+| **Secrets Template** | `.env.example`       | Never `.env` in git         | Secrets documentation |
+| **Init Scripts**     | `init.[ext]`         | `init.sql`                  | Initialization        |
+| **Dynamic Config**   | `dynamic-[name].yml` | `dynamic-config.yml`        | Runtime config        |
 
 ### 5.3 Environment-Specific Configuration
 
 **Pattern**: Same filename, different directories OR environment suffix
 
 **Option A: Directory-based** (for many environments)
+
 ```
 config/
 └── traefik/
@@ -373,6 +388,7 @@ config/
 ```
 
 **Option B: Suffix-based** (simpler, your current style)
+
 ```
 config/
 └── traefik/
@@ -408,6 +424,7 @@ k8s/
 ```
 
 **Resource Type Prefixes:**
+
 - `deployment-[name].yaml`
 - `service-[name].yaml`
 - `configmap-[name].yaml`
@@ -418,6 +435,7 @@ k8s/
 ### 6.2 Terraform Modules
 
 **Directory Structure:**
+
 ```
 deployments/terraform/
 ├── modules/
@@ -437,6 +455,7 @@ deployments/terraform/
 ```
 
 **Terraform File Naming**: Use Terraform standards
+
 - `main.tf` - Primary resources
 - `variables.tf` - Input variables
 - `outputs.tf` - Output values
@@ -447,6 +466,7 @@ deployments/terraform/
 ### 6.3 Helm Charts
 
 **Chart Structure:**
+
 ```
 deployments/helm/
 ├── arc-framework/                    # Chart name: kebab-case
@@ -471,6 +491,7 @@ deployments/helm/
 ### 7.1 Decision: Hybrid by Function (Your Architecture)
 
 **Current Pattern:**
+
 ```
 services/
 ├── agents/                    # Language-agnostic (mixed)
@@ -485,6 +506,7 @@ services/
 ```
 
 **Why This Works:**
+
 - Functional grouping more important than language
 - Services grouped by purpose, not implementation
 - Easier for operators (don't need to know language)
@@ -493,6 +515,7 @@ services/
 ### 7.2 Language-Specific Files
 
 **Go:**
+
 ```
 service-name/
 ├── go.mod
@@ -502,6 +525,7 @@ service-name/
 ```
 
 **Python:**
+
 ```
 service-name/
 ├── requirements.txt
@@ -512,6 +536,7 @@ service-name/
 ```
 
 **TypeScript/Node:**
+
 ```
 service-name/
 ├── package.json
@@ -529,6 +554,7 @@ service-name/
 ### 8.1 Decision: Hybrid (Your Current Pattern)
 
 **Framework-Level Docs** (Centralized):
+
 ```
 docs/
 ├── README.md                         # Documentation index
@@ -539,8 +565,7 @@ docs/
 │   ├── OVERVIEW.md
 │   ├── CORE-SERVICES.md
 │   ├── PLUGIN-SYSTEM.md
-│   ├── QUICK-REFERENCE.md
-│   └── RESTRUCTURING-SUMMARY.md
+│   └── (archived historical documents removed in v2.1)
 ├── guides/
 │   ├── INSTALLATION.md
 │   ├── CONFIGURATION.md
@@ -552,7 +577,10 @@ docs/
     └── ENVIRONMENT-VARIABLES.md
 ```
 
+> **Historical Note:** Earlier quick-reference summaries were removed in v2.1. Refer to `docs/architecture/README.md` for the authoritative structure overview.
+
 **Service-Level Docs** (Co-located):
+
 ```
 services/
 └── reasoning-agent/
@@ -566,18 +594,19 @@ services/
 
 ### 8.2 Documentation File Naming
 
-| File | Purpose | Required | Location |
-|------|---------|----------|----------|
-| `README.md` | Overview, quick start | ✅ YES | Every directory |
-| `CHANGELOG.md` | Version history | For services | Service root |
-| `CONTRIBUTING.md` | Contribution guide | Framework | Root |
-| `LICENSE` | License file | Framework | Root |
-| `API.md` | API reference | If applicable | service/docs/ |
-| `DEPLOYMENT.md` | Deployment guide | For services | service/docs/ |
-| `CONFIGURATION.md` | Config reference | For complex config | config/[service]/ |
-| `ARCHITECTURE.md` | Design decisions | Framework/service | docs/ or service/docs/ |
+| File               | Purpose               | Required           | Location               |
+| ------------------ | --------------------- | ------------------ | ---------------------- |
+| `README.md`        | Overview, quick start | ✅ YES             | Every directory        |
+| `CHANGELOG.md`     | Version history       | For services       | Service root           |
+| `CONTRIBUTING.md`  | Contribution guide    | Framework          | Root                   |
+| `LICENSE`          | License file          | Framework          | Root                   |
+| `API.md`           | API reference         | If applicable      | service/docs/          |
+| `DEPLOYMENT.md`    | Deployment guide      | For services       | service/docs/          |
+| `CONFIGURATION.md` | Config reference      | For complex config | config/[service]/      |
+| `ARCHITECTURE.md`  | Design decisions      | Framework/service  | docs/ or service/docs/ |
 
 **Naming Rules:**
+
 - Important docs: `UPPERCASE.md` (README, CHANGELOG, CONTRIBUTING, LICENSE)
 - Technical docs: `UPPERCASE.md` (API, DEPLOYMENT, CONFIGURATION)
 - Guides: `lowercase-with-dashes.md` or `UPPERCASE.md` (your choice)
@@ -590,6 +619,7 @@ services/
 ### 9.1 Decision: Hybrid (Framework + Service Tests)
 
 **Framework-Level Tests** (Integration & E2E):
+
 ```
 tests/
 ├── README.md
@@ -610,6 +640,7 @@ tests/
 ```
 
 **Service-Level Tests** (Unit & Component):
+
 ```
 services/
 └── reasoning-agent/
@@ -625,6 +656,7 @@ services/
 **Pattern**: `test-[what].ext` or `[what].test.ext` (language-specific)
 
 **Examples:**
+
 ```
 Go:          user_service_test.go
 Python:      test_reasoning_agent.py
@@ -633,6 +665,7 @@ Shell:       test-deployment.sh
 ```
 
 **Test Directories:**
+
 - `unit/` - Unit tests (fast, isolated)
 - `integration/` - Integration tests (slower, external deps)
 - `e2e/` - End-to-end tests (slowest, full system)
@@ -646,6 +679,7 @@ Shell:       test-deployment.sh
 ### 10.1 Complete Service Example
 
 **Reasoning Agent** (Python-based AI service):
+
 ```
 services/agents/reasoning-agent/
 ├── README.md                         # Service documentation
@@ -680,6 +714,7 @@ services/agents/reasoning-agent/
 ### 10.2 Core Component Example
 
 **Traefik Gateway**:
+
 ```
 core/gateway/traefik/
 ├── README.md                         # Setup and usage
@@ -697,6 +732,7 @@ core/gateway/traefik/
 ### 10.3 Plugin Example
 
 **Loki Logging Plugin**:
+
 ```
 plugins/observability/logging/loki/
 ├── README.md                         # Plugin documentation
@@ -713,6 +749,7 @@ plugins/observability/logging/loki/
 ## ✅ VALIDATION RULES
 
 ### Directory Names
+
 ```bash
 # ✅ Valid
 core/
@@ -730,6 +767,7 @@ UserService/            # No PascalCase
 ```
 
 ### File Names
+
 ```bash
 # ✅ Valid
 README.md
@@ -749,6 +787,7 @@ deploy-script.sh        # Don't add redundant suffixes
 ```
 
 ### Service Names
+
 ```bash
 # ✅ Valid
 user-service
@@ -771,6 +810,7 @@ user-micro-service      # Too verbose
 ### From Current to Standard
 
 **If you have:**
+
 ```
 config/
 └── platform/
@@ -780,6 +820,7 @@ config/
 ```
 
 **Migrate to:**
+
 ```
 config/
 └── platform/
@@ -789,12 +830,14 @@ config/
 ```
 
 **If you have:**
+
 ```
 services/
 └── swiss_army/                     # ❌ snake_case
 ```
 
 **Migrate to:**
+
 ```
 services/
 └── toolbox/                        # ✅ kebab-case
@@ -806,14 +849,14 @@ services/
 
 Based on your architecture analysis, here are the final decisions:
 
-| Question | Decision | Rationale |
-|----------|----------|-----------|
+| Question               | Decision                         | Rationale                                   |
+| ---------------------- | -------------------------------- | ------------------------------------------- |
 | **Q1: Service Naming** | Domain-driven hybrid by function | AI agent focus requires functional grouping |
-| **Q2: Config Files** | Directory-based | Cleaner, current pattern works well |
-| **Q3: Environments** | Suffix for overlays | Matches Docker Compose pattern |
-| **Q4: Multi-Language** | Hybrid by function | Purpose > language, your current pattern |
-| **Q5: Documentation** | Hybrid (both) | Framework + service docs |
-| **Q6: Tests** | Hybrid | Framework integration + service unit tests |
+| **Q2: Config Files**   | Directory-based                  | Cleaner, current pattern works well         |
+| **Q3: Environments**   | Suffix for overlays              | Matches Docker Compose pattern              |
+| **Q4: Multi-Language** | Hybrid by function               | Purpose > language, your current pattern    |
+| **Q5: Documentation**  | Hybrid (both)                    | Framework + service docs                    |
+| **Q6: Tests**          | Hybrid                           | Framework integration + service unit tests  |
 
 ---
 
@@ -822,11 +865,13 @@ Based on your architecture analysis, here are the final decisions:
 When creating new components:
 
 **Directories:**
+
 - [ ] Use `kebab-case` for all component directories
 - [ ] Use `lowercase` for top-level and category directories
 - [ ] Follow pattern: `category/[subcategory]/implementation/`
 
 **Files:**
+
 - [ ] `README.md` in every directory (UPPERCASE)
 - [ ] `Dockerfile` (exact name) for containers
 - [ ] `docker-compose.[name].yml` for compose files
@@ -834,11 +879,13 @@ When creating new components:
 - [ ] `kebab-case` for configs and scripts
 
 **Services:**
+
 - [ ] Name format: `[domain]-[type]`
 - [ ] Location: `services/[category]/[service-name]/`
 - [ ] Include: README, Dockerfile, config/, tests/, docs/
 
 **Documentation:**
+
 - [ ] `README.md` for overview (required)
 - [ ] `UPPERCASE.md` for important docs
 - [ ] Co-locate service docs in `service/docs/`
@@ -848,6 +895,7 @@ When creating new components:
 ## 📚 REFERENCES
 
 ### Industry Standards Followed
+
 - ✅ **12-Factor App** - Configuration and environment management
 - ✅ **CNCF Cloud Native** - Container and Kubernetes conventions
 - ✅ **Docker Official** - Dockerfile and Compose naming
@@ -856,6 +904,7 @@ When creating new components:
 - ✅ **Semantic Versioning** - Version tagging
 
 ### Internal References
+
 - [Architecture Overview](./RESTRUCTURING-SUMMARY.md)
 - [Quick Reference](./QUICK-REFERENCE.md)
 - [Core Services Documentation](../../../core/)
