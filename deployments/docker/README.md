@@ -2,7 +2,7 @@
 
 **Location:** `deployments/docker/`  
 **Pattern:** Core + Plugins Architecture  
-**Status:** ✅ Active  
+**Status:** ✅ Active
 
 ---
 
@@ -21,9 +21,6 @@ deployments/docker/
 ├── docker-compose.observability.yml  # Observability plugins
 ├── docker-compose.security.yml       # Security plugins
 ├── docker-compose.services.yml       # Application services
-├── legacy/                           # Old compose files (deprecated)
-│   ├── docker-compose.yml
-│   └── docker-compose.stack.yml
 └── README.md                         # This file
 ```
 
@@ -32,6 +29,7 @@ deployments/docker/
 ## Deployment Profiles
 
 ### Minimal Profile (~2GB RAM)
+
 **Use Case:** Local development, core services only  
 **Services:** Traefik, OTel Collector, Postgres, Redis, NATS, Pulsar, Infisical, Unleash
 
@@ -40,12 +38,14 @@ make up-minimal
 ```
 
 **Compose Files Used:**
+
 - `docker-compose.base.yml`
 - `docker-compose.core.yml`
 
 ---
 
 ### Observability Profile (~4GB RAM)
+
 **Use Case:** Staging, development with full observability  
 **Services:** Core + Loki, Prometheus, Jaeger, Grafana
 
@@ -54,6 +54,7 @@ make up-observability
 ```
 
 **Compose Files Used:**
+
 - `docker-compose.base.yml`
 - `docker-compose.core.yml`
 - `docker-compose.observability.yml`
@@ -61,6 +62,7 @@ make up-observability
 ---
 
 ### Security Profile (~5GB RAM)
+
 **Use Case:** Testing with authentication/authorization  
 **Services:** Core + Observability + Kratos
 
@@ -69,6 +71,7 @@ make up-security
 ```
 
 **Compose Files Used:**
+
 - `docker-compose.base.yml`
 - `docker-compose.core.yml`
 - `docker-compose.observability.yml`
@@ -77,6 +80,7 @@ make up-security
 ---
 
 ### Full Stack Profile (~6GB RAM)
+
 **Use Case:** Production-like environment with all services  
 **Services:** All core, observability, security, and application services
 
@@ -87,6 +91,7 @@ make up
 ```
 
 **Compose Files Used:**
+
 - `docker-compose.base.yml`
 - `docker-compose.core.yml`
 - `docker-compose.observability.yml`
@@ -98,8 +103,10 @@ make up
 ## Architecture Mapping
 
 ### docker-compose.base.yml
+
 **Purpose:** Shared resources  
 **Contains:**
+
 - Network definitions (`arc_net`)
 - Volume definitions (postgres, redis, pulsar, prometheus, grafana, loki)
 - No services
@@ -107,52 +114,56 @@ make up
 ---
 
 ### docker-compose.core.yml
+
 **Purpose:** Required infrastructure services  
 **Maps to:** `core/` directory
 
-| Service | Category | Location |
-|---------|----------|----------|
-| `arc_traefik` | Gateway | `core/gateway/traefik/` |
-| `arc_otel_collector` | Telemetry | `core/telemetry/otel-collector/` |
-| `arc_postgres` | Persistence | `core/persistence/postgres/` |
-| `arc_redis` | Caching | `core/caching/redis/` |
-| `arc_nats` | Messaging (Ephemeral) | `core/messaging/ephemeral/nats/` |
-| `arc_pulsar` | Messaging (Durable) | `core/messaging/durable/pulsar/` |
-| `arc_infisical` | Secrets | `core/secrets/infisical/` |
-| `arc_unleash` | Feature Management | `core/feature-management/unleash/` |
+| Service              | Category              | Location                           |
+| -------------------- | --------------------- | ---------------------------------- |
+| `arc_traefik`        | Gateway               | `core/gateway/traefik/`            |
+| `arc_otel_collector` | Telemetry             | `core/telemetry/otel-collector/`   |
+| `arc_postgres`       | Persistence           | `core/persistence/postgres/`       |
+| `arc_redis`          | Caching               | `core/caching/redis/`              |
+| `arc_nats`           | Messaging (Ephemeral) | `core/messaging/ephemeral/nats/`   |
+| `arc_pulsar`         | Messaging (Durable)   | `core/messaging/durable/pulsar/`   |
+| `arc_infisical`      | Secrets               | `core/secrets/infisical/`          |
+| `arc_unleash`        | Feature Management    | `core/feature-management/unleash/` |
 
 ---
 
 ### docker-compose.observability.yml
+
 **Purpose:** Optional observability stack  
 **Maps to:** `plugins/observability/`
 
-| Service | Category | Location |
-|---------|----------|----------|
-| `arc_loki` | Logging | `plugins/observability/logging/loki/` |
-| `arc_prometheus` | Metrics | `plugins/observability/metrics/prometheus/` |
-| `arc_jaeger` | Tracing | `plugins/observability/tracing/jaeger/` |
-| `arc_grafana` | Visualization | `plugins/observability/visualization/grafana/` |
+| Service          | Category      | Location                                       |
+| ---------------- | ------------- | ---------------------------------------------- |
+| `arc_loki`       | Logging       | `plugins/observability/logging/loki/`          |
+| `arc_prometheus` | Metrics       | `plugins/observability/metrics/prometheus/`    |
+| `arc_jaeger`     | Tracing       | `plugins/observability/tracing/jaeger/`        |
+| `arc_grafana`    | Visualization | `plugins/observability/visualization/grafana/` |
 
 ---
 
 ### docker-compose.security.yml
+
 **Purpose:** Optional security services  
 **Maps to:** `plugins/security/`
 
-| Service | Category | Location |
-|---------|----------|----------|
+| Service      | Category        | Location                            |
+| ------------ | --------------- | ----------------------------------- |
 | `arc_kratos` | Identity & Auth | `plugins/security/identity/kratos/` |
 
 ---
 
 ### docker-compose.services.yml
+
 **Purpose:** Application-level services  
 **Maps to:** `services/`
 
-| Service | Category | Location |
-|---------|----------|----------|
-| `arc_toolbox` | Utility | `services/utilities/toolbox/` |
+| Service       | Category | Location                      |
+| ------------- | -------- | ----------------------------- |
+| `arc_toolbox` | Utility  | `services/utilities/toolbox/` |
 
 ---
 
@@ -215,11 +226,13 @@ All services connect to this shared network for inter-service communication.
 ## Volume Configuration
 
 ### Core Service Volumes
+
 - `arc_postgres_data` - PostgreSQL data directory
 - `arc_redis_data` - Redis persistence
 - `arc_pulsar_data` - Pulsar message storage
 
 ### Observability Volumes
+
 - `arc_prometheus_data` - Prometheus time-series data
 - `arc_grafana_data` - Grafana dashboards and settings
 - `arc_loki_data` - Loki log storage
@@ -229,12 +242,14 @@ All services connect to this shared network for inter-service communication.
 ## Usage Examples
 
 ### Start specific profile
+
 ```bash
 cd /path/to/arc/platform-spike
 make up-minimal
 ```
 
 ### Check health
+
 ```bash
 make health-all
 make health-core
@@ -242,6 +257,7 @@ make health-observability
 ```
 
 ### View logs
+
 ```bash
 make logs-core
 make logs-observability
@@ -249,6 +265,7 @@ make logs-services
 ```
 
 ### Stop services
+
 ```bash
 make down
 ```
@@ -299,6 +316,7 @@ LOG_LEVEL=info
 ## Health Checks
 
 All services include health checks:
+
 - **Startup Period:** Time to allow service to start before health checks
 - **Interval:** Time between health checks
 - **Timeout:** Maximum time for health check to complete
@@ -328,38 +346,29 @@ All services include standardized labels:
 
 ```yaml
 labels:
-  - "arc.service.layer=core|plugin|application"
-  - "arc.service.category=gateway|persistence|observability|etc"
-  - "arc.service.subcategory=..." # if applicable
-  - "arc.service.swappable=true|false"
-  - "arc.service.alternatives=..." # if swappable
+  - 'arc.service.layer=core|plugin|application'
+  - 'arc.service.category=gateway|persistence|observability|etc'
+  - 'arc.service.subcategory=...' # if applicable
+  - 'arc.service.swappable=true|false'
+  - 'arc.service.alternatives=...' # if swappable
 ```
-
----
-
-## Migration from Legacy
-
-**Legacy Files:** `deployments/docker/legacy/`  
-**Status:** ⚠️ Deprecated (November 9, 2025)  
-**Removal Date:** November 16, 2025
-
-See `docs/guides/MIGRATION-v1-to-v2.md` for migration instructions.
-
----
 
 ## Troubleshooting
 
 ### Issue: Network not found
+
 ```bash
 make init-network
 ```
 
 ### Issue: Volume not found
+
 ```bash
 make init-volumes
 ```
 
 ### Issue: Services not starting
+
 ```bash
 # Validate compose files
 make validate-compose

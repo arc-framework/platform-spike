@@ -15,6 +15,7 @@ The **A.R.C. (Agentic Reasoning Core) Framework** is a production-ready platform
 ## 🏗️ Architecture Pattern
 
 ### Core Services (Required)
+
 Services that agents fundamentally depend on:
 
 ```
@@ -31,6 +32,7 @@ core/
 ```
 
 ### Plugin Services (Optional/Swappable)
+
 Services that can be added, removed, or swapped:
 
 ```
@@ -50,79 +52,67 @@ plugins/
 
 ## 📋 Core Services Reference
 
-| # | Service | Purpose | Swappable | Location |
-|---|---------|---------|-----------|----------|
-| 1 | **OpenTelemetry Collector** | Central telemetry hub | ❌ No | `core/telemetry/` |
-| 2 | **Traefik** | API Gateway | ✅ Yes | `core/gateway/` |
-| 3 | **NATS** | Agent-to-agent messaging | ✅ Yes | `core/messaging/ephemeral/` |
-| 4 | **Pulsar** | Event Conveyor Belt | ✅ Yes | `core/messaging/durable/` |
-| 5 | **Postgres + pgvector** | Agent state + RAG | ✅ Yes | `core/persistence/` |
-| 6 | **Redis** | Cache, sessions, locks | ✅ Yes | `core/caching/` |
-| 7 | **Infisical** | Secrets (LLM API keys) | ✅ Yes | `core/secrets/` |
-| 8 | **Unleash** | Feature flags | ⚠️ Optional | `core/feature-management/` |
+| #   | Service                     | Purpose                  | Swappable   | Location                    |
+| --- | --------------------------- | ------------------------ | ----------- | --------------------------- |
+| 1   | **OpenTelemetry Collector** | Central telemetry hub    | ❌ No       | `core/telemetry/`           |
+| 2   | **Traefik**                 | API Gateway              | ✅ Yes      | `core/gateway/`             |
+| 3   | **NATS**                    | Agent-to-agent messaging | ✅ Yes      | `core/messaging/ephemeral/` |
+| 4   | **Pulsar**                  | Event Conveyor Belt      | ✅ Yes      | `core/messaging/durable/`   |
+| 5   | **Postgres + pgvector**     | Agent state + RAG        | ✅ Yes      | `core/persistence/`         |
+| 6   | **Redis**                   | Cache, sessions, locks   | ✅ Yes      | `core/caching/`             |
+| 7   | **Infisical**               | Secrets (LLM API keys)   | ✅ Yes      | `core/secrets/`             |
+| 8   | **Unleash**                 | Feature flags            | ⚠️ Optional | `core/feature-management/`  |
 
 ---
 
 ## 🔌 Plugin Services Reference
 
-| Service | Purpose | Alternatives | Location |
-|---------|---------|--------------|----------|
-| **Kratos** | IAM | Keycloak, Auth0, Cognito | `plugins/security/identity/` |
-| **Loki** | Log storage | Elasticsearch, Splunk | `plugins/observability/logging/` |
-| **Prometheus** | Metrics storage | InfluxDB, Datadog | `plugins/observability/metrics/` |
-| **Jaeger** | Trace storage | Zipkin, Tempo | `plugins/observability/tracing/` |
-| **Grafana** | Visualization | Kibana | `plugins/observability/visualization/` |
-| **MinIO/S3** | Object storage | GCS, Azure Blob | `plugins/storage/` |
-| **Elasticsearch** | Search engine | OpenSearch, Meilisearch | `plugins/search/` |
+| Service           | Purpose         | Alternatives             | Location                               |
+| ----------------- | --------------- | ------------------------ | -------------------------------------- |
+| **Kratos**        | IAM             | Keycloak, Auth0, Cognito | `plugins/security/identity/`           |
+| **Loki**          | Log storage     | Elasticsearch, Splunk    | `plugins/observability/logging/`       |
+| **Prometheus**    | Metrics storage | InfluxDB, Datadog        | `plugins/observability/metrics/`       |
+| **Jaeger**        | Trace storage   | Zipkin, Tempo            | `plugins/observability/tracing/`       |
+| **Grafana**       | Visualization   | Kibana                   | `plugins/observability/visualization/` |
+| **MinIO/S3**      | Object storage  | GCS, Azure Blob          | `plugins/storage/`                     |
+| **Elasticsearch** | Search engine   | OpenSearch, Meilisearch  | `plugins/search/`                      |
 
 ---
 
 ## 🚀 Deployment Profiles
 
 ### Minimal (Development)
+
 **Purpose:** Local development with essential services only
 
 ```bash
-make up profile=minimal
+make up-minimal
 ```
 
 **Includes:**
-- OpenTelemetry Collector
-- Traefik
-- Postgres
-- Redis
-- NATS
-- Infisical
 
 **Resources:** ~2GB RAM
 
----
-
 ### Observability (Staging)
+
 **Purpose:** Full observability for testing and staging
 
 ```bash
-make up profile=observability
+make up-observability
 ```
 
-**Includes:** Minimal + 
-- Pulsar
-- Loki
-- Prometheus
-- Jaeger
-- Grafana
+**Includes:** Minimal +
 
 **Resources:** ~4GB RAM
 
----
-
 ### Full Stack (Production)
+
 **Purpose:** Complete platform with all services
 
 ```bash
 make up
 # or
-make up profile=full-stack
+make up-full
 ```
 
 **Includes:** Everything (add Kratos if needed)
@@ -136,12 +126,14 @@ make up profile=full-stack
 ### 1. Core vs Plugin Decision Criteria
 
 **A service is CORE if:**
+
 - ✅ Framework breaks without it
 - ✅ Deep integration with multiple services
 - ✅ Required by agent architecture
 - ✅ No reasonable alternative for the use case
 
 **A service is a PLUGIN if:**
+
 - ❌ Framework works without it
 - ❌ Multiple alternatives exist
 - ❌ Can be swapped at runtime
@@ -152,12 +144,14 @@ make up profile=full-stack
 The framework uses **two messaging systems** for different purposes:
 
 **NATS (Ephemeral):**
+
 - Fast, sub-millisecond latency
 - Real-time agent coordination
 - Request/reply patterns
 - No persistence needed
 
 **Pulsar (Durable):**
+
 - Persistent event storage
 - Event sourcing & CQRS
 - Audit logs & compliance
@@ -236,12 +230,14 @@ arc-framework/
 The framework follows a **dynamic core** approach:
 
 ### Process
+
 1. **Start building** agent services
 2. **Identify** hard dependencies through usage
 3. **Move to core** as needed
 4. **Review regularly** (every sprint)
 
 ### Decision Framework
+
 ```
 Can agents function without it?
 ├─ NO  → Move to CORE
@@ -259,14 +255,15 @@ Is it tightly coupled to many services?
 Most core services can be swapped with alternatives:
 
 ### Example: Swap NATS with RabbitMQ
+
 ```yaml
 # core/messaging/ephemeral/rabbitmq/docker-compose.yml
 services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - '5672:5672'
+      - '15672:15672'
 ```
 
 Update service configurations to use new endpoint.
@@ -275,11 +272,11 @@ Update service configurations to use new endpoint.
 
 ## 📊 Resource Requirements
 
-| Profile | Services | Memory | CPU | Disk |
-|---------|----------|--------|-----|------|
-| **Minimal** | 6 core | ~2GB | 2 cores | 10GB |
-| **Observability** | 11 services | ~4GB | 4 cores | 20GB |
-| **Full Stack** | 15+ services | ~8GB | 8 cores | 50GB |
+| Profile           | Services     | Memory | CPU     | Disk |
+| ----------------- | ------------ | ------ | ------- | ---- |
+| **Minimal**       | 6 core       | ~2GB   | 2 cores | 10GB |
+| **Observability** | 11 services  | ~4GB   | 4 cores | 20GB |
+| **Full Stack**    | 15+ services | ~8GB   | 8 cores | 50GB |
 
 ---
 
@@ -296,11 +293,13 @@ Update service configurations to use new endpoint.
 ## 📚 Additional Documentation
 
 ### Architecture Documents (Historical)
+
 See `archive/` directory for historical planning documents:
+
 - `RESTRUCTURING-SUMMARY.md` - Original restructuring plan
-- `QUICK-REFERENCE.md` - Quick reference (superseded by this document)
 
 ### Related Documentation
+
 - [Main README](../../README.md) - Project overview
 - [Operations Guide](../OPERATIONS.md) - Operational procedures
 - [Naming Conventions](../guides/NAMING-CONVENTIONS.md) - Standards
@@ -317,4 +316,3 @@ See `archive/` directory for historical planning documents:
 4. **Iterate** on architecture as needed
 
 **Questions?** See [documentation index](../README.md) or [operations guide](../OPERATIONS.md).
-

@@ -100,7 +100,6 @@ services:
     ports:
       - "80:80"      # HTTP
       - "443:443"    # HTTPS
-      - "8080:8080"  # Dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../../core/gateway/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -253,7 +252,6 @@ services:
     command: >
       bin/pulsar standalone
       --no-functions-worker
-      --wipe-data
     environment:
       PULSAR_MEM: "-Xms512m -Xmx1024m -XX:MaxDirectMemorySize=512m"
       PULSAR_GC: "-XX:+UseG1GC"

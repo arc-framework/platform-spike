@@ -11,22 +11,24 @@ Comprehensive repository analysis framework for periodic health checks and quali
 ## 🚀 Quick Start
 
 ### Run Analysis (Most Common)
+
 ```bash
 # Run analysis for today
 cd /path/to/project
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 
 # Run with comparison to previous analysis
-./scripts/analysis/run-analysis.sh --compare
+./tools/analysis/run-analysis.sh --compare
 
 # Run for specific date (MMDD format)
-./scripts/analysis/run-analysis.sh 1215
+./tools/analysis/run-analysis.sh 1215
 
 # Get help
-./scripts/analysis/run-analysis.sh --help
+./tools/analysis/run-analysis.sh --help
 ```
 
 ### What Happens
+
 1. Script generates a comprehensive analysis prompt
 2. Prompt is saved to `/tmp/repo-analysis-prompt-MMDD.txt`
 3. Prompt is copied to clipboard (if supported)
@@ -40,6 +42,7 @@ cd /path/to/project
 ### Two Generated Reports
 
 #### 1. Analysis Report (`MMDD-ANALYSIS.md`)
+
 - Executive summary with overall grade (A-F)
 - Detailed findings across 7 dimensions
 - Scoring matrix (0-10 scale per dimension)
@@ -48,6 +51,7 @@ cd /path/to/project
 - Recommendations priority matrix
 
 #### 2. Concerns & Action Plan (`MMDD-CONCERNS_AND_ACTION_PLAN.md`)
+
 - Concerns categorized by severity:
   - 🔴 **CRITICAL** - Blocks production deployment
   - 🟡 **HIGH** - Fix before staging
@@ -65,24 +69,28 @@ cd /path/to/project
 ## 📐 Analysis Dimensions
 
 ### 1. 🏢 Enterprise Standards Compliance (0-10)
+
 - Industry best practices (CNCF, 12-factor app)
 - Observability patterns (OpenTelemetry, metrics, logs, traces)
 - Infrastructure layering and separation of concerns
 - Container orchestration standards
 
 ### 2. ⚙️ Configuration Management & Stability (0-10)
+
 - Environment variable management
 - Multi-environment support (dev/staging/prod)
 - Configuration validation
 - Image versioning strategies (avoid `latest` tags)
 
 ### 3. 📦 Lightweight & Resource Efficiency (0-10)
+
 - Container image sizes
 - Multi-stage builds
 - Resource limits and reservations
 - Storage efficiency
 
 ### 4. 🔒 Security & Compliance (0-10)
+
 - Secrets management (never commit secrets)
 - Network isolation
 - Port exposure strategy
@@ -90,6 +98,7 @@ cd /path/to/project
 - TLS/SSL configuration
 
 ### 5. 🔧 Operational Reliability (0-10)
+
 - Health check configuration
 - Service dependencies and startup order
 - Logging configuration
@@ -97,6 +106,7 @@ cd /path/to/project
 - Error handling and recovery
 
 ### 6. 📚 Developer Experience & Documentation (0-10)
+
 - README quality and completeness
 - Makefile/script usability
 - Quick start procedures
@@ -104,6 +114,7 @@ cd /path/to/project
 - Code comments and inline documentation
 
 ### 7. 🚀 Production Readiness (0-10)
+
 - Production deployment blockers
 - Security audit readiness
 - Scalability considerations
@@ -115,9 +126,10 @@ cd /path/to/project
 ## 🎯 Usage Scenarios
 
 ### Scenario 1: Monthly Health Check
+
 ```bash
 # First of each month
-./scripts/analysis/run-analysis.sh 1201 --compare
+./tools/analysis/run-analysis.sh 1201 --compare
 
 # Review reports
 # Create tickets for HIGH/CRITICAL items
@@ -125,9 +137,10 @@ cd /path/to/project
 ```
 
 ### Scenario 2: Pre-Production Audit
+
 ```bash
 # Before major release
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 
 # Review CRITICAL items
 # Block release until resolved
@@ -135,9 +148,10 @@ cd /path/to/project
 ```
 
 ### Scenario 3: Post-Implementation Validation
+
 ```bash
 # After fixing issues
-./scripts/analysis/run-analysis.sh --compare
+./tools/analysis/run-analysis.sh --compare
 
 # Check "Issues Resolved" section
 # Verify no new regressions
@@ -145,9 +159,10 @@ cd /path/to/project
 ```
 
 ### Scenario 4: New Team Member Onboarding
+
 ```bash
 # Show current state
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 
 # Use reports as:
 # - Architecture overview
@@ -165,7 +180,7 @@ cd /path/to/project
 └─────────────────────────────────────────────────────────────┘
 
 Week 1: Run Analysis
-├─ Execute: ./scripts/analysis/run-analysis.sh --compare
+├─ Execute: ./tools/analysis/run-analysis.sh --compare
 ├─ Review: Both generated reports
 └─ Prioritize: HIGH and CRITICAL items
 
@@ -190,11 +205,7 @@ Next Month: Re-analyze
 ```
 tools/analysis/
 ├── README.md                        # This file (complete guide)
-└── (consolidated from SETUP, GUIDE, INDEX, QUICK-REFERENCE)
-
-scripts/analysis/
-├── run-analysis.sh                  # Main runner script
-└── test-analysis-system.sh          # Test script
+└── run-analysis.sh                  # Main runner script
 
 tools/prompts/
 ├── template-analysis.md             # Analysis prompt template
@@ -209,32 +220,42 @@ reports/YYYY/MM/
 ## 💡 Pro Tips
 
 ### 1. Archive Reports in Git
+
 ```bash
 git add reports/YYYY/MM/MMDD-*.md
 git commit -m "chore: monthly repository analysis MMDD"
 ```
+
 **Benefits:** Historical tracking, team visibility, trend analysis
 
 ### 2. Create Issue Templates from Concerns
+
 Copy concern details directly into GitHub/Jira issues:
+
 - Use severity as label
 - Use category as label
 - Copy acceptance criteria as checklist
 
 ### 3. Use Compare Mode Regularly
+
 ```bash
-./scripts/analysis/run-analysis.sh --compare
+./tools/analysis/run-analysis.sh --compare
 ```
+
 **Shows:** Progress over time, motivates the team
 
 ### 4. Customize for Your Stack
+
 Edit `tools/prompts/template-analysis.md` to:
+
 - Add Kubernetes-specific checks
 - Include application-level concerns
 - Adjust severity definitions for your context
 
 ### 5. Run Before Major Changes
+
 Establish baseline before:
+
 - Adding new services
 - Changing architecture
 - Upgrading dependencies
@@ -244,27 +265,31 @@ Establish baseline before:
 
 ## 🎓 When to Run Analysis
 
-| Timing | Purpose | Command |
-|--------|---------|---------|
-| **Monthly** | Regular health check | `./scripts/analysis/run-analysis.sh --compare` |
-| **After major changes** | Validate changes didn't introduce issues | `./scripts/analysis/run-analysis.sh` |
-| **Pre-deployment** | Gate for staging/production | `./scripts/analysis/run-analysis.sh` |
-| **Post-fix** | Verify issues resolved | `./scripts/analysis/run-analysis.sh --compare` |
-| **Quarterly** | Comprehensive review for stable projects | `./scripts/analysis/run-analysis.sh --compare` |
+| Timing                  | Purpose                                  | Command                                      |
+| ----------------------- | ---------------------------------------- | -------------------------------------------- |
+| **Monthly**             | Regular health check                     | `./tools/analysis/run-analysis.sh --compare` |
+| **After major changes** | Validate changes didn't introduce issues | `./tools/analysis/run-analysis.sh`           |
+| **Pre-deployment**      | Gate for staging/production              | `./tools/analysis/run-analysis.sh`           |
+| **Post-fix**            | Verify issues resolved                   | `./tools/analysis/run-analysis.sh --compare` |
+| **Quarterly**           | Comprehensive review for stable projects | `./tools/analysis/run-analysis.sh --compare` |
 
 ---
 
 ## 🛠️ Customization
 
 ### Modify Analysis Template
+
 Edit `tools/prompts/template-analysis.md` to:
+
 - Add new analysis dimensions
 - Change severity level definitions
 - Adjust grading rubric
 - Include project-specific checks
 
 ### Update Runner Script
-Edit `scripts/analysis/run-analysis.sh` to:
+
+Edit `tools/analysis/run-analysis.sh` to:
+
 - Add new command-line flags
 - Change output formats
 - Integrate with other tools
@@ -275,18 +300,21 @@ Edit `scripts/analysis/run-analysis.sh` to:
 ## 📈 What to Expect
 
 ### First Run
+
 - Likely many issues identified (don't be discouraged!)
 - Focus on CRITICAL items first
 - Create multi-month improvement plan
 - Establish baseline for tracking
 
 ### Subsequent Runs
+
 - Track progress over time
 - Celebrate resolved issues
 - Catch new issues early
 - Maintain quality standards
 
 ### Long-term Benefits
+
 - ✅ Improved code quality
 - ✅ Better documentation
 - ✅ Reduced technical debt
@@ -299,23 +327,28 @@ Edit `scripts/analysis/run-analysis.sh` to:
 ## 🔍 Troubleshooting
 
 ### Clipboard Not Working
+
 **Symptom:** Prompt not copied to clipboard  
 **Solution:** Manually copy from `/tmp/repo-analysis-prompt-MMDD.txt`
 
 ### Script Permission Error
+
 **Symptom:** `Permission denied` when running script  
-**Solution:** 
+**Solution:**
+
 ```bash
-chmod +x scripts/analysis/run-analysis.sh
+chmod +x tools/analysis/run-analysis.sh
 ```
 
 ### Reports Not Generated
+
 **Symptom:** AI doesn't create reports  
 **Solution:** Ensure you've provided the complete prompt to AI, including all instructions
 
 ### Old Date Format in Reports
+
 **Symptom:** Reports using wrong date  
-**Solution:** Specify date explicitly: `./scripts/analysis/run-analysis.sh MMDD`
+**Solution:** Specify date explicitly: `./tools/analysis/run-analysis.sh MMDD`
 
 ---
 
@@ -345,26 +378,29 @@ You'll know this system is working when:
 ## ✅ Quick Reference Card
 
 ### Most Common Commands
+
 ```bash
 # Today's analysis
-./scripts/analysis/run-analysis.sh
+./tools/analysis/run-analysis.sh
 
 # With comparison
-./scripts/analysis/run-analysis.sh --compare
+./tools/analysis/run-analysis.sh --compare
 
 # Specific date
-./scripts/analysis/run-analysis.sh 1215
+./tools/analysis/run-analysis.sh 1215
 
 # Help
-./scripts/analysis/run-analysis.sh --help
+./tools/analysis/run-analysis.sh --help
 ```
 
 ### Severity Icons
+
 - 🔴 **CRITICAL** - Production blocker
 - 🟡 **HIGH** - Fix before staging
 - 🟢 **MEDIUM** - Nice to have
 
 ### Report Locations
+
 - Analysis: `reports/YYYY/MM/MMDD-ANALYSIS.md`
 - Action Plan: `reports/YYYY/MM/MMDD-CONCERNS_AND_ACTION_PLAN.md`
 
@@ -373,4 +409,3 @@ You'll know this system is working when:
 **Status:** ✅ Ready to Use  
 **Last Updated:** November 9, 2025  
 **Version:** 1.0
-
