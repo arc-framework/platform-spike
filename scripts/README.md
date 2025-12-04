@@ -1,56 +1,35 @@
 # Scripts
 
-Automation scripts organized by purpose.
+Lightweight shell tooling that supports project setup. Historical script collections were migrated to other directories; this README tracks the active surface.
 
-## Structure
+## Current Structure
 
-### analysis/ (migrated)
+- `setup/` – Secret generation and validation helpers for initializing `.env`
 
-Repository analysis utilities now live under `tools/analysis/`:
+Legacy automation now lives in:
 
-- `tools/analysis/run-analysis.sh` - Generate and run repository analysis
-- `tools/analysis/README.md` - End-to-end workflow and CLI reference
-
-### setup/
-
-Initial setup and dependency installation:
-
-- `init-project.sh` - Initialize project (planned)
-- `install-dependencies.sh` - Install required tools (planned)
-
-### operations/
-
-Operational maintenance scripts:
-
-- `backup.sh` - Backup data volumes (planned)
-- `restore.sh` - Restore from backup (planned)
-- `health-check.sh` - Manual health checks (planned)
-
-### development/
-
-Development helper scripts:
-
-- `reset-env.sh` - Reset environment (planned)
-- `logs-tail.sh` - Tail service logs (planned)
+- `tools/analysis/` – Repository analysis pipeline (replaces the old `scripts/analysis/` folder)
+- `tools/journal/` – Daily journal generator (supersedes the former operations scripts)
 
 ## Usage
 
-Execute scripts (or related tooling) from project root:
+Run setup utilities from the project root:
 
 ```bash
-./tools/analysis/run-analysis.sh
+./scripts/setup/generate-secrets.sh
+./scripts/setup/validate-secrets.sh
 ```
 
-Most scripts are also available via Makefile:
+Many tasks are also exposed through the Makefile:
 
 ```bash
-make health-all
-make logs
+make generate-secrets
+make validate-secrets
 ```
 
 ## Adding New Scripts
 
-1. Place in appropriate subdirectory
-2. Make executable: `chmod +x scripts/category/script.sh`
-3. Add Makefile target if commonly used
-4. Document in this README
+1. Create a subdirectory under `scripts/` that matches the script purpose (for example, `scripts/maintenance/`).
+2. Make scripts executable: `chmod +x scripts/<dir>/<script>.sh`.
+3. Document invocation and prerequisites in this README.
+4. Expose common workflows through the Makefile when practical.

@@ -1,36 +1,29 @@
 # Tests
 
-Test suites for the platform.
+Testing surface for the platform. The layout is intentionally lightweight while the automation strategy is being drafted.
 
-## Structure
+## Current Structure
 
-### integration/
-Integration tests for service interactions:
-- `docker-compose.test.yml` - Test compose configuration (planned)
-- `test-observability.sh` - Test observability stack (planned)
+- `integration/` – Placeholder for service interaction tests (no scripts committed yet)
 
-### unit/
-Unit tests for individual components (planned)
+Planned suites (directories will be added as work begins):
 
-### e2e/
-End-to-end tests (planned)
+- `unit/` – Language-specific unit tests for shared libraries and services
+- `e2e/` – End-to-end scenarios that exercise the full stack
 
 ## Running Tests
 
-Tests will be integrated with CI/CD pipeline.
+Execution targets are under development and will land alongside the first scripted tests.
 
 ```bash
-# Integration tests (planned)
+# Placeholder commands – targets will be implemented
 make test-integration
-
-# All tests (planned)
 make test
 ```
 
 ## Adding Tests
 
-1. Place in appropriate subdirectory
-2. Follow naming convention: `test-*.sh` or `*_test.go`
-3. Ensure tests can run in CI environment
-4. Document prerequisites
-
+1. Create the required directory if it does not exist (for example, `tests/unit/`).
+2. Follow naming conventions: `*_test.go`, `test-*.sh`, or the idioms of the chosen framework.
+3. Keep scripts CI-friendly and document prerequisites or environment assumptions.
+4. Update this README with usage instructions when new suites are introduced.
