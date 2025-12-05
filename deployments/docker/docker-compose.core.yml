@@ -106,11 +106,11 @@ services:
     networks:
       - arc_net
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ping || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 5s
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=gateway"
@@ -136,6 +136,9 @@ services:
       - "8888:8888"   # Prometheus metrics
     networks:
       - arc_net
+    depends_on:
+      arc_traefik:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "/health_check", "http://localhost:13133"]
       interval: 10s
@@ -171,8 +174,8 @@ services:
       - arc_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc_db}"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
       start_period: 10s
     labels:
@@ -202,10 +205,10 @@ services:
       - arc_net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 3
-      start_period: 5s
+      start_period: 3s
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=caching"
@@ -230,6 +233,9 @@ services:
       - "6222:6222"  # Cluster routes
     networks:
       - arc_net
+    depends_on:
+      arc_otel_collector:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
       interval: 10s
@@ -262,12 +268,17 @@ services:
       - "8082:8080"  # HTTP Admin (mapped to 8082 to avoid conflict with Traefik)
     networks:
       - arc_net
+    depends_on:
+      arc_postgres:
+        condition: service_healthy
+      arc_otel_collector:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/admin/v2/brokers/health || exit 1"]
       interval: 15s
       timeout: 10s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=messaging"
