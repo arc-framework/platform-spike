@@ -3,7 +3,7 @@
 **Date:** November 9, 2025  
 **Version:** 1.0 → 2.0  
 **Type:** Breaking Changes  
-**Status:** 🔄 Migration Required  
+**Status:** 🔄 Migration Required
 
 ---
 
@@ -18,12 +18,14 @@ The A.R.C. Framework has been restructured to align with the documented Core + P
 ### 1. Docker Compose File Structure
 
 **Old Structure:**
+
 ```
 docker-compose.yml        # Observability services
 docker-compose.stack.yml  # Platform services (mixed core + plugins)
 ```
 
 **New Structure:**
+
 ```
 docker-compose.base.yml           # Shared resources (networks, volumes)
 docker-compose.core.yml           # Required core services
@@ -36,33 +38,35 @@ docker-compose.services.yml       # Application services
 
 All containers now use the `arc_` prefix for consistency:
 
-| Old Name | New Name |
-|----------|----------|
-| `loki` | `arc_loki` |
-| `grafana` | `arc_grafana` |
-| `prometheus` | `arc_prometheus` |
-| `jaeger` | `arc_jaeger` |
+| Old Name         | New Name             |
+| ---------------- | -------------------- |
+| `loki`           | `arc_loki`           |
+| `grafana`        | `arc_grafana`        |
+| `prometheus`     | `arc_prometheus`     |
+| `jaeger`         | `arc_jaeger`         |
 | `otel-collector` | `arc_otel_collector` |
-| `toolbox` | `arc_toolbox` |
-| `nats` | `arc_nats` |
-| `pulsar` | `arc_pulsar` |
+| `arc_raymond`    | `arc_raymond`        |
+| `nats`           | `arc_nats`           |
+| `pulsar`         | `arc_pulsar`         |
 
 ### 3. Volume Mount Paths Corrected
 
 **Old Paths (incorrect):**
+
 ```yaml
 ./config/observability/grafana/provisioning
 ./config/platform/postgres/init.sql
 ./config/platform/kratos
-./services/toolbox  # Wrong path
+./services/raymond # Wrong path
 ```
 
 **New Paths (correct):**
+
 ```yaml
 ./plugins/observability/visualization/grafana/provisioning
 ./core/persistence/postgres/init.sql
 ./plugins/security/identity/kratos
-./services/utilities/toolbox  # Correct path
+./services/utilities/raymond # Correct path
 ```
 
 ### 4. Deployment Profiles Added
@@ -77,6 +81,7 @@ New profile-based deployment system:
 ### 5. Enhanced Makefile
 
 **New Targets:**
+
 - `make up-minimal` - Start core only
 - `make up-observability` - Start core + observability
 - `make up-security` - Start core + observability + security
@@ -87,6 +92,7 @@ New profile-based deployment system:
 - `make restore-db` - Restore database
 
 **Improved Targets:**
+
 - Better health checks with formatted output
 - Enhanced help system with categories
 - Colored output for better UX
@@ -121,6 +127,7 @@ docker ps -a | grep -E "loki|grafana|prometheus|jaeger|postgres|redis"
 ### Step 3: Update Docker Compose Files
 
 The new files are already created:
+
 - `docker-compose.base.yml` ✅
 - `docker-compose.core.yml` ✅
 - `docker-compose.observability.yml` ✅
@@ -130,6 +137,7 @@ The new files are already created:
 ### Step 4: Update Makefile
 
 Replace the old Makefile:
+
 ```bash
 # Backup is already done in Step 1
 mv Makefile.new Makefile
@@ -226,14 +234,14 @@ make restore-db BACKUP_FILE=./backups/arc_db_YYYYMMDD_HHMMSS.sql
 
 ### Volume Mapping
 
-| Old Volume | New Volume | Data Type |
-|------------|------------|-----------|
-| `postgres-data` | `arc_postgres_data` | Database |
-| `redis-data` | `arc_redis_data` | Cache |
-| N/A (unnamed) | `arc_pulsar_data` | Messages |
-| N/A (unnamed) | `arc_prometheus_data` | Metrics |
-| N/A (unnamed) | `arc_grafana_data` | Dashboards |
-| N/A (unnamed) | `arc_loki_data` | Logs |
+| Old Volume      | New Volume            | Data Type  |
+| --------------- | --------------------- | ---------- |
+| `postgres-data` | `arc_postgres_data`   | Database   |
+| `redis-data`    | `arc_redis_data`      | Cache      |
+| N/A (unnamed)   | `arc_pulsar_data`     | Messages   |
+| N/A (unnamed)   | `arc_prometheus_data` | Metrics    |
+| N/A (unnamed)   | `arc_grafana_data`    | Dashboards |
+| N/A (unnamed)   | `arc_loki_data`       | Logs       |
 
 **Migration:**
 If you have existing data in old volumes, migrate them:
@@ -265,7 +273,7 @@ After migration, verify:
 - [ ] Jaeger shows traces
 - [ ] Loki receives logs
 - [ ] OTel Collector accepts telemetry
-- [ ] Toolbox service responds
+- [ ] arc_raymond service responds
 
 ---
 
@@ -276,6 +284,7 @@ After migration, verify:
 **Error:** `network arc_net declared as external, but could not be found`
 
 **Solution:**
+
 ```bash
 make init-network
 ```
@@ -285,6 +294,7 @@ make init-network
 **Error:** `volume arc_postgres_data declared as external, but could not be found`
 
 **Solution:**
+
 ```bash
 make init-volumes
 ```
@@ -294,6 +304,7 @@ make init-volumes
 **Error:** `container name "arc_postgres" is already in use`
 
 **Solution:**
+
 ```bash
 # Remove old containers
 docker rm -f $(docker ps -aq)
@@ -307,6 +318,7 @@ docker rm -f arc_postgres
 **Error:** `bind: address already in use`
 
 **Solution:**
+
 ```bash
 # Find process using the port (example: port 5432)
 lsof -i :5432
@@ -320,6 +332,7 @@ make down
 **Error:** Data from old setup not visible
 
 **Solution:**
+
 ```bash
 # Check existing volumes
 docker volume ls
@@ -448,7 +461,7 @@ If you encounter issues:
 ✅ **Enhanced Makefile:** More targets, better UX, colored output  
 ✅ **Enterprise-Grade:** Follows best practices for production deployments  
 ✅ **Better Testability:** Validate architecture and configuration  
-✅ **Easier Debugging:** Layer-specific logs and health checks  
+✅ **Easier Debugging:** Layer-specific logs and health checks
 
 ---
 

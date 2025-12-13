@@ -96,9 +96,9 @@ jobs:
           # ------------------------------------------------------------------
           declare -A GROUP_OBSERVABILITY=(
             ["otel/opentelemetry-collector:latest"]="arc-widow-otel"
-            ["prom/prometheus:latest"]="arc-mercy-metrics"
+            ["prom/prometheus:latest"]="arc-house-metrics"
             ["grafana/loki:latest"]="arc-watson-logs"
-            ["grafana/tempo:latest"]="arc-rorschach-traces"
+            ["jaegertracing/all-in-one:latest"]="arc-columbo-traces"
             ["grafana/grafana:latest"]="arc-friday-viz"
             ["grafana/promtail:latest"]="arc-hermes-shipper"
           )

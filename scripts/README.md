@@ -5,6 +5,9 @@ Lightweight shell tooling that supports project setup. Historical script collect
 ## Current Structure
 
 - `setup/` – Secret generation and validation helpers for initializing `.env`
+- `show-roster.sh` – Display all running A.R.C. services with codenames and roles
+- `inspect-service.sh` – Inspect Docker labels for a specific service
+- `verify-labels.sh` – Verify all services have complete label metadata
 
 Legacy automation now lives in:
 
@@ -13,6 +16,38 @@ Legacy automation now lives in:
 
 ## Usage
 
+### Setup & Validation
+
+Run setup utilities from the project root:
+
+```bash
+./scripts/setup/generate-secrets.sh
+./scripts/setup/validate-secrets.sh
+```
+
+### Service Management
+
+View your running superhero lineup:
+
+```bash
+./scripts/show-roster.sh
+# or via Makefile:
+make roster
+```
+
+Inspect a specific service's labels:
+
+```bash
+./scripts/inspect-service.sh oracle
+./scripts/inspect-service.sh arc-daredevil-voice
+```
+
+Verify all services have complete labels:
+
+```bash
+./scripts/verify-labels.sh
+# or via Makefile:
+make validate-labels
 Run setup utilities from the project root:
 
 ```bash
@@ -25,6 +60,8 @@ Many tasks are also exposed through the Makefile:
 ```bash
 make generate-secrets
 make validate-secrets
+make roster
+make validate-labels
 ```
 
 ## Adding New Scripts

@@ -163,7 +163,7 @@ make up
 
 | Service       | Category | Location                      |
 | ------------- | -------- | ----------------------------- |
-| `arc_toolbox` | Utility  | `services/utilities/toolbox/` |
+| `arc_raymond` | Utility  | `services/utilities/raymond/` |
 
 ---
 
@@ -183,7 +183,7 @@ All volume mounts reference the actual directory structure:
 ./plugins/security/identity/kratos
 
 # Application services
-./services/utilities/toolbox
+./services/utilities/arc_raymond
 ```
 
 **Note:** All paths are relative to the repository root, not this directory.
@@ -208,7 +208,7 @@ arc_prometheus
 arc_jaeger
 arc_grafana
 arc_kratos
-arc_toolbox
+arc_raymond
 ```
 
 ---

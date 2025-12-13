@@ -1,4 +1,4 @@
-module github.com/arc-framework/platform-spike/services/bootstrap
+module github.com/arc-framework/platform-spike/services/raymond
 
 go 1.25.3
 

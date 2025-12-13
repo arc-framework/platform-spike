@@ -84,10 +84,11 @@ services:
   # ===========================================================================
   # GATEWAY - API Gateway & Reverse Proxy
   # ===========================================================================
-  arc_traefik:
+  arc-heimdall:
     <<: *small-service
-    image: traefik:latest
-    container_name: arc_traefik
+    image: ghcr.io/arc-framework/arc-heimdall-gateway:latest
+    container_name: arc-heimdall-gateway
+    hostname: arc-heimdall
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -104,7 +105,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../../core/gateway/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - traefik
+          - arc-traefik
+          - arc_traefik
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ping || exit 1"]
       interval: 10s
@@ -114,17 +119,22 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=gateway"
+      - "arc.service.codename=heimdall"
+      - "arc.service.role=The Gatekeeper"
+      - "arc.service.tech=traefik"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # TELEMETRY - OpenTelemetry Collector
   # ===========================================================================
-  arc_otel_collector:
+  arc-widow:
     <<: *medium-service
     build:
       context: ../../core/telemetry/otel-collector
       dockerfile: Dockerfile
     image: arc/otel-collector:latest
-    container_name: arc_otel_collector
+    container_name: arc-widow-otel
+    hostname: arc-widow
     restart: unless-stopped
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
@@ -135,9 +145,13 @@ services:
       - "13133:13133" # Health Check
       - "8888:8888"   # Prometheus metrics
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - otel-collector
+          - arc-otel
+          - arc_otel_collector
     depends_on:
-      arc_traefik:
+      arc-heimdall:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/health_check", "http://localhost:13133"]
@@ -150,14 +164,19 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=telemetry"
+      - "arc.service.codename=widow"
+      - "arc.service.role=The All-Seeing"
+      - "arc.service.tech=opentelemetry"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # PERSISTENCE - PostgreSQL with pgvector
   # ===========================================================================
-  arc_postgres:
+  arc-oracle:
     <<: *large-service
-    image: pgvector/pgvector:pg17
-    container_name: arc_postgres
+    image: ghcr.io/arc-framework/arc-oracle-sql:latest
+    container_name: arc-oracle-sql
+    hostname: arc-oracle
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-arc}
@@ -171,9 +190,14 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - postgres
+          - arc-postgres
+          - arc_postgres
+          - arc-oracle
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc_db}"]
+      test: ["CMD-SHELL", "pg_isready -U arc -d arc_db"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -181,15 +205,20 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=persistence"
+      - "arc.service.codename=oracle"
+      - "arc.service.role=The Knowledge Keeper"
+      - "arc.service.tech=postgresql"
+      - "arc.service.swappable=false"
     shm_size: 256mb
 
   # ===========================================================================
   # CACHING - Redis
   # ===========================================================================
-  arc_redis:
+  arc-sonic:
     <<: *medium-service
-    image: redis:7-alpine
-    container_name: arc_redis
+    image: ghcr.io/arc-framework/arc-sonic-cache:latest
+    container_name: arc-sonic-cache
+    hostname: arc-sonic
     restart: unless-stopped
     command: >
       redis-server
@@ -202,7 +231,11 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - redis
+          - arc-redis
+          - arc_redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -212,14 +245,19 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=caching"
+      - "arc.service.codename=sonic"
+      - "arc.service.role=The Speedster"
+      - "arc.service.tech=redis"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # MESSAGING (EPHEMERAL) - NATS
   # ===========================================================================
-  arc_nats:
+  arc-flash:
     <<: *small-service
-    image: nats:2.12.1
-    container_name: arc_nats
+    image: ghcr.io/arc-framework/arc-flash-pulse:latest
+    container_name: arc-flash-pulse
+    hostname: arc-flash
     restart: unless-stopped
     command: >
       --jetstream
@@ -232,9 +270,13 @@ services:
       - "8222:8222"  # Monitoring
       - "6222:6222"  # Cluster routes
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - nats
+          - arc-nats
+          - arc_nats
     depends_on:
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
@@ -246,14 +288,19 @@ services:
       - "arc.service.layer=core"
       - "arc.service.category=messaging"
       - "arc.service.subcategory=ephemeral"
+      - "arc.service.codename=flash"
+      - "arc.service.role=The Messenger"
+      - "arc.service.tech=nats"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # MESSAGING (DURABLE) - Apache Pulsar
   # ===========================================================================
-  arc_pulsar:
+  arc-strange:
     <<: *large-service
-    image: apachepulsar/pulsar:latest
-    container_name: arc_pulsar
+    image: ghcr.io/arc-framework/arc-strange-stream:latest
+    container_name: arc-strange-stream
+    hostname: arc-strange
     restart: unless-stopped
     command: >
       bin/pulsar standalone
@@ -267,11 +314,15 @@ services:
       - "6650:6650"  # Broker
       - "8082:8080"  # HTTP Admin (mapped to 8082 to avoid conflict with Traefik)
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - pulsar
+          - arc-pulsar
+          - arc_pulsar
     depends_on:
-      arc_postgres:
+      arc-oracle:
         condition: service_healthy
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/admin/v2/brokers/health || exit 1"]
@@ -283,31 +334,40 @@ services:
       - "arc.service.layer=core"
       - "arc.service.category=messaging"
       - "arc.service.subcategory=durable"
+      - "arc.service.codename=strange"
+      - "arc.service.role=The Time Keeper"
+      - "arc.service.tech=pulsar"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # SECRETS - Infisical
   # ===========================================================================
-  arc_infisical:
+  arc-fury:
     <<: *medium-service
-    image: infisical/infisical:latest-postgres
-    container_name: arc_infisical
+    image: ghcr.io/arc-framework/arc-fury-vault:latest
+    container_name: arc-fury-vault
+    hostname: arc-fury
     restart: unless-stopped
     environment:
-      DB_CONNECTION_URI: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/infisical_db?sslmode=disable"
-      REDIS_URL: "redis://arc_redis:6379"
+      DB_CONNECTION_URI: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/infisical_db?sslmode=disable"
+      REDIS_URL: "redis://arc-sonic:6379"
       ENCRYPTION_KEY: "${INFISICAL_ENCRYPTION_KEY:?Error: INFISICAL_ENCRYPTION_KEY must be set}"
       AUTH_SECRET: "${INFISICAL_AUTH_SECRET:?Error: INFISICAL_AUTH_SECRET must be set}"
       SITE_URL: ${INFISICAL_SITE_URL:-http://localhost:3001}
       TELEMETRY_ENABLED: "false"
     depends_on:
-      arc_postgres:
+      arc-oracle:
         condition: service_healthy
-      arc_redis:
+      arc-sonic:
         condition: service_healthy
     ports:
       - "3001:8080"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - infisical
+          - arc-infisical
+          - arc_infisical
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/status"]
       interval: 15s
@@ -317,26 +377,35 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=secrets"
+      - "arc.service.codename=fury"
+      - "arc.service.role=The Spymaster"
+      - "arc.service.tech=infisical"
+      - "arc.service.swappable=false"
 
   # ===========================================================================
   # FEATURE MANAGEMENT - Unleash
   # ===========================================================================
-  arc_unleash:
+  arc-mystique:
     <<: *medium-service
-    image: unleashorg/unleash-server:7.0.6
-    container_name: arc_unleash
+    image: ghcr.io/arc-framework/arc-mystique-flags:latest
+    container_name: arc-mystique-flags
+    hostname: arc-mystique
     restart: unless-stopped
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/unleash_db?sslmode=disable"
       DATABASE_SSL: "false"
       LOG_LEVEL: info
     depends_on:
-      arc_postgres:
+      arc-oracle:
         condition: service_healthy
     ports:
       - "4242:4242"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - unleash
+          - arc-unleash
+          - arc_unleash
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4242/health"]
       interval: 10s
@@ -346,3 +415,60 @@ services:
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=feature-management"
+      - "arc.service.codename=mystique"
+      - "arc.service.role=The Shapeshifter"
+      - "arc.service.tech=unleash"
+      - "arc.service.swappable=false"
+
+  # ===========================================================================
+  # MEDIA - LiveKit (WebRTC SFU)
+  # ===========================================================================
+  arc-daredevil:
+    <<: *medium-service
+    image: ghcr.io/arc-framework/arc-daredevil-voice:latest
+    container_name: arc-daredevil-voice
+    hostname: arc-daredevil
+    restart: unless-stopped
+    command:
+      - "--config"
+      - "/etc/livekit.yaml"
+      - "--node-ip"
+      - "${LIVEKIT_NODE_IP:-127.0.0.1}"
+    environment:
+      LIVEKIT_KEYS: "devkey: secret"  # Format MUST be "key: secret" with space
+      REDIS_PASSWORD: ""
+    volumes:
+      - ../../core/media/livekit/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"        # HTTP API & WebSocket signaling
+      - "7881:7881/tcp"    # TCP fallback
+      - "50000-50100:50000-50100/udp"  # WebRTC media (100 ports for dev)
+    networks:
+      arc_net:
+        aliases:
+          - livekit
+          - arc-livekit
+          - arc_livekit
+    depends_on:
+      arc-sonic:
+        condition: service_healthy
+      arc-widow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7880/metrics || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=media"
+      - "arc.service.codename=daredevil"
+      - "arc.service.role=The Listener"
+      - "arc.service.tech=livekit"
+      - "arc.service.swappable=false"
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`livekit.arc.local`)"
+      - "traefik.http.routers.livekit.entrypoints=web"
+      - "traefik.http.routers.livekit.service=livekit"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"

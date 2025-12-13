@@ -12,7 +12,7 @@ Compose files broken down by responsibility:
 - `docker-compose.core.yml` – Required core services (Traefik, Postgres, Redis, NATS, Pulsar, Infisical, Unleash, OpenTelemetry Collector)
 - `docker-compose.observability.yml` – Observability stack (Loki, Prometheus, Jaeger, Grafana)
 - `docker-compose.security.yml` – Security plugins (Kratos)
-- `docker-compose.services.yml` – Application workloads (currently the toolbox utility)
+- `docker-compose.services.yml` – Application workloads (arc-raymond-services utility)
 
 Combine these files through the provided Make targets or by composing them manually. Examples:
 

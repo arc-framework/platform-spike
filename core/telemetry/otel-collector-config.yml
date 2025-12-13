@@ -22,22 +22,22 @@ exporters:
   # The 'loki' exporter is no longer in the default contrib image.
   # We use the standard otlphttp exporter, as Loki supports OTLP natively.
   otlphttp/loki:
-    endpoint: "http://loki:3100/otlp"
+    endpoint: 'http://loki:3100/otlp'
     # OTLP uses HTTP headers for auth, not a specific config block.
     # Headers can be set here if needed, e.g., for multi-tenancy.
     # headers:
     #   "X-Scope-OrgID": "my-tenant"
 
   # Exporter 2: Send traces to Jaeger via OTLP
-  # The dedicated 'jaeger' exporter is deprecated. Jaeger natively supports OTLP.
+  # Jaeger natively supports OTLP over gRPC
   otlp/jaeger:
-    endpoint: jaeger:4317 # Jaeger's OTLP gRPC endpoint
+    endpoint: arc_jaeger:4317 # Jaeger's internal OTLP gRPC endpoint
     tls:
       insecure: true
 
   # Exporter 4: Make metrics available for Prometheus to scrape
   prometheus:
-    endpoint: "0.0.0.0:8889" # An internal port for Prometheus to scrape
+    endpoint: '0.0.0.0:8889' # An internal port for Prometheus to scrape
 
 connectors:
   # The spanmetrics connector generates RED metrics (Rate, Error, Duration) from trace spans.
@@ -86,4 +86,4 @@ service:
 
   telemetry:
     logs:
-      level: "info"
+      level: 'info'

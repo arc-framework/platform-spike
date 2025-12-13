@@ -1,7 +1,5 @@
 version: v1.1.0
 
-dsn: memory
-
 serve:
   public:
     base_url: http://localhost:4433/
@@ -56,11 +54,10 @@ log:
   format: json
   leak_sensitive_values: false
 
-secrets:
-  cookie:
-    - ${KRATOS_SECRET_COOKIE}
-  cipher:
-    - ${KRATOS_SECRET_CIPHER}
+# Secrets are passed via environment variables:
+# - SECRETS_COOKIE (set via docker-compose)
+# - SECRETS_CIPHER (set via docker-compose)
+# Kratos reads these directly from env, not from this YAML file.
 
 ciphers:
   algorithm: xchacha20-poly1305
@@ -74,9 +71,8 @@ identity:
   default_schema_id: default
   schemas:
     - id: default
-      url: file:///etc/kratos/identity.schema.json
+      url: file:///etc/config/kratos/identity.schema.json
 
 courier:
   smtp:
     connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
-

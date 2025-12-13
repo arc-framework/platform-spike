@@ -22,26 +22,21 @@ rtc:
   # TCP fallback port (when UDP is blocked)
   tcp_port: 7881
 
-  # ICE server configuration (STUN/TURN)
-  # For production, add TURN server for NAT traversal reliability
-  ice_servers:
-    - urls:
-        - stun:stun.l.google.com:19302
+  # STUN servers for ICE candidate gathering
+  stun_servers:
+    - stun.l.google.com:19302
 
-  # Packet loss mitigation
+  # Congestion control (modern schema - bandwidth limits moved here)
   congestion_control:
     enabled: true
-    # Start with conservative bandwidth estimation
-    min_bandwidth: 100000 # 100 kbps
-    max_bandwidth: 3000000 # 3 Mbps (sufficient for voice)
-
-  # DTLS/SRTP configuration
-  timeout: 15s
+    # NOTE: min/max bandwidth removed in newer LiveKit versions
+    # Use client-side bandwidth estimation instead
 
 # Redis configuration for distributed state management
 # MANDATORY: arc-sonic-cache must be running
+# NOTE: Can use either 'arc-sonic' (codename) or 'redis' (tech alias)
 redis:
-  address: arc-sonic-cache:6379
+  address: arc-sonic:6379
   db: 0
   username: ''
   password: '' # Set via REDIS_PASSWORD env var if needed
@@ -49,9 +44,9 @@ redis:
 
 # API Key/Secret pairs for authentication
 # OVERRIDE: Set via LIVEKIT_KEYS environment variable
+# Format MUST be "key: secret" (literal string with space after colon)
 keys:
-  # Default key for local development (CHANGE IN PRODUCTION)
-  devkey: secret
+  devkey: secret # Note: This is a literal "devkey: secret" string when parsed
 
 # Room configuration
 room:
@@ -72,18 +67,11 @@ logging:
   # Options: debug, info, warn, error
   level: info
 
-  # Output format: json or text
-  # Use json for structured logging with OTEL collector
-  format: json
-
   # Sample rate for debug logs (reduce noise)
   sample: false
 
-# Metrics and monitoring
-# Prometheus-compatible metrics exposed on /metrics endpoint
-metrics:
-  enabled: true
-  port: 7880 # Same as main port (shares HTTP server)
+# NOTE: Prometheus metrics are automatically exposed on /metrics endpoint
+# No additional configuration needed for basic metrics collection
 
 # TURN server configuration (for production NAT traversal)
 # Uncomment and configure when deploying behind restrictive firewalls
@@ -116,5 +104,6 @@ limit:
   # Bytes per second per participant
   bytes_per_sec: 1000000 # 1 MB/s (generous for voice)
 
-  # Max concurrent tracks per participant
-  tracks_per_participant: 5
+
+  # NOTE: tracks_per_participant removed in newer LiveKit versions
+  # Track limits are now managed via room configuration and participant permissions

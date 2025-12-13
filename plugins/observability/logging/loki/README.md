@@ -7,6 +7,7 @@ Log aggregation system optimized for Kubernetes and cloud-native applications.
 ## Overview
 
 **Loki** provides:
+
 - Cost-effective log storage
 - Label-based indexing (like Prometheus)
 - Integration with Grafana
@@ -27,6 +28,7 @@ Log aggregation system optimized for Kubernetes and cloud-native applications.
 See `.env.example` for configuration options.
 
 ### Key Features
+
 - **Cost-Effective** - Only indexes labels, not full text
 - **LogQL** - Powerful query language similar to PromQL
 - **Grafana Integration** - Native datasource in Grafana
@@ -42,6 +44,7 @@ Services → OpenTelemetry Collector → Loki → Grafana
 ```
 
 Loki receives logs from:
+
 - OpenTelemetry Collector (OTLP HTTP)
 - Promtail (log shipper)
 - Docker plugin
@@ -52,6 +55,7 @@ Loki receives logs from:
 ## Usage
 
 ### Start Service
+
 ```bash
 make up-observability
 # or
@@ -59,15 +63,17 @@ docker compose up loki
 ```
 
 ### Check Health
+
 ```bash
 curl http://localhost:3100/ready
 ```
 
 ### Query Logs
+
 ```bash
 # Via API
 curl -G -s "http://localhost:3100/loki/api/v1/query" \
-  --data-urlencode 'query={service_name="toolbox-go"}'
+  --data-urlencode 'query={service_name="arc_raymond-go"}'
 
 # Via Grafana (recommended)
 open http://localhost:3000/explore
@@ -78,6 +84,7 @@ open http://localhost:3000/explore
 ## LogQL Query Examples
 
 ### Basic Queries
+
 ```logql
 # All logs from a service
 {service_name="swiss-army-go"}
@@ -93,6 +100,7 @@ open http://localhost:3000/explore
 ```
 
 ### JSON Parsing
+
 ```logql
 # Parse JSON and filter
 {service_name="swiss-army-go"} | json | user_id="123"
@@ -104,6 +112,7 @@ sum by (status_code) (
 ```
 
 ### Metrics from Logs
+
 ```logql
 # Count logs per minute
 count_over_time({service_name="swiss-army-go"}[1m])
@@ -118,6 +127,7 @@ avg_over_time(
 ```
 
 ### Trace Correlation
+
 ```logql
 # Find logs for specific trace
 {service_name="swiss-army-go"} | json | trace_id="abc123"
@@ -128,6 +138,7 @@ avg_over_time(
 ## Labels
 
 ### Recommended Labels
+
 ```
 service_name    - Service identifier
 level          - Log level (info, warn, error)
@@ -135,11 +146,13 @@ environment    - Environment (dev, staging, prod)
 ```
 
 ### Label Best Practices
+
 - **Low Cardinality** - Limit unique label values
 - **Don't Over-Label** - Too many labels hurt performance
 - **Use Filters** - Parse content with LogQL, don't label everything
 
 ### Bad Examples ❌
+
 ```
 user_id="123"           # High cardinality
 request_id="abc-def"    # High cardinality
@@ -147,6 +160,7 @@ timestamp="..."         # Already tracked
 ```
 
 ### Good Examples ✅
+
 ```
 service_name="api"
 level="error"
@@ -158,10 +172,11 @@ environment="production"
 ## Storage & Retention
 
 ### Configuration
+
 ```yaml
 # In loki config
 limits_config:
-  retention_period: 744h  # 31 days
+  retention_period: 744h # 31 days
 
 compactor:
   retention_enabled: true
@@ -169,6 +184,7 @@ compactor:
 ```
 
 ### Disk Usage
+
 ```bash
 # Check storage size
 du -sh /var/lib/loki
@@ -182,14 +198,15 @@ docker compose exec loki rm -rf /loki/chunks/fake/*
 ## Integration with OpenTelemetry
 
 ### Collector Configuration
+
 ```yaml
 exporters:
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
     labels:
       attributes:
-        service.name: "service_name"
-        severity: "level"
+        service.name: 'service_name'
+        severity: 'level'
 ```
 
 ---
@@ -199,12 +216,14 @@ exporters:
 Loki is auto-provisioned as a datasource in Grafana.
 
 ### Access in Grafana
+
 1. Open http://localhost:3000
 2. Go to Explore
 3. Select "Loki" datasource
 4. Enter LogQL query
 
 ### Example Dashboard Queries
+
 ```logql
 # Error rate panel
 sum(rate({service_name="api"} |= "level=error" [5m]))
@@ -213,7 +232,7 @@ sum(rate({service_name="api"} |= "level=error" [5m]))
 sum by (service_name) (count_over_time({job="docker"}[1m]))
 
 # Top error messages
-topk(10, 
+topk(10,
   sum by (message) (count_over_time({level="error"}[1h]))
 )
 ```
@@ -223,6 +242,7 @@ topk(10,
 ## Performance Tuning
 
 ### Optimize Queries
+
 ```logql
 # ✅ Good - Uses labels
 {service_name="api", level="error"}
@@ -235,10 +255,11 @@ topk(10,
 ```
 
 ### Query Limits
+
 ```yaml
 limits_config:
-  max_query_length: 721h       # Max time range
-  max_query_lookback: 30d      # Lookback limit
+  max_query_length: 721h # Max time range
+  max_query_lookback: 30d # Lookback limit
   max_entries_limit_per_query: 5000
 ```
 
@@ -247,12 +268,14 @@ limits_config:
 ## Monitoring
 
 ### Key Metrics
+
 - Ingestion rate (lines/second)
 - Query latency
 - Storage size
 - Failed requests
 
 ### Loki Metrics
+
 ```bash
 # Scrape Loki metrics with Prometheus
 curl http://localhost:3100/metrics
@@ -275,6 +298,7 @@ curl http://localhost:3100/metrics
 ## Alternatives
 
 If Loki doesn't fit your needs:
+
 - **Elasticsearch** - Full-text search, resource-intensive
 - **Splunk** - Enterprise features, expensive
 - **CloudWatch Logs** - AWS-native
@@ -288,4 +312,3 @@ If Loki doesn't fit your needs:
 - [Core Telemetry](../../../../core/telemetry/)
 - [Grafana](../../visualization/grafana/)
 - [Loki Documentation](https://grafana.com/docs/loki/)
-

@@ -36,7 +36,7 @@ The ARC Framework platform demonstrates solid engineering practices with well-st
 
 ```yaml
 # GOOD EXAMPLE - docker-compose.services.yml
-arc_toolbox:
+arc_raymond:
   depends_on:
     arc_otel_collector:
       condition: service_healthy
@@ -117,7 +117,7 @@ Level 5 (Security):
   - arc_kratos (depends_on: postgres, traefik)
 
 Level 6 (Applications):
-  - arc_toolbox (depends_on: otel_collector, postgres, redis)
+  - arc_raymond (depends_on: otel_collector, postgres, redis)
 ```
 
 ### 1.3 Recommended Fixes
@@ -807,7 +807,7 @@ dashboard:
 
 ## 6. Dockerfile Best Practices Review
 
-### 6.1 Toolbox Dockerfile Analysis
+### 6.1 arc_raymond Dockerfile Analysis
 
 #### ✅ **Good Practices Found**
 
@@ -839,13 +839,13 @@ RUN apk add --no-cache ca-certificates tzdata
 COPY --from=builder /etc/passwd /etc/passwd
 USER appuser
 
-COPY --from=builder /app/toolbox /toolbox
+COPY --from=builder /app/arc_raymond /arc_raymond
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
 
-CMD ["/toolbox"]
+CMD ["/arc_raymond"]
 ```
 
 ### 6.2 OTel Collector Dockerfile Analysis

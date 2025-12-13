@@ -34,7 +34,7 @@ COMPOSE_DIR := deployments/docker
 CORE_SERVICES := traefik otel_collector postgres redis nats pulsar infisical unleash
 OBSERVABILITY_SERVICES := loki prometheus jaeger grafana
 SECURITY_SERVICES := kratos
-APP_SERVICES := toolbox
+APP_SERVICES := raymond
 
 # Compose file references
 COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
@@ -304,9 +304,11 @@ define _wait-for
 	SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"; \
 	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
 		HEALTH_OUTPUT=$$($(MAKE) $(3) 2>&1); \
+		TOTAL_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -E "(✓|✗)" | wc -l | tr -d ' '); \
+		HEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✓ Healthy" || true); \
 		UNHEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✗ Unhealthy" || true); \
-		if [ $$UNHEALTHY_COUNT -eq 0 ]; then \
-			printf "\r$(GREEN)✓ $(1) are healthy! (took $$ELAPSED s)                                    $(NC)\n"; \
+		if [ $$UNHEALTHY_COUNT -eq 0 ] && [ $$HEALTHY_COUNT -gt 0 ]; then \
+			printf "\r$(GREEN)✓ All $(1) are healthy! ($$HEALTHY_COUNT/$$TOTAL_COUNT services, took $$ELAPSED s)                                              $(NC)\n\n"; \
 			$(if $(4),$(MAKE) info-$(4),$(MAKE) info); \
 			exit 0; \
 		fi; \
@@ -316,23 +318,31 @@ define _wait-for
 		EMPTY=$$(printf '%*s' $$((50 - BAR_LEN)) | tr ' ' '░'); \
 		SPIN_IDX=$$((ELAPSED % 10)); \
 		SPIN_CHAR=$$(echo "$$SPINNER" | cut -c$$((SPIN_IDX + 1))); \
-		printf "\r  $$SPIN_CHAR [$$BAR$$EMPTY] $$PERCENT%% ($$ELAPSED/$$MAX_WAIT s) "; \
-		UNHEALTHY_SERVICES=$$(echo "$$HEALTH_OUTPUT" | grep "✗ Unhealthy" | sed 's/.*: //' | head -3 | tr '\n' ', ' | sed 's/,$$//'); \
-		if [ -n "$$UNHEALTHY_SERVICES" ]; then \
-			printf "$(YELLOW)Waiting: $$UNHEALTHY_SERVICES$(NC)"; \
-		fi; \
+		printf "\r  $$SPIN_CHAR [$$BAR$$EMPTY] $$PERCENT%% ($$ELAPSED/$$MAX_WAIT s) | $(GREEN)Healthy: $$HEALTHY_COUNT$(NC) $(YELLOW)Waiting: $$UNHEALTHY_COUNT$(NC)                    "; \
 		sleep $$INTERVAL; \
 		ELAPSED=$$((ELAPSED + INTERVAL)); \
 	done; \
-	printf "\r$(RED)✗ Timeout waiting for $(1) ($$MAX_WAIT s exceeded)                        $(NC)\n\n"; \
-	echo "$(YELLOW)━━━ Failed Service Details ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	printf "\r$(RED)✗ Timeout waiting for $(1) ($$MAX_WAIT s exceeded)                                                                  $(NC)\n\n"; \
+	HEALTH_OUTPUT=$$($(MAKE) $(3) 2>&1); \
+	UNHEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✗ Unhealthy" || true); \
+	echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$(RED)❌ UNHEALTHY SERVICES: $$UNHEALTHY_COUNT$(NC)"; \
+	echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$$HEALTH_OUTPUT" | grep "✗ Unhealthy" | while read -r line; do \
+		SERVICE_NAME=$$(echo "$$line" | awk '{print $$1}'); \
+		echo "  $(RED)✗$(NC) $$SERVICE_NAME"; \
+	done; \
+	echo ""; \
+	echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$(YELLOW)FULL HEALTH STATUS:$(NC)"; \
+	echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
 	$(MAKE) $(3); \
 	echo ""; \
 	echo "$(YELLOW)Troubleshooting:$(NC)"; \
 	echo "  1. Check logs: $(CYAN)make logs$(NC)"; \
-	echo "  2. Check status: $(CYAN)docker ps -a | grep arc_$(NC)"; \
-	echo "  3. Check specific service: $(CYAN)docker logs arc_<service_name>$(NC)"; \
-	echo "  4. Retry: $(CYAN)make down && make $(1)$(NC)"; \
+	echo "  2. Check status: $(CYAN)docker ps -a | grep arc$(NC)"; \
+	echo "  3. Inspect specific service: $(CYAN)docker logs <service_name>$(NC)"; \
+	echo "  4. Retry: $(CYAN)make down && make up-<profile>$(NC)"; \
 	exit 1
 endef
 
@@ -364,6 +374,9 @@ health-dev: health-core health-observability health-services
 health-observability-profile: health-core health-observability
 health-security-profile: health-core health-observability health-security
 
+roster:
+	@./scripts/show-roster.sh
+
 health-core:
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║  Core Services Health Status                                     ║$(NC)"
@@ -372,15 +385,15 @@ health-core:
 	@printf "  %-25s" "Traefik (Gateway):"
 	@curl -sf http://localhost:80/ping >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "OTel Collector:"
-	@docker exec arc_otel_collector /health_check http://localhost:13133 >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-widow-otel /health_check http://localhost:13133 >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "PostgreSQL:"
-	@docker exec arc_postgres pg_isready -U arc -q && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-oracle-sql pg_isready -U arc -q && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Redis:"
-	@docker exec arc_redis redis-cli ping | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-sonic-cache redis-cli ping | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "NATS:"
 	@curl -sf http://localhost:8222/healthz >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Pulsar:"
-	@docker exec arc_pulsar bin/pulsar-admin brokers healthcheck >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-strange-stream bin/pulsar-admin brokers healthcheck >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Infisical:"
 	@curl -sf http://localhost:3001/api/status >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Unleash:"
@@ -416,7 +429,7 @@ health-services:
 	@echo "$(CYAN)║  Application Services Health Status                              ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@printf "  %-25s" "Toolbox:"
+	@printf "  %-25s" "Raymond:"
 	@curl -sf http://localhost:8081/health >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy/Not Running$(NC)"
 	@echo ""
 
@@ -425,20 +438,14 @@ health-services:
 # ==============================================================================
 migrate-db:
 	@echo "$(BLUE)Running database migrations...$(NC)"
-	@docker exec arc_postgres psql -U arc -d arc_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
-	@echo "$(GREEN)✓ PostgreSQL extensions installed$(NC)"
 	@echo "$(BLUE)Running Kratos migrations...$(NC)"
-	@docker run --rm \
-		-v $(PWD)/plugins/security/identity/kratos:/etc/config/kratos \
-		--network arc_net \
-		oryd/kratos:v1.0.0 \
-		migrate sql -e --yes postgres://arc:postgres@arc_postgres:5432/arc_db?sslmode=disable
+	@docker exec arc-deckard-identity kratos migrate sql -e --yes
 	@echo "$(GREEN)✓ Kratos migrations complete$(NC)"
 
 backup-db:
 	@echo "$(BLUE)Backing up database...$(NC)"
 	@mkdir -p ./backups
-	@docker exec arc_postgres pg_dump -U arc arc_db > ./backups/arc_db_$$(date +%Y%m%d_%H%M%S).sql
+	@docker exec arc-oracle-sql pg_dump -U arc arc_db > ./backups/arc_db_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "$(GREEN)✓ Database backed up to ./backups/$(NC)"
 
 restore-db:
@@ -448,7 +455,7 @@ restore-db:
 		exit 1; \
 	fi
 	@echo "$(BLUE)Restoring database from $(BACKUP_FILE)...$(NC)"
-	@docker exec -i arc_postgres psql -U arc arc_db < $(BACKUP_FILE)
+	@docker exec -i arc-oracle-sql psql -U arc arc_db < $(BACKUP_FILE)
 	@echo "$(GREEN)✓ Database restored$(NC)"
 
 reset-db:
@@ -456,8 +463,8 @@ reset-db:
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker exec arc_postgres psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
-		docker exec arc_postgres psql -U arc -c "CREATE DATABASE arc_db;"; \
+		docker exec arc-oracle-sql psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
+		docker exec arc-oracle-sql psql -U arc -c "CREATE DATABASE arc_db;"; \
 		make migrate-db; \
 		echo "$(GREEN)✓ Database reset complete$(NC)"; \
 	else \
@@ -468,18 +475,18 @@ reset-db:
 # Shell Access
 # ==============================================================================
 shell-postgres:
-	@docker exec -it arc_postgres psql -U arc -d arc_db
+	@docker exec -it arc-oracle-sql psql -U arc -d arc_db
 
 shell-redis:
-	@docker exec -it arc_redis redis-cli
+	@docker exec -it arc-sonic-cache redis-cli
 
 shell-nats:
-	@docker exec -it arc_nats sh
+	@docker exec -it arc-flash-pulse sh
 
 # ==============================================================================
 # Validation & Testing
 # ==============================================================================
-validate: validate-compose validate-architecture validate-paths
+validate: validate-compose validate-architecture validate-paths validate-labels
 	@echo "$(GREEN)✓ All validations passed$(NC)"
 
 validate-compose:
@@ -509,7 +516,7 @@ validate-paths:
 		core/gateway/traefik/traefik.yml \
 		plugins/observability/visualization/grafana/provisioning \
 		plugins/observability/metrics/prometheus/prometheus.yaml \
-		services/utilities/toolbox; do \
+		services/utilities/raymond; do \
 		if [ -e "$$path" ]; then \
 			echo "$(GREEN)✓ $$path$(NC)"; \
 		else \
@@ -517,11 +524,15 @@ validate-paths:
 		fi; \
 	done
 
+validate-labels:
+	@echo "$(BLUE)Validating service labels...$(NC)"
+	@./scripts/verify-labels.sh
+
 test-connectivity:
 	@echo "$(BLUE)Testing service connectivity...$(NC)"
-	@docker exec arc_postgres pg_isready -h localhost > /dev/null 2>&1 && echo "$(GREEN)✓ Postgres$(NC)" || echo "$(RED)✗ Postgres$(NC)"
-	@docker exec arc_redis redis-cli -h localhost ping > /dev/null 2>&1 && echo "$(GREEN)✓ Redis$(NC)" || echo "$(RED)✗ Redis$(NC)"
-	@docker exec arc_nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1 && echo "$(GREEN)✓ NATS$(NC)" || echo "$(RED)✗ NATS$(NC)"
+	@docker exec arc-oracle-sql pg_isready -h localhost > /dev/null 2>&1 && echo "$(GREEN)✓ Postgres$(NC)" || echo "$(RED)✗ Postgres$(NC)"
+	@docker exec arc-sonic-cache redis-cli -h localhost ping > /dev/null 2>&1 && echo "$(GREEN)✓ Redis$(NC)" || echo "$(RED)✗ Redis$(NC)"
+	@docker exec arc-flash-pulse wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1 && echo "$(GREEN)✓ NATS$(NC)" || echo "$(RED)✗ NATS$(NC)"
 
 ci-validate: validate build
 	@echo "$(GREEN)✓ CI validation complete$(NC)"
@@ -534,7 +545,7 @@ info-core:
 	@echo "$(YELLOW)━━━ Core Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Traefik (Gateway):$(NC)      http://localhost:8080 (dashboard)"
 	@echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc)"
-	@echo "    $(CYAN)Connect: docker exec -it arc_postgres psql -U arc -d arc_db$(NC)"
+	@echo "    $(CYAN)Connect: docker exec -it arc-oracle-sql psql -U arc -d arc_db$(NC)"
 	@echo "  $(WHITE)Redis:$(NC)                  localhost:6379"
 	@echo "  $(WHITE)NATS:$(NC)                   localhost:4222 (monitoring: http://localhost:8222)"
 	@echo "  $(WHITE)Pulsar:$(NC)                 localhost:6650 (admin: http://localhost:8082)"
@@ -556,7 +567,7 @@ info:
 	@echo "  $(WHITE)Kratos (Admin):$(NC)         http://localhost:4434"
 	@echo ""
 	@echo "$(YELLOW)━━━ Application Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(WHITE)Toolbox:$(NC)                http://localhost:8081"
+	@echo "  $(WHITE)Raymond:$(NC)                http://localhost:8081"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation:$(NC)           docs/OPERATIONS.md"
@@ -595,7 +606,7 @@ logs-security:
 
 logs-services:
 	@echo "$(BLUE)Streaming logs from application services...$(NC)"
-	$(COMPOSE_FULL) logs -f toolbox
+	$(COMPOSE_FULL) logs -f raymond
 
 # ==============================================================================
 # Development Helpers

@@ -18,31 +18,65 @@ services:
   # ===========================================================================
 
   # PostgreSQL - Remove direct port exposure (access via internal network only)
-  arc_postgres:
+  arc-oracle:
     ports: []  # Remove 5432:5432 exposure
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=persistence"
+      - "arc.service.codename=oracle"
+      - "arc.service.role=The Knowledge Keeper"
+      - "arc.service.tech=postgresql"
+      - "arc.service.swappable=false"
 
   # Redis - Remove direct port exposure
-  arc_redis:
+  arc-sonic:
     ports: []  # Remove 6379:6379 exposure
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=caching"
+      - "arc.service.codename=sonic"
+      - "arc.service.role=The Speedster"
+      - "arc.service.tech=redis"
+      - "arc.service.swappable=false"
 
   # NATS - Remove monitoring port, keep only internal client port
-  arc_nats:
+  arc-flash:
     ports:
       - "4222:4222"  # Keep client connections for services
     # Removed: 8222 (monitoring), 6222 (cluster)
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=messaging"
+      - "arc.service.subcategory=ephemeral"
+      - "arc.service.codename=flash"
+      - "arc.service.role=The Messenger"
+      - "arc.service.tech=nats"
+      - "arc.service.swappable=false"
 
   # Pulsar - Remove admin port exposure
-  arc_pulsar:
+  arc-strange:
     ports:
       - "6650:6650"  # Keep broker for services
     # Removed: 8082 (admin HTTP)
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=messaging"
+      - "arc.service.subcategory=durable"
+      - "arc.service.codename=strange"
+      - "arc.service.role=The Time Keeper"
+      - "arc.service.tech=pulsar"
+      - "arc.service.swappable=false"
 
   # Infisical - Remove direct port (access via Traefik)
-  arc_infisical:
+  arc-fury:
     ports: []
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=secrets"
+      - "arc.service.codename=fury"
+      - "arc.service.role=The Spymaster"
+      - "arc.service.tech=infisical"
+      - "arc.service.swappable=false"
       - "traefik.enable=true"
       - "traefik.http.routers.infisical.rule=Host(`infisical.${DOMAIN:-localhost}`)"
       - "traefik.http.services.infisical.loadbalancer.server.port=8080"
@@ -50,11 +84,15 @@ services:
       - "traefik.http.routers.infisical.tls=true"
 
   # Unleash - Remove direct port (access via Traefik)
-  arc_unleash:
+  arc-mystique:
     ports: []
     labels:
       - "arc.service.layer=core"
       - "arc.service.category=feature-management"
+      - "arc.service.codename=mystique"
+      - "arc.service.role=The Shapeshifter"
+      - "arc.service.tech=unleash"
+      - "arc.service.swappable=false"
       - "traefik.enable=true"
       - "traefik.http.routers.unleash.rule=Host(`unleash.${DOMAIN:-localhost}`)"
       - "traefik.http.services.unleash.loadbalancer.server.port=4242"
@@ -66,16 +104,28 @@ services:
   # ===========================================================================
 
   # Loki - Remove direct port (internal only)
-  arc_loki:
+  arc-watson:
     ports: []
+    labels:
+      - "arc.service.layer=plugin"
+      - "arc.service.category=observability"
+      - "arc.service.subcategory=logging"
+      - "arc.service.codename=watson"
+      - "arc.service.role=The Chronicler"
+      - "arc.service.tech=loki"
+      - "arc.service.swappable=true"
+      - "arc.service.alternatives=elasticsearch,splunk,cloudwatch"
 
   # Prometheus - Remove direct port (access via Grafana or Traefik)
-  arc_prometheus:
+  arc-house:
     ports: []
     labels:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=metrics"
+      - "arc.service.codename=house"
+      - "arc.service.role=The Diagnostician"
+      - "arc.service.tech=prometheus"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=influxdb,datadog,cloudwatch"
       - "traefik.enable=true"
@@ -88,7 +138,7 @@ services:
       - "traefik.http.middlewares.prometheus-auth.basicauth.users=${PROMETHEUS_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
 
   # Jaeger - Remove direct ports (access via Grafana or Traefik)
-  arc_jaeger:
+  arc-columbo:
     ports:
       - "14268:14268"  # Keep collector HTTP for services
       - "14250:14250"  # Keep collector gRPC for services
@@ -97,6 +147,9 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=tracing"
+      - "arc.service.codename=columbo"
+      - "arc.service.role=The Detective"
+      - "arc.service.tech=jaeger"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=zipkin,tempo,x-ray"
       - "traefik.enable=true"
@@ -108,12 +161,15 @@ services:
       - "traefik.http.middlewares.jaeger-auth.basicauth.users=${JAEGER_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
 
   # Grafana - Keep exposed but add authentication via Traefik
-  arc_grafana:
+  arc-friday:
     ports: []
     labels:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=visualization"
+      - "arc.service.codename=friday"
+      - "arc.service.role=The UI Overlay"
+      - "arc.service.tech=grafana"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=kibana,datadog,newrelic"
       - "traefik.enable=true"
@@ -127,12 +183,15 @@ services:
   # ===========================================================================
 
   # Kratos - Remove direct ports (access via Traefik)
-  arc_kratos:
+  arc-jarvis:
     ports: []
     labels:
       - "arc.service.layer=plugin"
       - "arc.service.category=security"
       - "arc.service.subcategory=identity"
+      - "arc.service.codename=jarvis"
+      - "arc.service.role=The Butler"
+      - "arc.service.tech=kratos"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=keycloak,auth0,cognito,okta"
       # Public API
@@ -154,11 +213,18 @@ services:
   # ===========================================================================
 
   # OTEL Collector - Keep OTLP ports, remove health check port
-  arc_otel_collector:
+  arc-widow:
     ports:
       - "4317:4317"   # OTLP gRPC (required by services)
       - "4318:4318"   # OTLP HTTP (required by services)
     # Removed: 13133 (health check), 8888 (Prometheus metrics - use internal)
+    labels:
+      - "arc.service.layer=core"
+      - "arc.service.category=telemetry"
+      - "arc.service.codename=widow"
+      - "arc.service.role=The All-Seeing"
+      - "arc.service.tech=opentelemetry"
+      - "arc.service.swappable=false"
 
 # ==============================================================================
 # Networks Configuration

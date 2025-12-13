@@ -121,7 +121,7 @@ services/
 │   └── gateway-service/
 │
 └── utilities/                         # Utility services
-    ├── toolbox/                       # Current example
+    ├── arc_raymond/                       # Current example
     └── health-checker/
 ```
 
@@ -502,7 +502,7 @@ services/
 │   ├── user-service/          # Go
 │   └── auth-api/              # Go
 └── utilities/
-    └── toolbox/               # Go (current example)
+    └── arc_raymond/               # Go (current example)
 ```
 
 **Why This Works:**
@@ -840,7 +840,7 @@ services/
 
 ```
 services/
-└── toolbox/                        # ✅ kebab-case
+└── arc_raymond/                        # ✅ kebab-case
 ```
 
 ---

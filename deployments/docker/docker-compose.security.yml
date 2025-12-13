@@ -40,28 +40,38 @@ services:
   # ===========================================================================
   # IDENTITY & AUTHENTICATION - Ory Kratos
   # ===========================================================================
-  arc_kratos:
+  arc-jarvis:
     <<: *medium-service
-    image: oryd/kratos:v25.4.0
-    container_name: arc_kratos
+    build:
+      context: ../../plugins/security/identity/kratos
+      dockerfile: Dockerfile
+    image: ghcr.io/arc-framework/arc-deckard-identity:latest
+    container_name: arc-deckard-identity
+    hostname: arc-jarvis
     restart: unless-stopped
-    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    # Command is now in Dockerfile CMD, entrypoint handles migrations
     environment:
-      DSN: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc_postgres:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4"
+      DSN: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4"
       LOG_LEVEL: info
-      SERVE_PUBLIC_BASE_URL: http://localhost:4433/
-      SERVE_ADMIN_BASE_URL: http://localhost:4434/
-      KRATOS_SECRET_COOKIE: "${KRATOS_SECRET_COOKIE:?Error: KRATOS_SECRET_COOKIE must be set - use 'openssl rand -base64 32'}"
-      KRATOS_SECRET_CIPHER: "${KRATOS_SECRET_CIPHER:?Error: KRATOS_SECRET_CIPHER must be set - use 'openssl rand -base64 32'}"
+      # NOTE: Kratos config is fully managed via /etc/config/kratos/kratos.yml
+      # Only DSN and secrets need env vars (secrets can't be in config files)
+      SECRETS_COOKIE: "${KRATOS_SECRET_COOKIE:?Error: KRATOS_SECRET_COOKIE must be set}"
+      SECRETS_CIPHER: "${KRATOS_SECRET_CIPHER:?Error: KRATOS_SECRET_CIPHER must be set}"
     volumes:
       - ../../plugins/security/identity/kratos:/etc/config/kratos:ro
     ports:
       - "4433:4433"  # Public API
       - "4434:4434"  # Admin API
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - kratos
+          - arc-kratos
+          - arc_kratos
     depends_on:
-      arc_postgres:
+      arc-oracle:
+        condition: service_healthy
+      arc-heimdall:
         condition: service_healthy
       arc_traefik:
         condition: service_healthy
@@ -75,6 +85,9 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=security"
       - "arc.service.subcategory=identity"
+      - "arc.service.codename=jarvis"
+      - "arc.service.role=The Butler"
+      - "arc.service.tech=kratos"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=keycloak,auth0,cognito,okta"
 
