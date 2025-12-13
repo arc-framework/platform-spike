@@ -85,7 +85,7 @@ docker ps --filter "label=arc.service.swappable=true" \
 NAMES                     ALTERNATIVES
 arc-watson-logs           elasticsearch,splunk,cloudwatch
 arc-house-metrics         influxdb,datadog,cloudwatch
-arc-jarvis-identity       keycloak,auth0,cognito,okta
+arc-deckard-identity       keycloak,auth0,cognito,okta
 ```
 
 ---

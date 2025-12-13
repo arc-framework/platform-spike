@@ -74,8 +74,9 @@ GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d '\n')
 
 # Identity & Authentication (Kratos)
 # Secrets for securing session cookies and internal cryptographic operations.
-KRATOS_SECRET_COOKIE=$(openssl rand -base64 32 | tr -d '\n')
-KRATOS_SECRET_CIPHER=$(openssl rand -base64 32 | tr -d '\n')
+# Kratos requires EXACTLY 32-character strings (base64 of 24 bytes = 32 chars)
+KRATOS_SECRET_COOKIE=$(openssl rand -base64 24 | tr -d '\n')
+KRATOS_SECRET_CIPHER=$(openssl rand -base64 24 | tr -d '\n')
 
 # Create .env file
 cat > "${ENV_FILE}" << EOF

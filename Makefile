@@ -304,9 +304,11 @@ define _wait-for
 	SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"; \
 	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
 		HEALTH_OUTPUT=$$($(MAKE) $(3) 2>&1); \
+		TOTAL_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -E "(✓|✗)" | wc -l | tr -d ' '); \
+		HEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✓ Healthy" || true); \
 		UNHEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✗ Unhealthy" || true); \
-		if [ $$UNHEALTHY_COUNT -eq 0 ]; then \
-			printf "\r$(GREEN)✓ $(1) are healthy! (took $$ELAPSED s)                                    $(NC)\n"; \
+		if [ $$UNHEALTHY_COUNT -eq 0 ] && [ $$HEALTHY_COUNT -gt 0 ]; then \
+			printf "\r$(GREEN)✓ All $(1) are healthy! ($$HEALTHY_COUNT/$$TOTAL_COUNT services, took $$ELAPSED s)                                              $(NC)\n\n"; \
 			$(if $(4),$(MAKE) info-$(4),$(MAKE) info); \
 			exit 0; \
 		fi; \
@@ -316,23 +318,31 @@ define _wait-for
 		EMPTY=$$(printf '%*s' $$((50 - BAR_LEN)) | tr ' ' '░'); \
 		SPIN_IDX=$$((ELAPSED % 10)); \
 		SPIN_CHAR=$$(echo "$$SPINNER" | cut -c$$((SPIN_IDX + 1))); \
-		printf "\r  $$SPIN_CHAR [$$BAR$$EMPTY] $$PERCENT%% ($$ELAPSED/$$MAX_WAIT s) "; \
-		UNHEALTHY_SERVICES=$$(echo "$$HEALTH_OUTPUT" | grep "✗ Unhealthy" | sed 's/.*: //' | head -3 | tr '\n' ', ' | sed 's/,$$//'); \
-		if [ -n "$$UNHEALTHY_SERVICES" ]; then \
-			printf "$(YELLOW)Waiting: $$UNHEALTHY_SERVICES$(NC)"; \
-		fi; \
+		printf "\r  $$SPIN_CHAR [$$BAR$$EMPTY] $$PERCENT%% ($$ELAPSED/$$MAX_WAIT s) | $(GREEN)Healthy: $$HEALTHY_COUNT$(NC) $(YELLOW)Waiting: $$UNHEALTHY_COUNT$(NC)                    "; \
 		sleep $$INTERVAL; \
 		ELAPSED=$$((ELAPSED + INTERVAL)); \
 	done; \
-	printf "\r$(RED)✗ Timeout waiting for $(1) ($$MAX_WAIT s exceeded)                        $(NC)\n\n"; \
-	echo "$(YELLOW)━━━ Failed Service Details ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	printf "\r$(RED)✗ Timeout waiting for $(1) ($$MAX_WAIT s exceeded)                                                                  $(NC)\n\n"; \
+	HEALTH_OUTPUT=$$($(MAKE) $(3) 2>&1); \
+	UNHEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✗ Unhealthy" || true); \
+	echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$(RED)❌ UNHEALTHY SERVICES: $$UNHEALTHY_COUNT$(NC)"; \
+	echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$$HEALTH_OUTPUT" | grep "✗ Unhealthy" | while read -r line; do \
+		SERVICE_NAME=$$(echo "$$line" | awk '{print $$1}'); \
+		echo "  $(RED)✗$(NC) $$SERVICE_NAME"; \
+	done; \
+	echo ""; \
+	echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo "$(YELLOW)FULL HEALTH STATUS:$(NC)"; \
+	echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
 	$(MAKE) $(3); \
 	echo ""; \
 	echo "$(YELLOW)Troubleshooting:$(NC)"; \
 	echo "  1. Check logs: $(CYAN)make logs$(NC)"; \
-	echo "  2. Check status: $(CYAN)docker ps -a | grep arc_$(NC)"; \
-	echo "  3. Check specific service: $(CYAN)docker logs arc_<service_name>$(NC)"; \
-	echo "  4. Retry: $(CYAN)make down && make $(1)$(NC)"; \
+	echo "  2. Check status: $(CYAN)docker ps -a | grep arc$(NC)"; \
+	echo "  3. Inspect specific service: $(CYAN)docker logs <service_name>$(NC)"; \
+	echo "  4. Retry: $(CYAN)make down && make up-<profile>$(NC)"; \
 	exit 1
 endef
 
@@ -428,14 +438,8 @@ health-services:
 # ==============================================================================
 migrate-db:
 	@echo "$(BLUE)Running database migrations...$(NC)"
-	@docker exec arc-oracle-sql psql -U arc -d arc_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
-	@echo "$(GREEN)✓ PostgreSQL extensions installed$(NC)"
 	@echo "$(BLUE)Running Kratos migrations...$(NC)"
-	@docker run --rm \
-		-v $(PWD)/plugins/security/identity/kratos:/etc/config/kratos \
-		--network arc_net \
-		oryd/kratos:v1.0.0 \
-		migrate sql -e --yes postgres://arc:postgres@arc-oracle:5432/arc_db?sslmode=disable
+	@docker exec arc-deckard-identity kratos migrate sql -e --yes
 	@echo "$(GREEN)✓ Kratos migrations complete$(NC)"
 
 backup-db:

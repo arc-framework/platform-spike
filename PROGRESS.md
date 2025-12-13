@@ -18,7 +18,7 @@ Successfully implemented **Option C** naming across the entire platform:
 | Service Type  | GHCR Image             | Container Name         | Hostname        | Aliases                        |
 | ------------- | ---------------------- | ---------------------- | --------------- | ------------------------------ |
 | **Gateway**   | `arc-heimdall-gateway` | `arc-heimdall-gateway` | `arc-heimdall`  | `traefik`, `arc-traefik`       |
-| **Identity**  | `arc-jarvis-identity`  | `arc-jarvis-identity`  | `arc-jarvis`    | `kratos`, `arc-kratos`         |
+| **Identity**  | `arc-deckard-identity` | `arc-deckard-identity` | `arc-jarvis`    | `kratos`, `arc-kratos`         |
 | **SQL**       | `arc-oracle-sql`       | `arc-oracle-sql`       | `arc-oracle`    | `postgres`, `arc-postgres`     |
 | **Cache**     | `arc-sonic-cache`      | `arc-sonic-cache`      | `arc-sonic`     | `redis`, `arc-redis`           |
 | **Mesh**      | `arc-flash-pulse`      | `arc-flash-pulse`      | `arc-flash`     | `nats`, `arc-nats`             |

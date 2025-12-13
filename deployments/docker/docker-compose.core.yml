@@ -195,8 +195,9 @@ services:
           - postgres
           - arc-postgres
           - arc_postgres
+          - arc-oracle
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc_db}"]
+      test: ["CMD-SHELL", "pg_isready -U arc -d arc_db"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -391,7 +392,7 @@ services:
     hostname: arc-mystique
     restart: unless-stopped
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/${POSTGRES_DB:-arc_db}?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/unleash_db?sslmode=disable"
       DATABASE_SSL: "false"
       LOG_LEVEL: info
     depends_on:
