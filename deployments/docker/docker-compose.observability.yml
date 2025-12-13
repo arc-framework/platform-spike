@@ -74,12 +74,12 @@ services:
       - arc_loki_data:/loki
     networks:
       - arc_net
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+    depends_on:
+      arc_otel_collector:
+        condition: service_healthy
+    # Note: Loki v3 uses a distroless image without shell/wget
+    # Health check removed per official Grafana recommendations
+    # Service is ready when container is running (~30s startup time)
     labels:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
@@ -109,6 +109,9 @@ services:
       - "9090:9090"
     networks:
       - arc_net
+    depends_on:
+      arc_otel_collector:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 10s
@@ -145,6 +148,8 @@ services:
     networks:
       - arc_net
     depends_on:
+      arc_otel_collector:
+        condition: service_healthy
       arc_prometheus:
         condition: service_healthy
     healthcheck:
@@ -184,12 +189,12 @@ services:
     networks:
       - arc_net
     depends_on:
-      arc_loki:
-        condition: service_healthy
       arc_prometheus:
         condition: service_healthy
       arc_jaeger:
         condition: service_healthy
+      arc_loki:
+        condition: service_started  # Loki v3 has no health check (distroless)
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 10s
@@ -204,24 +209,39 @@ services:
       - "arc.service.alternatives=kibana,datadog,newrelic"
 
   # ===========================================================================
-  # MESSAGING UI - Pulsar Dashboard
+  # MESSAGING UI - Pulsar Manager
   # ===========================================================================
-  arc_pulsar_dashboard:
-    <<: *medium-service
-    image: apachepulsar/pulsar-dashboard:latest
-    container_name: arc_pulsar_dashboard
-    restart: unless-stopped
-    environment:
-      - PULSAR_BROKER_URL=pulsar://arc_pulsar:6650
-      - PULSAR_ADMIN_URL=http://arc_pulsar:8080
-    ports:
-      - "8083:80"
-    networks:
-      - arc_net
-    depends_on:
-      arc_pulsar:
-        condition: service_healthy
-    labels:
-      - "arc.service.layer=plugin"
-      - "arc.service.category=observability"
-      - "arc.service.subcategory=dashboard"
+  # NOTE: Pulsar Manager has no ARM64 image. Alternatives:
+  # - Access Pulsar Admin REST API directly: http://localhost:8080/admin/v2
+  # - Use pulsar-admin CLI: docker exec arc_pulsar bin/pulsar-admin
+  # - Use Pulsar shell: docker exec -it arc_pulsar bin/pulsar-shell
+  #
+  # arc_pulsar_manager:
+  #   <<: *medium-service
+  #   image: apachepulsar/pulsar-manager:v0.4.0
+  #   container_name: arc_pulsar_manager
+  #   platform: linux/amd64
+  #   restart: unless-stopped
+  #   environment:
+  #     SPRING_CONFIGURATION_FILE: /pulsar-manager/pulsar-manager/application.properties
+  #     REDIRECT_HOST: http://localhost
+  #     REDIRECT_PORT: 9527
+  #     DRIVER_CLASS_NAME: org.postgresql.Driver
+  #     URL: jdbc:postgresql://arc_postgres:5432/arc_db
+  #     USERNAME: ${POSTGRES_USER:-arc}
+  #     PASSWORD: ${POSTGRES_PASSWORD}
+  #     LOG_LEVEL: DEBUG
+  #   ports:
+  #     - "9527:9527"
+  #     - "7750:7750"
+  #   networks:
+  #     - arc_net
+  #   depends_on:
+  #     arc_pulsar:
+  #       condition: service_healthy
+  #     arc_postgres:
+  #       condition: service_healthy
+  #   labels:
+  #     - "arc.service.layer=plugin"
+  #     - "arc.service.category=observability"
+  #     - "arc.service.subcategory=dashboard"

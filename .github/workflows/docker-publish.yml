@@ -2,16 +2,14 @@ name: Publish A.R.C. Images
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 1 * *' # Monthly update
 
 env:
   REGISTRY: ghcr.io
   NAMESPACE: arc-framework # 👈 Your Org
   VERSION: v1.0.0
   # OCI Labels
-  SOURCE_URL: "https://github.com/arc-framework/arc-platform"
-  LICENSE: "Apache-2.0"
+  SOURCE_URL: 'https://github.com/arc-framework/arc-platform'
+  LICENSE: 'Apache-2.0'
 
 jobs:
   publish-vendor-images:
@@ -125,7 +123,7 @@ jobs:
             ["livekit/egress:latest"]="arc-echo-egress"
           )
           # process_group "Voice & Media" GROUP_VOICE
-          
+
           # ------------------------------------------------------------------
           # 6. 🧠 Logic & Orchestration
           # ------------------------------------------------------------------

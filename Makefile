@@ -25,9 +25,16 @@
 # Configuration Variables
 # ==============================================================================
 PROJECT_NAME := arc-platform
+CONTAINER_PREFIX := arc
 ENV_FILE ?= .env
 COMPOSE := docker compose
 COMPOSE_DIR := deployments/docker
+
+# Service lists for targeted operations
+CORE_SERVICES := traefik otel_collector postgres redis nats pulsar infisical unleash
+OBSERVABILITY_SERVICES := loki prometheus jaeger grafana
+SECURITY_SERVICES := kratos
+APP_SERVICES := toolbox
 
 # Compose file references
 COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
@@ -42,14 +49,14 @@ COMPOSE_FULL := $(COMPOSE_SEC) -f $(COMPOSE_DIR)/docker-compose.services.yml
 PROFILE ?= full
 
 # Color output for better UX
-export RED := \033[0;31m
-export GREEN := \033[0;32m
-export YELLOW := \033[1;33m
-export BLUE := \033[0;34m
-export MAGENTA := \033[0;35m
-export CYAN := \033[0;36m
-export WHITE := \033[1;37m
-export NC := \033[0m
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+MAGENTA := \033[0;35m
+CYAN := \033[0;36m
+WHITE := \033[1;37m
+NC := \033[0m
 
 # Docker Compose optimization
 export COMPOSE_BAKE := true
@@ -57,8 +64,6 @@ export COMPOSE_BAKE := true
 # Script paths
 SCRIPTS_DIR := ./scripts
 SETUP_SCRIPTS := $(SCRIPTS_DIR)/setup
-OPS_SCRIPTS := $(SCRIPTS_DIR)/operations
-VALIDATION_SCRIPTS := $(SCRIPTS_DIR)/validation
 
 # ==============================================================================
 # Help & Documentation
@@ -199,7 +204,7 @@ up-observability: .env init-network
 up-security: .env init-network
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║  Starting SECURITY Profile (Core + Obs + Security)               ║$(NC)"
-	@echo "$(CYYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
 	$(COMPOSE_SEC) up -d --build
 	@make wait-for-security-profile
@@ -289,43 +294,65 @@ status: ps
 	@echo ""
 	@make health-all
 
-# Generic wait function
+# Generic wait function with enhanced UX
 # Usage: $(call _wait-for,TARGET_NAME,TIMEOUT,HEALTH_TARGET,INFO_TARGET)
 define _wait-for
-	@echo "$(BLUE)Waiting for $(1) to become healthy... (up to $(2)s)$(NC)"
-	@bash -c ' \
-		for i in $$(seq 1 $$(($(2) / 5))); do \
-			if ! $(MAKE) $(3) | grep "Unhealthy"; then \
-				echo "$(GREEN)✓ $(1) are healthy!$(NC)"; \
-				$(if $(4),$(MAKE) info-$(4),$(MAKE) info); \
-				exit 0; \
-			fi; \
-			echo "  - Still waiting for some services to become healthy..."; \
-			sleep 5; \
-		done; \
-		echo "$(RED)✗ Timed out waiting for $(1) to become healthy.$(NC)"; \
-		$(MAKE) $(3); \
-		exit 1; \
-	'
+	@printf "$(BLUE)⏳ Waiting for $(1) to become healthy (timeout: $(2)s)...$(NC)\n"
+	@ELAPSED=0; \
+	INTERVAL=5; \
+	MAX_WAIT=$(2); \
+	SPINNER="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"; \
+	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
+		HEALTH_OUTPUT=$$($(MAKE) $(3) 2>&1); \
+		UNHEALTHY_COUNT=$$(echo "$$HEALTH_OUTPUT" | grep -c "✗ Unhealthy" || true); \
+		if [ $$UNHEALTHY_COUNT -eq 0 ]; then \
+			printf "\r$(GREEN)✓ $(1) are healthy! (took $$ELAPSED s)                                    $(NC)\n"; \
+			$(if $(4),$(MAKE) info-$(4),$(MAKE) info); \
+			exit 0; \
+		fi; \
+		PERCENT=$$((ELAPSED * 100 / MAX_WAIT)); \
+		BAR_LEN=$$((PERCENT / 2)); \
+		BAR=$$(printf '%*s' $$BAR_LEN | tr ' ' '█'); \
+		EMPTY=$$(printf '%*s' $$((50 - BAR_LEN)) | tr ' ' '░'); \
+		SPIN_IDX=$$((ELAPSED % 10)); \
+		SPIN_CHAR=$$(echo "$$SPINNER" | cut -c$$((SPIN_IDX + 1))); \
+		printf "\r  $$SPIN_CHAR [$$BAR$$EMPTY] $$PERCENT%% ($$ELAPSED/$$MAX_WAIT s) "; \
+		UNHEALTHY_SERVICES=$$(echo "$$HEALTH_OUTPUT" | grep "✗ Unhealthy" | sed 's/.*: //' | head -3 | tr '\n' ', ' | sed 's/,$$//'); \
+		if [ -n "$$UNHEALTHY_SERVICES" ]; then \
+			printf "$(YELLOW)Waiting: $$UNHEALTHY_SERVICES$(NC)"; \
+		fi; \
+		sleep $$INTERVAL; \
+		ELAPSED=$$((ELAPSED + INTERVAL)); \
+	done; \
+	printf "\r$(RED)✗ Timeout waiting for $(1) ($$MAX_WAIT s exceeded)                        $(NC)\n\n"; \
+	echo "$(YELLOW)━━━ Failed Service Details ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	$(MAKE) $(3); \
+	echo ""; \
+	echo "$(YELLOW)Troubleshooting:$(NC)"; \
+	echo "  1. Check logs: $(CYAN)make logs$(NC)"; \
+	echo "  2. Check status: $(CYAN)docker ps -a | grep arc_$(NC)"; \
+	echo "  3. Check specific service: $(CYAN)docker logs arc_<service_name>$(NC)"; \
+	echo "  4. Retry: $(CYAN)make down && make $(1)$(NC)"; \
+	exit 1
 endef
 
 wait-for-core:
-	$(call _wait-for,"core services",120,health-core,core)
+	$(call _wait-for,core services,120,health-core,core)
 
 wait-for-core-services:
-	$(call _wait-for,"core and application services",180,health-core-services,core)
+	$(call _wait-for,core and application services,180,health-core-services,core)
 
 wait-for-dev:
-	$(call _wait-for,"core, observability, and application services",180,health-dev,core)
+	$(call _wait-for,core+observability+application services,180,health-dev,core)
 
 wait-for-observability-profile:
-	$(call _wait-for,"core and observability services",180,health-observability-profile,core)
+	$(call _wait-for,core and observability services,180,health-observability-profile,core)
 
 wait-for-security-profile:
-	$(call _wait-for,"core, observability, and security services",180,health-security-profile,core)
+	$(call _wait-for,core+observability+security services,180,health-security-profile,core)
 
 wait-for-full:
-	$(call _wait-for,"all services",180,health-all,) # No specific info target, so call generic info
+	$(call _wait-for,all services,180,health-all,) # No specific info target, so call generic info
 
 health-success:
 	@echo  "$(GREEN)✓ All services are healthy!$(NC)";
@@ -429,9 +456,10 @@ reset-db:
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		make clean; \
-		docker network rm arc_net 2>/dev/null || true; \
-		echo "$(GREEN)✓ Complete reset done$(NC)"; \
+		docker exec arc_postgres psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
+		docker exec arc_postgres psql -U arc -c "CREATE DATABASE arc_db;"; \
+		make migrate-db; \
+		echo "$(GREEN)✓ Database reset complete$(NC)"; \
 	else \
 		echo "$(YELLOW)Reset cancelled$(NC)"; \
 	fi
@@ -505,7 +533,8 @@ info-core:
 	@echo ""
 	@echo "$(YELLOW)━━━ Core Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Traefik (Gateway):$(NC)      http://localhost:8080 (dashboard)"
-	@. $(ENV_FILE); echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc, pass: $${POSTGRES_PASSWORD})"
+	@echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc)"
+	@echo "    $(CYAN)Connect: docker exec -it arc_postgres psql -U arc -d arc_db$(NC)"
 	@echo "  $(WHITE)Redis:$(NC)                  localhost:6379"
 	@echo "  $(WHITE)NATS:$(NC)                   localhost:4222 (monitoring: http://localhost:8222)"
 	@echo "  $(WHITE)Pulsar:$(NC)                 localhost:6650 (admin: http://localhost:8082)"
@@ -544,6 +573,29 @@ version:
 	@echo "  $(WHITE)Makefile:$(NC)       2.0.0"
 	@echo "  $(WHITE)Architecture:$(NC)   Core + Plugins Pattern"
 	@echo ""
+
+# ==============================================================================
+# Logs
+# ==============================================================================
+logs:
+	@echo "$(BLUE)Streaming logs from all services...$(NC)"
+	$(COMPOSE_FULL) logs -f
+
+logs-core:
+	@echo "$(BLUE)Streaming logs from core services...$(NC)"
+	$(COMPOSE_CORE) logs -f
+
+logs-observability:
+	@echo "$(BLUE)Streaming logs from observability services...$(NC)"
+	$(COMPOSE_FULL) logs -f loki prometheus jaeger grafana
+
+logs-security:
+	@echo "$(BLUE)Streaming logs from security services...$(NC)"
+	$(COMPOSE_FULL) logs -f kratos
+
+logs-services:
+	@echo "$(BLUE)Streaming logs from application services...$(NC)"
+	$(COMPOSE_FULL) logs -f toolbox
 
 # ==============================================================================
 # Development Helpers

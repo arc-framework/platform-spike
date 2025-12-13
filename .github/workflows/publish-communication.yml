@@ -7,10 +7,10 @@ jobs:
   sync-voice:
     uses: ./.github/workflows/reusable-publish.yml
     with:
-      group_name: "Voice & Media"
+      group_name: 'Voice & Media'
       image_list: |
         livekit/livekit-server:latest = arc-daredevil-voice
         livekit/ingress:latest = arc-sentry-ingress
-        livekit/egress:latest = arc-echo-egress
+        livekit/egress:latest = arc-scribe-egress
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
