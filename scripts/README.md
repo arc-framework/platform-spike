@@ -1,6 +1,6 @@
 # Scripts
 
-Lightweight shell tooling that supports project setup and platform operations.
+Lightweight shell tooling that supports project setup. Historical script collections were migrated to other directories; this README tracks the active surface.
 
 ## Current Structure
 
@@ -48,6 +48,11 @@ Verify all services have complete labels:
 ./scripts/verify-labels.sh
 # or via Makefile:
 make validate-labels
+Run setup utilities from the project root:
+
+```bash
+./scripts/setup/generate-secrets.sh
+./scripts/setup/validate-secrets.sh
 ```
 
 Many tasks are also exposed through the Makefile:

@@ -11,6 +11,7 @@ Only one service lives in this directory today and it serves as the reference im
 ```
 services/
 └── utilities/
+
     └── raymond/           # Go-based utility service (arc-raymond-services)
 ```
 
@@ -19,6 +20,7 @@ services/
 - Multi-purpose Go binary packaged as `arc-raymond-services`
 - Provides operational helpers and health monitoring for A.R.C. platform
 - Inspect the source in `services/utilities/raymond/` for usage details
+
 
 ---
 

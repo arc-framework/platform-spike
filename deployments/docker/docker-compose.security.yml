@@ -73,6 +73,8 @@ services:
         condition: service_healthy
       arc-heimdall:
         condition: service_healthy
+      arc_traefik:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4434/health/alive"]
       interval: 10s
