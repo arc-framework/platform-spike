@@ -369,7 +369,7 @@ func probeHTTP(ctx context.Context, url string, timeout time.Duration) checkResu
 }
 
 func main() {
-	slog.Info("Starting bootstrap (init) service...")
+	slog.Info("Starting arc-raymond-services (utility runner)...")
 
 	// Set up a context that is canceled on an interrupt signal.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -391,8 +391,8 @@ func main() {
 	}()
 
 	// Use a conventional naming scheme for tracer and meter.
-	tracer := otel.Tracer("github.com/dgtalbug/arc-platform-spike/bootstrap")
-	meter := otel.Meter("github.com/dgtalbug/arc-platform-spike/toolbox-go")
+	tracer := otel.Tracer("github.com/arc-framework/platform-spike/services/raymond")
+	meter := otel.Meter("github.com/arc-framework/platform-spike/services/raymond")
 
 	// --- Initialize Metrics ---
 	// Create metrics once and reuse them to be more efficient.

@@ -24,6 +24,7 @@ This guide covers enterprise-grade operations, deployment patterns, monitoring, 
 A.R.C. supports three environment tiers via dedicated `.env` files:
 
 #### Development (Local)
+
 ```bash
 cp .env.example .env.dev
 # Edit .env.dev with development values
@@ -31,6 +32,7 @@ make up  # Loads .env by default; override with ENV_FILE=.env.dev
 ```
 
 #### Staging
+
 ```bash
 cp .env.example .env.staging
 # Edit .env.staging with staging values (reduced resource limits, test credentials)
@@ -38,6 +40,7 @@ ENV_FILE=.env.staging make up
 ```
 
 #### Production
+
 ```bash
 cp .env.example .env.prod
 # Edit .env.prod with production values (strong secrets, high resource limits)
@@ -47,6 +50,7 @@ ENV_FILE=.env.prod docker compose -f docker-compose.yml -f docker-compose.stack.
 ### Configuration Best Practices
 
 1. **Separate config directories per environment**:
+
    ```
    config/
      postgres/
@@ -61,6 +65,7 @@ ENV_FILE=.env.prod docker compose -f docker-compose.yml -f docker-compose.stack.
    ```
 
 2. **Use environment-specific overrides**:
+
    ```bash
    # Load base config, then layer environment-specific config
    export $(cat .env.dev | xargs)
@@ -131,17 +136,20 @@ COMPOSE_PROJECT_NAME=arc-v1 docker compose down
 ### Key Metrics to Track
 
 #### Infrastructure
+
 - Container restarts: `docker stats --no-stream`
 - Disk usage: `df -h` and `docker volume ls`
 - Network I/O: `docker stats`
 - Memory pressure: Watch for OOMkill events
 
 #### Application
+
 - Trace latency: Query Jaeger for P95/P99 latencies
 - Error rates: Graph error spans in Grafana
 - Log volumes: Monitor Loki ingestion rate
 
 #### Data Layer
+
 ```sql
 -- Postgres table sizes
 SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename))
@@ -252,19 +260,21 @@ find $BACKUP_DIR -type f -mtime +30 -delete
 #### Recovery Steps
 
 1. **Restore Postgres**:
+
    ```bash
    # Stop current services
    make down
-   
+
    # Restore from backup
    docker compose up -d postgres
    docker exec arc_postgres psql -U arc arc_db < backup.sql
-   
+
    # Start remaining services
    docker compose up -d
    ```
 
 2. **Restore Redis**:
+
    ```bash
    docker compose up -d redis
    docker cp redis_backup.rdb arc_redis:/data/dump.rdb
@@ -288,12 +298,12 @@ Use Traefik for load balancing:
 ```yaml
 # docker-compose.stack.yml
 services:
-  toolbox:
+  raymond:
     deploy:
       replicas: 3
     labels:
-      traefik.enable: "true"
-      traefik.http.services.toolbox.loadbalancer.server.port: "8081"
+      traefik.enable: 'true'
+      traefik.http.services.raymond.loadbalancer.server.port: '8081'
 ```
 
 ### Vertical Scaling (Resource Limits)
@@ -305,16 +315,17 @@ services:
   postgres:
     resources:
       limits:
-        cpus: "2"
+        cpus: '2'
         memory: 2G
       reservations:
-        cpus: "1"
+        cpus: '1'
         memory: 1G
 ```
 
 ### Performance Tuning
 
 #### Postgres
+
 ```bash
 # Increase max connections
 docker exec arc_postgres psql -U arc -c "ALTER SYSTEM SET max_connections = 200;"
@@ -322,6 +333,7 @@ docker restart arc_postgres
 ```
 
 #### Redis
+
 ```bash
 # Increase memory limit
 # Edit config/redis/.env.example:
@@ -329,6 +341,7 @@ docker restart arc_postgres
 ```
 
 #### Pulsar
+
 ```bash
 # Increase broker threads
 # Edit config/pulsar/.env.example:
@@ -343,6 +356,7 @@ docker restart arc_postgres
 
 1. **Never commit `.env` files** containing real secrets
 2. **Use `docker secret` for orchestration**:
+
    ```bash
    echo "my-password" | docker secret create postgres_password -
    ```
@@ -355,6 +369,7 @@ docker restart arc_postgres
 ### Network Isolation
 
 1. **Expose only necessary ports**:
+
    ```yaml
    # Remove external port mappings for internal-only services
    redis:
@@ -377,7 +392,7 @@ Enable TLS in production:
 # config/traefik/traefik.yml
 entryPoints:
   websecure:
-    address: ":443"
+    address: ':443'
     tls:
       certResolver: letsencrypt
 ```
@@ -456,10 +471,10 @@ make logs-service SERVICE=kratos
 
 ```bash
 # Test DNS resolution
-docker exec toolbox nslookup postgres
+docker exec arc-raymond-services nslookup postgres
 
 # Test port connectivity
-docker exec toolbox nc -zv postgres 5432
+docker exec arc-raymond-services nc -zv postgres 5432
 
 # Check network
 docker network inspect arc_net
@@ -528,17 +543,20 @@ tar -czf arc-diagnostics.tar.gz arc-diagnostics/
 ## Maintenance Windows
 
 ### Weekly
+
 - Check disk usage: `df -h`
 - Review error logs: Filter ERROR in Loki
 - Monitor slowest queries: Check pg_stat_statements
 
 ### Monthly
+
 - Rotate secrets (if not using automated rotation)
 - Upgrade images to latest patches (test in dev first)
 - Run `VACUUM ANALYZE` on Postgres
 - Archive old traces/logs
 
 ### Quarterly
+
 - Disaster recovery drill (practice restoring from backup)
 - Load testing (with replica setup)
 - Security audit (review access logs, check for anomalies)

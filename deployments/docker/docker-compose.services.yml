@@ -38,33 +38,33 @@ x-medium-service: &medium-service
 
 services:
   # ===========================================================================
-  # UTILITY - Toolbox Service (Demo/Testing)
+  # UTILITY - Raymond Services (Platform Utilities)
   # ===========================================================================
-  arc-toolbox:
+  arc-raymond:
     <<: *medium-service
     build:
-      context: ../../services/utilities/toolbox
+      context: ../../services/utilities/raymond
       dockerfile: Dockerfile
-    image: arc/toolbox:latest
-    container_name: arc-toolbox-utility
-    hostname: arc-toolbox
+    image: arc/raymond:latest
+    container_name: arc-raymond-services
+    hostname: arc-raymond
     restart: unless-stopped
     environment:
       # OpenTelemetry Configuration
       OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow:4317
       OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: toolbox
+      OTEL_SERVICE_NAME: raymond
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=1.0.0
       # Application Configuration
-      SERVICE_PORT: ${TOOLBOX_PORT:-8081}
+      SERVICE_PORT: ${RAYMOND_PORT:-8081}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "8081:8081"
     networks:
       arc_net:
         aliases:
-          - toolbox
-          - arc_toolbox
+          - raymond
+          - arc_raymond
     depends_on:
       arc-widow:
         condition: service_healthy
@@ -82,13 +82,13 @@ services:
       - "arc.service.layer=application"
       - "arc.service.category=utility"
       - "arc.service.type=microservice"
-      - "arc.service.codename=toolbox"
-      - "arc.service.role=The Swiss Army Knife"
+      - "arc.service.codename=raymond"
+      - "arc.service.role=The Utility Runner"
       - "arc.service.tech=custom"
       - "arc.service.swappable=false"
       - "traefik.enable=true"
-      - "traefik.http.routers.bootstrap.rule=Host(`bootstrap.localhost`)"
-      - "traefik.http.services.bootstrap.loadbalancer.server.port=8081"
+      - "traefik.http.routers.raymond.rule=Host(`raymond.localhost`)"
+      - "traefik.http.services.raymond.loadbalancer.server.port=8081"
 
   # ===========================================================================
   # AGENT SERVICES - Placeholder for future agent implementations

@@ -11,14 +11,14 @@ Only one service lives in this directory today and it serves as the reference im
 ```
 services/
 └── utilities/
-    └── toolbox/           # Go-based utility container with helper tooling
+    └── raymond/           # Go-based utility service (arc-raymond-services)
 ```
 
-### `utilities/toolbox`
+### `utilities/raymond`
 
-- Multi-purpose Go binary packaged as `toolbox`
-- Provides operational helpers and ad-hoc automation
-- Inspect the source in `services/utilities/toolbox/` for usage details
+- Multi-purpose Go binary packaged as `arc-raymond-services`
+- Provides operational helpers and health monitoring for A.R.C. platform
+- Inspect the source in `services/utilities/raymond/` for usage details
 
 ---
 

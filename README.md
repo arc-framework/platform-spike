@@ -111,9 +111,9 @@ Production-ready identity and authentication:
 
 Your custom services built on the framework:
 
-| Service     | Purpose              | Port | Status     |
-| ----------- | -------------------- | ---- | ---------- |
-| **Toolbox** | Demo utility service | 8081 | 📋 Example |
+| Service     | Purpose            | Port | Status    |
+| ----------- | ------------------ | ---- | --------- |
+| **Raymond** | Platform utilities | 8081 | 📋 Active |
 
 ---
 
@@ -422,7 +422,7 @@ make up-security  # Core + monitoring + security
 make up  # Everything including demo apps
 ```
 
-**Includes**: Security + Toolbox service
+**Includes**: Security + Raymond utility service
 
 ---
 
@@ -613,7 +613,7 @@ rate(http_requests_total[5m])
 ### Jaeger Tracing
 
 1. Open http://localhost:16686
-2. Select service: `toolbox`
+2. Select service: `raymond`
 3. Click "Find Traces"
 4. Explore distributed trace waterfall
 
@@ -932,7 +932,7 @@ make health-otel
 
 ```bash
 make up-observability
-# Services: loki, prometheus, jaeger, grafana, otel-collector, toolbox-go
+# Services: loki, prometheus, jaeger, grafana, otel-collector, arc_raymond-go
 ```
 
 ### Observability + Data Layer (for agent development)

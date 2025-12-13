@@ -34,7 +34,7 @@ COMPOSE_DIR := deployments/docker
 CORE_SERVICES := traefik otel_collector postgres redis nats pulsar infisical unleash
 OBSERVABILITY_SERVICES := loki prometheus jaeger grafana
 SECURITY_SERVICES := kratos
-APP_SERVICES := toolbox
+APP_SERVICES := raymond
 
 # Compose file references
 COMPOSE_BASE := $(COMPOSE) -p $(PROJECT_NAME) --env-file $(ENV_FILE) -f $(COMPOSE_DIR)/docker-compose.base.yml
@@ -429,7 +429,7 @@ health-services:
 	@echo "$(CYAN)║  Application Services Health Status                              ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@printf "  %-25s" "Toolbox:"
+	@printf "  %-25s" "Raymond:"
 	@curl -sf http://localhost:8081/health >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy/Not Running$(NC)"
 	@echo ""
 
@@ -516,7 +516,7 @@ validate-paths:
 		core/gateway/traefik/traefik.yml \
 		plugins/observability/visualization/grafana/provisioning \
 		plugins/observability/metrics/prometheus/prometheus.yaml \
-		services/utilities/toolbox; do \
+		services/utilities/raymond; do \
 		if [ -e "$$path" ]; then \
 			echo "$(GREEN)✓ $$path$(NC)"; \
 		else \
@@ -567,7 +567,7 @@ info:
 	@echo "  $(WHITE)Kratos (Admin):$(NC)         http://localhost:4434"
 	@echo ""
 	@echo "$(YELLOW)━━━ Application Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(WHITE)Toolbox:$(NC)                http://localhost:8081"
+	@echo "  $(WHITE)Raymond:$(NC)                http://localhost:8081"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation:$(NC)           docs/OPERATIONS.md"
@@ -606,7 +606,7 @@ logs-security:
 
 logs-services:
 	@echo "$(BLUE)Streaming logs from application services...$(NC)"
-	$(COMPOSE_FULL) logs -f toolbox
+	$(COMPOSE_FULL) logs -f raymond
 
 # ==============================================================================
 # Development Helpers
