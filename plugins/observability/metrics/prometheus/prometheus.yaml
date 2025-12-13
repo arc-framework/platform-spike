@@ -22,3 +22,9 @@ scrape_configs:
     scrape_interval: 15s
     static_configs:
       - targets: ['kratos:4434']
+
+  - job_name: 'livekit'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['arc_livekit:7880']
+    metrics_path: '/metrics'

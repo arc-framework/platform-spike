@@ -21,6 +21,9 @@ make up
 
 # 3. View service URLs and credentials
 make info
+
+# 4. See your superhero lineup! 🦸
+make roster
 ```
 
 **That's it!** The platform is now running with:

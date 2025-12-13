@@ -30,5 +30,8 @@ volumes:
   arc_loki_data:
     name: arc_loki_data
 
+  arc_tempo_data:
+    name: arc_tempo_data
+
 # No services defined - this is imported by other compose files
 services: {}

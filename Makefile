@@ -364,6 +364,9 @@ health-dev: health-core health-observability health-services
 health-observability-profile: health-core health-observability
 health-security-profile: health-core health-observability health-security
 
+roster:
+	@./scripts/show-roster.sh
+
 health-core:
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(CYAN)║  Core Services Health Status                                     ║$(NC)"
@@ -372,15 +375,15 @@ health-core:
 	@printf "  %-25s" "Traefik (Gateway):"
 	@curl -sf http://localhost:80/ping >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "OTel Collector:"
-	@docker exec arc_otel_collector /health_check http://localhost:13133 >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-widow-otel /health_check http://localhost:13133 >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "PostgreSQL:"
-	@docker exec arc_postgres pg_isready -U arc -q && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-oracle-sql pg_isready -U arc -q && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Redis:"
-	@docker exec arc_redis redis-cli ping | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-sonic-cache redis-cli ping | grep -q PONG && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "NATS:"
 	@curl -sf http://localhost:8222/healthz >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Pulsar:"
-	@docker exec arc_pulsar bin/pulsar-admin brokers healthcheck >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
+	@docker exec arc-strange-stream bin/pulsar-admin brokers healthcheck >/dev/null 2>&1 && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Infisical:"
 	@curl -sf http://localhost:3001/api/status >/dev/null && echo "$(GREEN)✓ Healthy$(NC)" || echo "$(RED)✗ Unhealthy$(NC)"
 	@printf "  %-25s" "Unleash:"
@@ -425,20 +428,20 @@ health-services:
 # ==============================================================================
 migrate-db:
 	@echo "$(BLUE)Running database migrations...$(NC)"
-	@docker exec arc_postgres psql -U arc -d arc_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+	@docker exec arc-oracle-sql psql -U arc -d arc_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
 	@echo "$(GREEN)✓ PostgreSQL extensions installed$(NC)"
 	@echo "$(BLUE)Running Kratos migrations...$(NC)"
 	@docker run --rm \
 		-v $(PWD)/plugins/security/identity/kratos:/etc/config/kratos \
 		--network arc_net \
 		oryd/kratos:v1.0.0 \
-		migrate sql -e --yes postgres://arc:postgres@arc_postgres:5432/arc_db?sslmode=disable
+		migrate sql -e --yes postgres://arc:postgres@arc-oracle:5432/arc_db?sslmode=disable
 	@echo "$(GREEN)✓ Kratos migrations complete$(NC)"
 
 backup-db:
 	@echo "$(BLUE)Backing up database...$(NC)"
 	@mkdir -p ./backups
-	@docker exec arc_postgres pg_dump -U arc arc_db > ./backups/arc_db_$$(date +%Y%m%d_%H%M%S).sql
+	@docker exec arc-oracle-sql pg_dump -U arc arc_db > ./backups/arc_db_$$(date +%Y%m%d_%H%M%S).sql
 	@echo "$(GREEN)✓ Database backed up to ./backups/$(NC)"
 
 restore-db:
@@ -448,7 +451,7 @@ restore-db:
 		exit 1; \
 	fi
 	@echo "$(BLUE)Restoring database from $(BACKUP_FILE)...$(NC)"
-	@docker exec -i arc_postgres psql -U arc arc_db < $(BACKUP_FILE)
+	@docker exec -i arc-oracle-sql psql -U arc arc_db < $(BACKUP_FILE)
 	@echo "$(GREEN)✓ Database restored$(NC)"
 
 reset-db:
@@ -456,8 +459,8 @@ reset-db:
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker exec arc_postgres psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
-		docker exec arc_postgres psql -U arc -c "CREATE DATABASE arc_db;"; \
+		docker exec arc-oracle-sql psql -U arc -c "DROP DATABASE IF EXISTS arc_db;"; \
+		docker exec arc-oracle-sql psql -U arc -c "CREATE DATABASE arc_db;"; \
 		make migrate-db; \
 		echo "$(GREEN)✓ Database reset complete$(NC)"; \
 	else \
@@ -468,18 +471,18 @@ reset-db:
 # Shell Access
 # ==============================================================================
 shell-postgres:
-	@docker exec -it arc_postgres psql -U arc -d arc_db
+	@docker exec -it arc-oracle-sql psql -U arc -d arc_db
 
 shell-redis:
-	@docker exec -it arc_redis redis-cli
+	@docker exec -it arc-sonic-cache redis-cli
 
 shell-nats:
-	@docker exec -it arc_nats sh
+	@docker exec -it arc-flash-pulse sh
 
 # ==============================================================================
 # Validation & Testing
 # ==============================================================================
-validate: validate-compose validate-architecture validate-paths
+validate: validate-compose validate-architecture validate-paths validate-labels
 	@echo "$(GREEN)✓ All validations passed$(NC)"
 
 validate-compose:
@@ -517,11 +520,15 @@ validate-paths:
 		fi; \
 	done
 
+validate-labels:
+	@echo "$(BLUE)Validating service labels...$(NC)"
+	@./scripts/verify-labels.sh
+
 test-connectivity:
 	@echo "$(BLUE)Testing service connectivity...$(NC)"
-	@docker exec arc_postgres pg_isready -h localhost > /dev/null 2>&1 && echo "$(GREEN)✓ Postgres$(NC)" || echo "$(RED)✗ Postgres$(NC)"
-	@docker exec arc_redis redis-cli -h localhost ping > /dev/null 2>&1 && echo "$(GREEN)✓ Redis$(NC)" || echo "$(RED)✗ Redis$(NC)"
-	@docker exec arc_nats wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1 && echo "$(GREEN)✓ NATS$(NC)" || echo "$(RED)✗ NATS$(NC)"
+	@docker exec arc-oracle-sql pg_isready -h localhost > /dev/null 2>&1 && echo "$(GREEN)✓ Postgres$(NC)" || echo "$(RED)✗ Postgres$(NC)"
+	@docker exec arc-sonic-cache redis-cli -h localhost ping > /dev/null 2>&1 && echo "$(GREEN)✓ Redis$(NC)" || echo "$(RED)✗ Redis$(NC)"
+	@docker exec arc-flash-pulse wget -q -O- http://localhost:8222/healthz > /dev/null 2>&1 && echo "$(GREEN)✓ NATS$(NC)" || echo "$(RED)✗ NATS$(NC)"
 
 ci-validate: validate build
 	@echo "$(GREEN)✓ CI validation complete$(NC)"
@@ -534,7 +541,7 @@ info-core:
 	@echo "$(YELLOW)━━━ Core Services ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "  $(WHITE)Traefik (Gateway):$(NC)      http://localhost:8080 (dashboard)"
 	@echo "  $(WHITE)PostgreSQL:$(NC)             localhost:5432 (user: arc)"
-	@echo "    $(CYAN)Connect: docker exec -it arc_postgres psql -U arc -d arc_db$(NC)"
+	@echo "    $(CYAN)Connect: docker exec -it arc-oracle-sql psql -U arc -d arc_db$(NC)"
 	@echo "  $(WHITE)Redis:$(NC)                  localhost:6379"
 	@echo "  $(WHITE)NATS:$(NC)                   localhost:4222 (monitoring: http://localhost:8222)"
 	@echo "  $(WHITE)Pulsar:$(NC)                 localhost:6650 (admin: http://localhost:8082)"

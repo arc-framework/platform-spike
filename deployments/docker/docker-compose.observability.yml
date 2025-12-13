@@ -62,10 +62,11 @@ services:
   # ===========================================================================
   # LOGGING - Loki
   # ===========================================================================
-  arc_loki:
+  arc-watson:
     <<: *large-service
-    image: grafana/loki:3
-    container_name: arc_loki
+    image: ghcr.io/arc-framework/arc-watson-logs:latest
+    container_name: arc-watson-logs
+    hostname: arc-watson
     restart: unless-stopped
     command: -config.file=/etc/loki/local-config.yaml
     ports:
@@ -73,9 +74,13 @@ services:
     volumes:
       - arc_loki_data:/loki
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - loki
+          - arc-loki
+          - arc_loki
     depends_on:
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
     # Note: Loki v3 uses a distroless image without shell/wget
     # Health check removed per official Grafana recommendations
@@ -84,16 +89,20 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=logging"
+      - "arc.service.codename=watson"
+      - "arc.service.role=The Chronicler"
+      - "arc.service.tech=loki"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=elasticsearch,splunk,cloudwatch"
 
   # ===========================================================================
   # METRICS - Prometheus
   # ===========================================================================
-  arc_prometheus:
+  arc-house:
     <<: *large-service
-    image: prom/prometheus:v3.7.3
-    container_name: arc_prometheus
+    image: ghcr.io/arc-framework/arc-house-metrics:latest
+    container_name: arc-house-metrics
+    hostname: arc-house
     restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -108,9 +117,13 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - prometheus
+          - arc-prometheus
+          - arc_prometheus
     depends_on:
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
@@ -122,22 +135,26 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=metrics"
+      - "arc.service.codename=house"
+      - "arc.service.role=The Diagnostician"
+      - "arc.service.tech=prometheus"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=influxdb,datadog,cloudwatch"
 
   # ===========================================================================
   # TRACING - Jaeger
   # ===========================================================================
-  arc_jaeger:
+  arc-columbo:
     <<: *medium-service
-    image: jaegertracing/all-in-one:1.74.0
-    container_name: arc_jaeger
+    image: ghcr.io/arc-framework/arc-columbo-traces:latest
+    container_name: arc-columbo-traces
+    hostname: arc-columbo
     restart: unless-stopped
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
       SPAN_STORAGE_TYPE: memory
       METRICS_STORAGE_TYPE: prometheus
-      PROMETHEUS_SERVER_URL: http://arc_prometheus:9090
+      PROMETHEUS_SERVER_URL: http://arc-house:9090
       PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR: "true"
       PROMETHEUS_QUERY_NAMESPACE: span_metrics
       PROMETHEUS_QUERY_DURATION_UNIT: s
@@ -146,11 +163,15 @@ services:
       - "14268:14268"  # Collector HTTP
       - "14250:14250"  # Collector gRPC
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - jaeger
+          - arc-jaeger
+          - arc_jaeger
     depends_on:
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
-      arc_prometheus:
+      arc-house:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686"]
@@ -162,16 +183,20 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=tracing"
+      - "arc.service.codename=columbo"
+      - "arc.service.role=The Detective"
+      - "arc.service.tech=jaeger"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=zipkin,tempo,x-ray"
 
   # ===========================================================================
   # VISUALIZATION - Grafana
   # ===========================================================================
-  arc_grafana:
+  arc-friday:
     <<: *medium-service
-    image: grafana/grafana:latest
-    container_name: arc_grafana
+    image: ghcr.io/arc-framework/arc-friday-viz:latest
+    container_name: arc-friday-viz
+    hostname: arc-friday
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -187,13 +212,17 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - grafana
+          - arc-grafana
+          - arc_grafana
     depends_on:
-      arc_prometheus:
+      arc-house:
         condition: service_healthy
-      arc_jaeger:
+      arc-columbo:
         condition: service_healthy
-      arc_loki:
+      arc-watson:
         condition: service_started  # Loki v3 has no health check (distroless)
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -205,6 +234,9 @@ services:
       - "arc.service.layer=plugin"
       - "arc.service.category=observability"
       - "arc.service.subcategory=visualization"
+      - "arc.service.codename=friday"
+      - "arc.service.role=The UI Overlay"
+      - "arc.service.tech=grafana"
       - "arc.service.swappable=true"
       - "arc.service.alternatives=kibana,datadog,newrelic"
 

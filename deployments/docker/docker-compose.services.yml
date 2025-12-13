@@ -40,17 +40,18 @@ services:
   # ===========================================================================
   # UTILITY - Toolbox Service (Demo/Testing)
   # ===========================================================================
-  arc_toolbox:
+  arc-toolbox:
     <<: *medium-service
     build:
       context: ../../services/utilities/toolbox
       dockerfile: Dockerfile
     image: arc/toolbox:latest
-    container_name: arc_toolbox
+    container_name: arc-toolbox-utility
+    hostname: arc-toolbox
     restart: unless-stopped
     environment:
       # OpenTelemetry Configuration
-      OTEL_EXPORTER_OTLP_ENDPOINT: arc_otel_collector:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow:4317
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       OTEL_SERVICE_NAME: toolbox
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=1.0.0
@@ -60,13 +61,16 @@ services:
     ports:
       - "8081:8081"
     networks:
-      - arc_net
+      arc_net:
+        aliases:
+          - toolbox
+          - arc_toolbox
     depends_on:
-      arc_otel_collector:
+      arc-widow:
         condition: service_healthy
-      arc_postgres:
+      arc-oracle:
         condition: service_healthy
-      arc_redis:
+      arc-sonic:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
@@ -78,6 +82,10 @@ services:
       - "arc.service.layer=application"
       - "arc.service.category=utility"
       - "arc.service.type=microservice"
+      - "arc.service.codename=toolbox"
+      - "arc.service.role=The Swiss Army Knife"
+      - "arc.service.tech=custom"
+      - "arc.service.swappable=false"
       - "traefik.enable=true"
       - "traefik.http.routers.bootstrap.rule=Host(`bootstrap.localhost`)"
       - "traefik.http.services.bootstrap.loadbalancer.server.port=8081"
@@ -87,19 +95,23 @@ services:
   # ===========================================================================
   # Example structure for future agents:
   #
-  # arc_reasoning_agent:
+  # arc-sherlock:
   #   build:
   #     context: ./services/agents/reasoning-agent
-  #   container_name: arc_reasoning_agent
+  #   container_name: arc-sherlock-brain
+  #   hostname: arc-sherlock
   #   environment:
-  #     OTEL_EXPORTER_OTLP_ENDPOINT: arc_otel_collector:4317
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow:4317
   #     OTEL_SERVICE_NAME: reasoning-agent
   #   depends_on:
-  #     - arc_otel_collector
-  #     - arc_postgres
-  #     - arc_nats
+  #     - arc-widow
+  #     - arc-oracle
+  #     - arc-flash
   #   networks:
-  #     - arc_net
+  #     arc_net:
+  #       aliases:
+  #         - reasoning-agent
+  #         - arc_reasoning_agent
   #   labels:
   #     - "arc.service.layer=application"
   #     - "arc.service.category=agent"
