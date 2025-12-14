@@ -1,0 +1,24 @@
+# A.R.C. Common Python SDK - Dependencies
+
+# Core dependencies
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.0,<3.0.0
+pgvector>=0.2.0,<1.0.0
+
+# Messaging
+nats-py>=2.6.0,<3.0.0
+pulsar-client>=3.4.0,<4.0.0
+
+# Observability
+opentelemetry-api>=1.22.0,<2.0.0
+opentelemetry-sdk>=1.22.0,<2.0.0
+opentelemetry-exporter-otlp-proto-grpc>=1.22.0,<2.0.0
+
+# Development dependencies
+pytest>=7.4.0,<8.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+pytest-cov>=4.1.0,<5.0.0
+black>=23.0.0,<24.0.0
+isort>=5.12.0,<6.0.0
+mypy>=1.5.0,<2.0.0
+ruff>=0.1.0,<1.0.0

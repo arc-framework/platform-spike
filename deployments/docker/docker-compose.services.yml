@@ -91,6 +91,55 @@ services:
       - "traefik.http.services.raymond.loadbalancer.server.port=8081"
 
   # ===========================================================================
+  # MEDIA SERVICES - Real-Time Voice & TTS
+  # ===========================================================================
+  arc-piper:
+    <<: *medium-service
+    build:
+      context: ../../services/arc-piper-tts
+      dockerfile: Dockerfile
+    image: arc/piper-tts:latest
+    container_name: arc-piper-tts
+    hostname: arc-piper
+    restart: unless-stopped
+    environment:
+      # OpenTelemetry Configuration
+      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+      OTEL_SERVICE_NAME: piper-tts
+      OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=0.1.0
+      ENVIRONMENT: production
+      # Application Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "8002:8000"
+    networks:
+      arc_net:
+        aliases:
+          - piper-tts
+          - arc_piper_tts
+    depends_on:
+      arc-widow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5.0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    labels:
+      - "arc.service.layer=application"
+      - "arc.service.category=media"
+      - "arc.service.type=tts"
+      - "arc.service.codename=piper"
+      - "arc.service.role=The Voice Synthesizer"
+      - "arc.service.tech=piper-neural-tts"
+      - "arc.service.swappable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.piper-tts.rule=Host(`piper.localhost`) || PathPrefix(`/tts`)"
+      - "traefik.http.services.piper-tts.loadbalancer.server.port=8000"
+
+  # ===========================================================================
   # AGENT SERVICES - Placeholder for future agent implementations
   # ===========================================================================
   # Example structure for future agents:
