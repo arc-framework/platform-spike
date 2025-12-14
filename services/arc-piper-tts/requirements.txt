@@ -1,0 +1,24 @@
+# A.R.C. Piper TTS Service - Dependencies
+
+# FastAPI web framework
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+
+# Piper TTS (local neural TTS)
+piper-tts>=1.2.0,<2.0.0
+
+# A.R.C. Common SDK (local editable install)
+# Install with: pip install -e ../../libs/python-sdk
+
+# Additional dependencies
+numpy>=1.24.0,<2.0.0
+scipy>=1.11.0,<2.0.0
+
+# Observability (from SDK, listed for reference)
+# opentelemetry-api>=1.22.0
+# opentelemetry-sdk>=1.22.0
+# opentelemetry-exporter-otlp-proto-grpc>=1.22.0
+
+# Development dependencies
+pytest>=7.4.0,<8.0.0
+httpx>=0.25.0,<1.0.0  # For testing FastAPI endpoints
