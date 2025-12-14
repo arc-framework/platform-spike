@@ -118,18 +118,18 @@ Based on current repository structure:
 
 **Purpose**: Prove the concept fast using LiveKit's built-in STT/TTS/LLM plugins
 
-- [ ] T029 [P] [US1-A] Create service directory structure in `services/arc-scarlett-voice/`
-- [ ] T030 [P] [US1-A] Create Dockerfile with LiveKit Agents SDK in `services/arc-scarlett-voice/Dockerfile`
-- [ ] T031 [US1-A] Create agent entry point in `services/arc-scarlett-voice/src/agent.py`:
+- [x] T029 [P] [US1-A] Create service directory structure in `services/arc-scarlett-voice/`
+- [x] T030 [P] [US1-A] Create Dockerfile with LiveKit Agents SDK in `services/arc-scarlett-voice/Dockerfile`
+- [x] T031 [US1-A] Create agent entry point in `services/arc-scarlett-voice/src/agent.py`:
   - Use `VoicePipelineAgent` from LiveKit Agents SDK
   - STT: Deepgram plugin (cloud, fast)
   - LLM: OpenAI plugin (direct API call, no brain service yet)
   - TTS: OpenAI TTS plugin (cloud, high quality)
   - VAD: Built-in Silero VAD
-- [ ] T032 [US1-A] Add environment variables for API keys in `.env.example`
-- [ ] T033 [US1-A] Create `requirements.txt` with `livekit-agents`, `livekit-plugins-deepgram`, `livekit-plugins-openai`
-- [ ] T034 [US1-A] Add OTEL instrumentation wrapper in `services/arc-scarlett-voice/src/observability.py`
-- [ ] T035 [US1-A] Add service to `deployments/docker/docker-compose.services.yml` as `arc-scarlett`
+- [x] T032 [US1-A] Add environment variables for API keys in `.env.example`
+- [x] T033 [US1-A] Create `requirements.txt` with `livekit-agents`, `livekit-plugins-deepgram`, `livekit-plugins-openai`
+- [x] T034 [US1-A] Add OTEL instrumentation wrapper in `services/arc-scarlett-voice/src/observability.py`
+- [x] T035 [US1-A] Add service to `deployments/docker/docker-compose.services.yml` as `arc-scarlett`
 - [ ] T036 [US1-A] Create integration test script in `tests/integration/test_voice_quick_win.sh`
 
 **Checkpoint 3A**: Voice agent working end-to-end in 2-3 days (cloud-based STT/TTS/LLM)
@@ -140,30 +140,30 @@ Based on current repository structure:
 
 **Purpose**: Replace OpenAI direct LLM with arc-sherlock-brain for advanced reasoning
 
-- [ ] T037 [P] [US1-B] Create service directory structure in `services/arc-sherlock-brain/`
-- [ ] T038 [P] [US1-B] Create Dockerfile for LangGraph service in `services/arc-sherlock-brain/Dockerfile`
-- [ ] T039 [US1-B] Create FastAPI server in `services/arc-sherlock-brain/src/main.py`
-- [ ] T040 [US1-B] Implement PostgreSQL connection using SQLAlchemy in `services/arc-sherlock-brain/src/database.py`
-- [ ] T041 [US1-B] Create simple LangGraph state machine in `services/arc-sherlock-brain/src/graph.py`:
+- [x] T037 [P] [US1-B] Create service directory structure in `services/arc-sherlock-brain/`
+- [x] T038 [P] [US1-B] Create Dockerfile for LangGraph service in `services/arc-sherlock-brain/Dockerfile`
+- [x] T039 [US1-B] Create FastAPI server in `services/arc-sherlock-brain/src/main.py`
+- [x] T040 [US1-B] Implement PostgreSQL connection using SQLAlchemy in `services/arc-sherlock-brain/src/database.py`
+- [x] T041 [US1-B] Create simple LangGraph state machine in `services/arc-sherlock-brain/src/graph.py`:
   - State: `{user_input: str, context: list, response: str}`
   - Nodes: `retrieve_context`, `generate_response`
   - Edges: Linear flow
 - [ ] T042 [US1-B] Implement `/chat` endpoint (HTTP) accepting `{"text": str, "user_id": str}`
-- [ ] T043 [US1-B] Implement NATS handler for `brain.request` subject (async messaging)
-- [ ] T044 [US1-B] Add conversation persistence to PostgreSQL `agents.conversations` table
-- [ ] T045 [US1-B] Add pgvector context retrieval (top 5 similar conversations)
-- [ ] T046 [US1-B] Create `requirements.txt` with `fastapi`, `langgraph`, `sqlalchemy`, `psycopg2`, `opentelemetry-*`
-- [ ] T047 [US1-B] Add OTEL instrumentation for traces and metrics
-- [ ] T048 [US1-B] Add service to `deployments/docker/docker-compose.services.yml` as `arc-sherlock`
+- [x] T043 [US1-B] Implement NATS handler for `brain.request` subject (async messaging)
+- [x] T044 [US1-B] Add conversation persistence to PostgreSQL `agents.conversations` table
+- [x] T045 [US1-B] Add pgvector context retrieval (top 5 similar conversations)
+- [x] T046 [US1-B] Create `requirements.txt` with `fastapi`, `langgraph`, `sqlalchemy`, `psycopg2`, `opentelemetry-*`
+- [x] T047 [US1-B] Add OTEL instrumentation for traces and metrics
+- [x] T048 [US1-B] Add service to `deployments/docker/docker-compose.services.yml` as `arc-sherlock`
 
 **Custom LLM Plugin for LiveKit Agents**:
 
-- [ ] T049 [US1-B] Create custom LLM plugin in `services/arc-scarlett-voice/src/plugins/sherlock_llm.py`:
+- [x] T049 [US1-B] Create custom LLM plugin in `services/arc-scarlett-voice/src/plugins/sherlock_llm.py`:
   - Extends `LLMPlugin` from LiveKit Agents SDK
   - Calls `arc-sherlock-brain` via NATS (async) or HTTP (sync)
   - Handles streaming responses (SSE from brain)
-- [ ] T050 [US1-B] Update agent to use `SherlockLLMPlugin` instead of OpenAI plugin
-- [ ] T051 [US1-B] Add NATS client wrapper in `services/arc-scarlett-voice/src/messaging.py`
+- [x] T050 [US1-B] Update agent to use `SherlockLLMPlugin` instead of OpenAI plugin
+- [x] T051 [US1-B] Add NATS client wrapper in `services/arc-scarlett-voice/src/messaging.py`
 
 **Checkpoint 3B**: Voice agent uses custom LangGraph reasoning, conversations persisted
 
@@ -192,12 +192,12 @@ Based on current repository structure:
 
 **Custom TTS Plugin for LiveKit Agents**:
 
-- [ ] T061 [US1-C] Create custom TTS plugin in `services/arc-scarlett-voice/src/plugins/piper_tts.py`:
+- [x] T061 [US1-C] Create custom TTS plugin in `services/arc-scarlett-voice/src/plugins/piper_tts.py`:
   - Extends `TTSPlugin` from LiveKit Agents SDK
   - Calls `arc-piper-tts` via NATS for low latency
   - Streams PCM frames directly to LiveKit audio track
   - Handles sample rate conversion if needed
-- [ ] T062 [US1-C] Update agent to use `PiperTTSPlugin` instead of OpenAI TTS
+- [x] T062 [US1-C] Update agent to use `PiperTTSPlugin` instead of OpenAI TTS
 - [ ] T063 [US1-C] Add A/B testing config to switch between Piper/OpenAI via env var
 
 **Checkpoint 3C**: Voice agent fully local (except STT), using Piper TTS + LangGraph brain
@@ -244,12 +244,12 @@ Based on current repository structure:
   - Verify TTS audio played back
   - Check conversation persisted in PostgreSQL
   - Validate latency < 1000ms
-- [ ] T066 [US1-D] Create quickstart guide in `specs/001-realtime-media/quickstart.md`:
+- [x] T066 [US1-D] Create quickstart guide in `specs/001-realtime-media/quickstart.md`:
   - Phase 3A: Quick win with cloud plugins
   - Phase 3B: Add brain service
   - Phase 3C: Add TTS service
   - Switching between configurations
-- [ ] T067 [US1-D] Add structured logging to all services (JSON format with trace IDs)
+- [x] T067 [US1-D] Add structured logging to all services (JSON format with trace IDs)
 - [ ] T068 [US1-D] Run end-to-end test and document latency breakdown in Jaeger
 
 **Checkpoint 3D**: Full hybrid architecture working - LiveKit Agents + microservices
