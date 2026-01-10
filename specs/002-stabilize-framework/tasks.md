@@ -354,7 +354,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 4.1 Security Scanning Scripts
 
-- [ ] T024 [P] [US2] Create hadolint wrapper at `scripts/validate/check-dockerfiles.sh`
+- [x] T024 [P] [US2] Create hadolint wrapper at `scripts/validate/check-dockerfiles.sh`
   ```bash
   #!/bin/bash
   set -euo pipefail
@@ -369,7 +369,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   done
   ```
 
-- [ ] T025 [P] [US2] Create trivy security scan script at `scripts/validate/check-security.sh`
+- [x] T025 [P] [US2] Create trivy security scan script at `scripts/validate/check-security.sh`
   ```bash
   #!/bin/bash
   set -euo pipefail
@@ -385,7 +385,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   done
   ```
 
-- [ ] T026 [P] [US2] Create security compliance report generator at `scripts/validate/generate-security-report.py`
+- [x] T026 [P] [US2] Create security compliance report generator at `scripts/validate/generate-security-report.py`
   ```python
   #!/usr/bin/env python3
   """Generate security compliance report for all Docker images."""
@@ -400,7 +400,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 4.2 Dockerfile Templates
 
-- [ ] T027 [P] [US2] Create Python Dockerfile template at `.templates/Dockerfile.python.template`
+- [x] T027 [P] [US2] Create Python Dockerfile template at `.templates/Dockerfile.python.template`
   ```dockerfile
   # A.R.C. Python Service Template
   # Constitution Compliance: Security by Default (Principle VIII)
@@ -434,7 +434,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   CMD ["python", "-m", "src.main"]
   ```
 
-- [ ] T028 [P] [US2] Create Go Dockerfile template at `.templates/Dockerfile.go.template`
+- [x] T028 [P] [US2] Create Go Dockerfile template at `.templates/Dockerfile.go.template`
   ```dockerfile
   # A.R.C. Go Service Template
   # Constitution Compliance: Security by Default (Principle VIII)
@@ -464,7 +464,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 4.3 CI/CD Integration
 
-- [ ] T029 [US2] Create GitHub Actions workflow at `.github/workflows/validate-docker.yml`
+- [x] T029 [US2] Create GitHub Actions workflow at `.github/workflows/validate-docker.yml`
   ```yaml
   name: Validate Dockerfiles
   on: [pull_request, push]
@@ -479,7 +479,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
             config: .hadolint.yaml
   ```
 
-- [ ] T030 [US2] Create GitHub Actions workflow at `.github/workflows/security-scan.yml`
+- [x] T030 [US2] Create GitHub Actions workflow at `.github/workflows/security-scan.yml`
   ```yaml
   name: Security Scan
   on:
@@ -498,7 +498,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
             severity: 'HIGH,CRITICAL'
   ```
 
-- [ ] T031 [US2] Configure hadolint rules in `.hadolint.yaml`
+- [x] T031 [US2] Configure hadolint rules in `.hadolint.yaml`
   ```yaml
   ignored:
     - DL3008  # Pin versions in apt-get - we use Alpine
@@ -506,13 +506,13 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
     - ghcr.io/arc
   ```
 
-- [ ] T032 [US2] Create security scanning guide at `docs/guides/SECURITY-SCANNING.md`
+- [x] T032 [US2] Create security scanning guide at `docs/guides/SECURITY-SCANNING.md`
   - How to run scans locally
   - How to interpret results
   - How to fix common issues
   - CVE response process
 
-- [ ] T033 [US2] Create security baseline at `reports/security-baseline.json`
+- [x] T033 [US2] Create security baseline at `reports/security-baseline.json`
   - Current state of all images
   - Known issues and remediation plans
   - Exceptions with justification

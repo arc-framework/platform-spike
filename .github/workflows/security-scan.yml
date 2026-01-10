@@ -1,0 +1,117 @@
+# ==============================================================================
+# A.R.C. Platform - Security Scanning Workflow
+# ==============================================================================
+# Task: T030
+# Purpose: Scan for vulnerabilities daily and on-demand
+# ==============================================================================
+
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      severity:
+        description: 'Severity levels to scan for'
+        required: false
+        default: 'HIGH,CRITICAL'
+        type: choice
+        options:
+          - 'CRITICAL'
+          - 'HIGH,CRITICAL'
+          - 'MEDIUM,HIGH,CRITICAL'
+          - 'LOW,MEDIUM,HIGH,CRITICAL'
+  push:
+    branches: [main]
+    paths:
+      - '**/Dockerfile'
+      - '**/requirements.txt'
+      - '**/go.mod'
+      - '**/go.sum'
+      - '**/package.json'
+      - '**/package-lock.json'
+
+jobs:
+  trivy-fs:
+    name: Filesystem Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: ${{ github.event.inputs.severity || 'HIGH,CRITICAL' }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Run Trivy for SARIF
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: ${{ github.event.inputs.severity || 'HIGH,CRITICAL' }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  trivy-config:
+    name: Config Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          severity: ${{ github.event.inputs.severity || 'HIGH,CRITICAL' }}
+          format: 'table'
+          exit-code: '1'
+
+  security-report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [trivy-fs, trivy-config]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install hadolint
+        run: |
+          wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          chmod +x /usr/local/bin/hadolint
+
+      - name: Generate security report
+        run: |
+          python scripts/validate/generate-security-report.py --output reports/security-report.json
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: reports/security-report.json
+          retention-days: 30
