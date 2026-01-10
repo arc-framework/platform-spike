@@ -55,6 +55,8 @@ jobs:
       go-infra: ${{ steps.filter.outputs.go-infra }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for paths-filter to compare commits
 
       - uses: dorny/paths-filter@v3
         id: filter
