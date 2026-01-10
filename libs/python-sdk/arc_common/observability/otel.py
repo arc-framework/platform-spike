@@ -1,9 +1,8 @@
 """
 OpenTelemetry instrumentation helpers for A.R.C. agent services.
 
-Task: T027
-Purpose: Simplify distributed tracing, metrics, and structured logging
-Integration: OTEL Collector at arc-widow-otel (Jaeger, Prometheus, Loki backends)
+Simplifies distributed tracing, metrics, and structured logging.
+Exports to OTEL Collector at arc-widow-otel (Jaeger, Prometheus, Loki backends).
 """
 
 import logging

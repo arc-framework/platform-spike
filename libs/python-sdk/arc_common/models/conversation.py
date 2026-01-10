@@ -1,7 +1,6 @@
 """
 SQLAlchemy database models for A.R.C. agent services.
 
-Task: T024
 Models:
 - Conversation: Voice agent conversation history with pgvector embeddings
 - Session: LiveKit session tracking and analytics

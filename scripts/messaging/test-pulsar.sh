@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Pulsar Testing Script
 # ==============================================================================
-# Task: T019
 # Purpose: Test Pulsar pub/sub functionality for durable event streaming
 # Usage: ./scripts/messaging/test-pulsar.sh [--publish|--consume|--full]
 # ==============================================================================
@@ -24,7 +23,7 @@ PULSAR_HTTP_PORT="${PULSAR_HTTP_PORT:-8080}"
 PULSAR_URL="pulsar://${PULSAR_HOST}:${PULSAR_PORT}"
 CONTAINER_NAME="${PULSAR_CONTAINER:-arc-strange-stream}"
 
-# Test topics (from docs/architecture/pulsar-topics.md)
+# Test topics (from docs/architecture/PULSAR-TOPICS.md)
 TENANT="arc"
 NAMESPACES=("events" "analytics" "audit")
 TOPICS=(

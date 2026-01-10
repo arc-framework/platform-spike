@@ -1,0 +1,35 @@
+# Hadolint Configuration for A.R.C. Framework
+# Documentation: https://github.com/hadolint/hadolint#configure
+
+# Trusted registries - images from these sources don't require version pinning warnings
+trustedRegistries:
+  - ghcr.io/arc
+  - docker.io/library
+
+# Ignored rules with justification
+ignored:
+  # DL3008: Pin versions in apt-get - We use Alpine (apk), not Debian
+  - DL3008
+
+  # DL3018: Pin versions in apk add - We pin Alpine version instead for reproducibility
+  # This is acceptable because Alpine's rolling release model and our pinned base images
+  # provide sufficient version control
+  - DL3018
+
+# Rule-specific overrides
+override:
+  # Require HEALTHCHECK in all Dockerfiles (A.R.C. Constitution VII - Resilience)
+  warning:
+    - DL3002  # Last USER should not be root
+
+# Strict mode - treat warnings as errors
+# Uncomment for CI/CD enforcement
+# failure-threshold: warning
+
+# Label schema requirements
+# A.R.C. requires OCI-compliant labels
+label-schema:
+  org.opencontainers.image.title: text
+  org.opencontainers.image.description: text
+  arc.service.codename: text
+  arc.service.tier: text

@@ -40,18 +40,18 @@ services:
   # ===========================================================================
   # UTILITY - Raymond Services (Platform Utilities)
   # ===========================================================================
-  arc-raymond:
+  arc-raymond-services:
     <<: *medium-service
     build:
       context: ../../services/utilities/raymond
       dockerfile: Dockerfile
     image: arc/raymond:latest
     container_name: arc-raymond-services
-    hostname: arc-raymond
+    hostname: arc-raymond-services
     restart: unless-stopped
     environment:
       # OpenTelemetry Configuration
-      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow-otel:4317
       OTEL_EXPORTER_OTLP_INSECURE: "true"
       OTEL_SERVICE_NAME: raymond
       OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=1.0.0
@@ -66,11 +66,11 @@ services:
           - raymond
           - arc_raymond
     depends_on:
-      arc-widow:
+      arc-widow-otel:
         condition: service_healthy
-      arc-oracle:
+      arc-oracle-sql:
         condition: service_healthy
-      arc-sonic:
+      arc-sonic-cache:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
@@ -93,157 +93,157 @@ services:
   # ===========================================================================
   # MEDIA SERVICES - Real-Time Voice & TTS
   # ===========================================================================
-  arc-piper-tts:
-    <<: *medium-service
-    build:
-      context: ../../services/arc-piper-tts
-      dockerfile: Dockerfile
-    image: arc/piper-tts:latest
-    container_name: arc-piper-tts
-    hostname: arc-piper
-    restart: unless-stopped
-    environment:
-      # OpenTelemetry Configuration
-      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow-otel:4317
-      OTEL_EXPORTER_OTLP_INSECURE: "true"
-      OTEL_SERVICE_NAME: piper-tts
-      OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=0.1.0
-      ENVIRONMENT: production
-      # Application Configuration
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    ports:
-      - "8002:8000"
-    networks:
-      arc_net:
-        aliases:
-          - piper-tts
-          - arc_piper_tts
-    depends_on:
-      arc-widow-otel:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5.0)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 45s
-    labels:
-      - "arc.service.layer=application"
-      - "arc.service.category=media"
-      - "arc.service.type=tts"
-      - "arc.service.codename=piper"
-      - "arc.service.role=The Voice Synthesizer"
-      - "arc.service.tech=piper-neural-tts"
-      - "arc.service.swappable=true"
-      - "traefik.enable=true"
-      - "traefik.http.routers.piper-tts.rule=Host(`piper.localhost`) || PathPrefix(`/tts`)"
-      - "traefik.http.services.piper-tts.loadbalancer.server.port=8000"
+#  arc-piper-tts:
+#    <<: *medium-service
+#    build:
+#      context: ../../services/arc-piper-tts
+#      dockerfile: Dockerfile
+#    image: arc/piper-tts:latest
+#    container_name: arc-piper-tts
+#    hostname: arc-piper-tts
+#    restart: unless-stopped
+#    environment:
+#      # OpenTelemetry Configuration
+#      OTEL_EXPORTER_OTLP_ENDPOINT: arc-widow-otel:4317
+#      OTEL_EXPORTER_OTLP_INSECURE: "true"
+#      OTEL_SERVICE_NAME: piper-tts
+#      OTEL_RESOURCE_ATTRIBUTES: service.namespace=arc,service.version=0.1.0
+#      ENVIRONMENT: production
+#      # Application Configuration
+#      LOG_LEVEL: ${LOG_LEVEL:-info}
+#    ports:
+#      - "8002:8000"
+#    networks:
+#      arc_net:
+#        aliases:
+#          - piper-tts
+#          - arc_piper_tts
+#    depends_on:
+#      arc-widow-otel:
+#        condition: service_healthy
+#    healthcheck:
+#      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5.0)"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 45s
+#    labels:
+#      - "arc.service.layer=application"
+#      - "arc.service.category=media"
+#      - "arc.service.type=tts"
+#      - "arc.service.codename=piper"
+#      - "arc.service.role=The Voice Synthesizer"
+#      - "arc.service.tech=piper-neural-tts"
+#      - "arc.service.swappable=true"
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.piper-tts.rule=Host(`piper.localhost`) || PathPrefix(`/tts`)"
+#      - "traefik.http.services.piper-tts.loadbalancer.server.port=8000"
 
   # ===========================================================================
   # REASONING AGENT - arc-sherlock-brain (LangGraph + pgvector)
   # ===========================================================================
-  arc-sherlock-brain:
-    <<: *medium-service
-    build:
-      context: ../../services/arc-sherlock-brain
-      dockerfile: Dockerfile
-    image: ghcr.io/arc/arc-sherlock-brain:latest
-    container_name: arc-sherlock-brain
-    hostname: arc-sherlock
-    environment:
-      # Database
-      POSTGRES_URL: postgresql+asyncpg://arc:arcsecret@arc-oracle-sql:5432/arc
-      # Messaging
-      NATS_URL: nats://arc-flash-pulse:4222
-      ENABLE_NATS: "true"
-      # LLM Configuration
-      LLM_MODEL: mistral:7b
-      LLM_BASE_URL: http://host.docker.internal:11434  # Ollama on host
-      # Embeddings
-      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
-      # Observability
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://arc-widow-otel:4317
-      OTEL_SERVICE_NAME: arc-sherlock-brain
-      OTEL_SERVICE_VERSION: "0.1.0"
-      OTEL_TRACES_ENABLED: "true"
-      OTEL_METRICS_ENABLED: "true"
-    depends_on:
-      arc-oracle-sql:
-        condition: service_healthy
-      arc-flash-pulse:
-        condition: service_started
-      arc-widow-otel:
-        condition: service_started
-    networks:
-      arc_net:
-        aliases:
-          - arc-sherlock
-          - reasoning-agent
-    ports:
-      - "8000:8000"  # FastAPI (for debugging/testing)
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    labels:
-      - "arc.service.tier=services"
-      - "arc.service.category=reasoning"
-      - "arc.service.role=brain"
-      - "arc.monitoring.enabled=true"
-      - "arc.monitoring.type=otel"
+#  arc-sherlock-brain:
+#    <<: *medium-service
+#    build:
+#      context: ../../services/arc-sherlock-brain
+#      dockerfile: Dockerfile
+#    image: ghcr.io/arc/arc-sherlock-brain:latest
+#    container_name: arc-sherlock-brain
+#    hostname: arc-sherlock-brain
+#    environment:
+#      # Database
+#      POSTGRES_URL: postgresql+asyncpg://arc:arcsecret@arc-oracle-sql:5432/arc
+#      # Messaging
+#      NATS_URL: nats://arc-flash-pulse:4222
+#      ENABLE_NATS: "true"
+#      # LLM Configuration
+#      LLM_MODEL: mistral:7b
+#      LLM_BASE_URL: http://host.docker.internal:11434  # Ollama on host
+#      # Embeddings
+#      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+#      # Observability
+#      OTEL_EXPORTER_OTLP_ENDPOINT: http://arc-widow-otel:4317
+#      OTEL_SERVICE_NAME: arc-sherlock-brain
+#      OTEL_SERVICE_VERSION: "0.1.0"
+#      OTEL_TRACES_ENABLED: "true"
+#      OTEL_METRICS_ENABLED: "true"
+#    depends_on:
+#      arc-oracle-sql:
+#        condition: service_healthy
+#      arc-flash-pulse:
+#        condition: service_started
+#      arc-widow-otel:
+#        condition: service_started
+#    networks:
+#      arc_net:
+#        aliases:
+#          - arc-sherlock
+#          - reasoning-agent
+#    ports:
+#      - "8000:8000"  # FastAPI (for debugging/testing)
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 60s
+#    labels:
+#      - "arc.service.tier=services"
+#      - "arc.service.category=reasoning"
+#      - "arc.service.role=brain"
+#      - "arc.monitoring.enabled=true"
+#      - "arc.monitoring.type=otel"
 
   # ===========================================================================
   # VOICE AGENT - arc-scarlett-voice (LiveKit Agents SDK)
   # ===========================================================================
-  arc-scarlett-voice:
-    <<: *medium-service
-    build:
-      context: ../../services/arc-scarlett-voice
-      dockerfile: Dockerfile
-    image: ghcr.io/arc/arc-scarlett-voice:latest
-    container_name: arc-scarlett-voice
-    hostname: arc-scarlett
-    environment:
-      # LiveKit Configuration
-      LIVEKIT_URL: ws://arc-daredevil-voice:7880
-      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
-      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
-      # Messaging
-      NATS_URL: nats://arc-flash-pulse:4222
-      # STT Configuration (Whisper)
-      WHISPER_MODEL: base  # base, small, medium (larger = better quality, slower)
-      # TTS Configuration (Piper)
-      PIPER_MODEL_PATH: /app/models/en_US-lessac-medium.onnx
-      # Observability
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://arc-widow-otel:4317
-      OTEL_SERVICE_NAME: arc-scarlett-voice
-      OTEL_SERVICE_VERSION: "0.1.0"
-      OTEL_TRACES_ENABLED: "true"
-      OTEL_METRICS_ENABLED: "true"
-    depends_on:
-      arc-daredevil-voice:
-        condition: service_started
-      arc-sherlock-brain:
-        condition: service_healthy
-      arc-flash-pulse:
-        condition: service_started
-      arc-widow-otel:
-        condition: service_started
-    networks:
-      arc_net:
-        aliases:
-          - arc-scarlett
-          - voice-agent
-    volumes:
-      - scarlett_models:/app/models  # Persist Piper models
-    labels:
-      - "arc.service.tier=services"
-      - "arc.service.category=voice-agent"
-      - "arc.service.role=realtime-interface"
-      - "arc.monitoring.enabled=true"
-      - "arc.monitoring.type=otel"
+#  arc-scarlett-voice:
+#    <<: *medium-service
+#    build:
+#      context: ../../services/arc-scarlett-voice
+#      dockerfile: Dockerfile
+#    image: ghcr.io/arc/arc-scarlett-voice:latest
+#    container_name: arc-scarlett-voice
+#    hostname: arc-scarlett-voice
+#    environment:
+#      # LiveKit Configuration
+#      LIVEKIT_URL: ws://arc-daredevil-voice:7880
+#      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+#      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+#      # Messaging
+#      NATS_URL: nats://arc-flash-pulse:4222
+#      # STT Configuration (Whisper)
+#      WHISPER_MODEL: base  # base, small, medium (larger = better quality, slower)
+#      # TTS Configuration (Piper)
+#      PIPER_MODEL_PATH: /app/models/en_US-lessac-medium.onnx
+#      # Observability
+#      OTEL_EXPORTER_OTLP_ENDPOINT: http://arc-widow-otel:4317
+#      OTEL_SERVICE_NAME: arc-scarlett-voice
+#      OTEL_SERVICE_VERSION: "0.1.0"
+#      OTEL_TRACES_ENABLED: "true"
+#      OTEL_METRICS_ENABLED: "true"
+#    depends_on:
+#      arc-daredevil-voice:
+#        condition: service_started
+#      arc-sherlock-brain:
+#        condition: service_healthy
+#      arc-flash-pulse:
+#        condition: service_started
+#      arc-widow-otel:
+#        condition: service_started
+#    networks:
+#      arc_net:
+#        aliases:
+#          - arc-scarlett
+#          - voice-agent
+#    volumes:
+#      - scarlett_models:/app/models  # Persist Piper models
+#    labels:
+#      - "arc.service.tier=services"
+#      - "arc.service.category=voice-agent"
+#      - "arc.service.role=realtime-interface"
+#      - "arc.monitoring.enabled=true"
+#      - "arc.monitoring.type=otel"
 
   # ===========================================================================
   # AGENT SERVICES - Placeholder for future agent implementations

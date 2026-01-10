@@ -1,0 +1,78 @@
+# ==============================================================================
+# A.R.C. Platform - Dockerfile Validation Workflow
+# ==============================================================================
+# Purpose: Lint all Dockerfiles on every PR and push
+# ==============================================================================
+
+name: Validate Dockerfiles
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**/Dockerfile'
+      - '.hadolint.yaml'
+      - '.github/workflows/validate-docker.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**/Dockerfile'
+      - '.hadolint.yaml'
+      - '.github/workflows/validate-docker.yml'
+
+jobs:
+  hadolint:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "**/Dockerfile"
+          config: .hadolint.yaml
+          failure-threshold: warning
+          format: tty
+
+      - name: Check Dockerfile standards
+        run: |
+          echo "Checking A.R.C. Dockerfile standards..."
+
+          FAILED=0
+          for dockerfile in $(find . -name "Dockerfile" -not -path "*/node_modules/*" -not -path "*/.git/*"); do
+            echo "Checking: $dockerfile"
+
+            # Check for USER instruction (non-root)
+            if ! grep -qE "^USER\s+" "$dockerfile"; then
+              echo "  ❌ Missing USER instruction"
+              FAILED=1
+            fi
+
+            # Check for HEALTHCHECK
+            if ! grep -qE "^HEALTHCHECK\s+" "$dockerfile"; then
+              echo "  ❌ Missing HEALTHCHECK instruction"
+              FAILED=1
+            fi
+
+            # Check for :latest tag
+            if grep -qE "FROM.*:latest" "$dockerfile"; then
+              echo "  ❌ Using :latest tag (use pinned version)"
+              FAILED=1
+            fi
+
+            # Check for LABEL
+            if ! grep -qE "^LABEL\s+" "$dockerfile"; then
+              echo "  ⚠️  Missing LABEL instruction (recommended)"
+            fi
+          done
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo ""
+            echo "❌ Some Dockerfiles do not meet A.R.C. standards"
+            exit 1
+          fi
+
+          echo "✅ All Dockerfiles meet A.R.C. standards"

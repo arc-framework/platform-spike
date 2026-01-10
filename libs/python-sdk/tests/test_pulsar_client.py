@@ -1,7 +1,6 @@
 """
 Unit tests for Pulsar client wrapper.
 
-Task: T028
 Tests: PulsarAgentClient producer/consumer functionality
 """
 
