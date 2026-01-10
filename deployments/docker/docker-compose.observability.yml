@@ -62,11 +62,11 @@ services:
   # ===========================================================================
   # LOGGING - Loki
   # ===========================================================================
-  arc-watson-logs:
+  arc-watson:
     <<: *large-service
     image: ghcr.io/arc-framework/arc-watson-logs:latest
     container_name: arc-watson-logs
-    hostname: arc-watson-logs
+    hostname: arc-watson
     restart: unless-stopped
     command: -config.file=/etc/loki/local-config.yaml
     ports:
@@ -80,7 +80,7 @@ services:
           - arc-loki
           - arc_loki
     depends_on:
-      arc-widow-otel:
+      arc-widow:
         condition: service_healthy
     # Note: Loki v3 uses a distroless image without shell/wget
     # Health check removed per official Grafana recommendations
@@ -98,11 +98,11 @@ services:
   # ===========================================================================
   # METRICS - Prometheus
   # ===========================================================================
-  arc-house-metrics:
+  arc-house:
     <<: *large-service
     image: ghcr.io/arc-framework/arc-house-metrics:latest
     container_name: arc-house-metrics
-    hostname: arc-house-metrics
+    hostname: arc-house
     restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -123,7 +123,7 @@ services:
           - arc-prometheus
           - arc_prometheus
     depends_on:
-      arc-widow-otel:
+      arc-widow:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
@@ -144,17 +144,17 @@ services:
   # ===========================================================================
   # TRACING - Jaeger
   # ===========================================================================
-  arc-columbo-traces:
+  arc-columbo:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-columbo-traces:latest
     container_name: arc-columbo-traces
-    hostname: arc-columbo-traces
+    hostname: arc-columbo
     restart: unless-stopped
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
       SPAN_STORAGE_TYPE: memory
       METRICS_STORAGE_TYPE: prometheus
-      PROMETHEUS_SERVER_URL: http://arc-house-metrics:9090
+      PROMETHEUS_SERVER_URL: http://arc-house:9090
       PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR: "true"
       PROMETHEUS_QUERY_NAMESPACE: span_metrics
       PROMETHEUS_QUERY_DURATION_UNIT: s
@@ -169,9 +169,9 @@ services:
           - arc-jaeger
           - arc_jaeger
     depends_on:
-      arc-widow-otel:
+      arc-widow:
         condition: service_healthy
-      arc-house-metrics:
+      arc-house:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686"]
@@ -196,7 +196,7 @@ services:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-friday-viz:latest
     container_name: arc-friday-viz
-    hostname: arc-friday-viz
+    hostname: arc-friday
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}

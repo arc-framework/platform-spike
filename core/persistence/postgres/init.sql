@@ -19,7 +19,7 @@ CREATE DATABASE unleash_db;
 GRANT ALL PRIVILEGES ON DATABASE unleash_db TO arc;
 
 -- ==============================================================================
--- pgvector Extension Installation
+-- pgvector Extension Installation (Task T012)
 -- ==============================================================================
 -- Install vector extension for semantic search and embeddings
 -- Required for agents.conversations table embedding column

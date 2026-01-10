@@ -84,11 +84,11 @@ services:
   # ===========================================================================
   # GATEWAY - API Gateway & Reverse Proxy
   # ===========================================================================
-  arc-heimdall-gateway:
+  arc-heimdall:
     <<: *small-service
     image: ghcr.io/arc-framework/arc-heimdall-gateway:latest
     container_name: arc-heimdall-gateway
-    hostname: arc-heimdall-gateway
+    hostname: arc-heimdall
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -127,14 +127,14 @@ services:
   # ===========================================================================
   # TELEMETRY - OpenTelemetry Collector
   # ===========================================================================
-  arc-widow-otel:
+  arc-widow:
     <<: *medium-service
     build:
       context: ../../core/telemetry/otel-collector
       dockerfile: Dockerfile
     image: arc/otel-collector:latest
     container_name: arc-widow-otel
-    hostname: arc-widow-otel
+    hostname: arc-widow
     restart: unless-stopped
     command: ["--config=/etc/otel-collector-config.yml"]
     volumes:
@@ -151,7 +151,7 @@ services:
           - arc-otel
           - arc_otel_collector
     depends_on:
-      arc-heimdall-gateway:
+      arc-heimdall:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/health_check", "http://localhost:13133"]
@@ -172,11 +172,11 @@ services:
   # ===========================================================================
   # PERSISTENCE - PostgreSQL with pgvector
   # ===========================================================================
-  arc-oracle-sql:
+  arc-oracle:
     <<: *large-service
     image: ghcr.io/arc-framework/arc-oracle-sql:latest
     container_name: arc-oracle-sql
-    hostname: arc-oracle-sql
+    hostname: arc-oracle
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-arc}
@@ -214,11 +214,11 @@ services:
   # ===========================================================================
   # CACHING - Redis
   # ===========================================================================
-  arc-sonic-cache:
+  arc-sonic:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-sonic-cache:latest
     container_name: arc-sonic-cache
-    hostname: arc-sonic-cache
+    hostname: arc-sonic
     restart: unless-stopped
     command: >
       redis-server
@@ -253,11 +253,11 @@ services:
   # ===========================================================================
   # MESSAGING (EPHEMERAL) - NATS
   # ===========================================================================
-  arc-flash-pulse:
+  arc-flash:
     <<: *small-service
     image: ghcr.io/arc-framework/arc-flash-pulse:latest
     container_name: arc-flash-pulse
-    hostname: arc-flash-pulse
+    hostname: arc-flash
     restart: unless-stopped
     command: >
       --jetstream
@@ -296,11 +296,11 @@ services:
   # ===========================================================================
   # MESSAGING (DURABLE) - Apache Pulsar
   # ===========================================================================
-  arc-strange-stream:
+  arc-strange:
     <<: *large-service
     image: ghcr.io/arc-framework/arc-strange-stream:latest
     container_name: arc-strange-stream
-    hostname: arc-strange-stream
+    hostname: arc-strange
     restart: unless-stopped
     command: >
       bin/pulsar standalone
@@ -320,9 +320,9 @@ services:
           - arc-pulsar
           - arc_pulsar
     depends_on:
-      arc-oracle-sql:
+      arc-oracle:
         condition: service_healthy
-      arc-widow-otel:
+      arc-widow:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/admin/v2/brokers/health || exit 1"]
@@ -346,19 +346,19 @@ services:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-fury-vault:latest
     container_name: arc-fury-vault
-    hostname: arc-fury-vault
+    hostname: arc-fury
     restart: unless-stopped
     environment:
-      DB_CONNECTION_URI: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle-sql:5432/infisical_db?sslmode=disable"
-      REDIS_URL: "redis://arc-sonic-cache:6379"
+      DB_CONNECTION_URI: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/infisical_db?sslmode=disable"
+      REDIS_URL: "redis://arc-sonic:6379"
       ENCRYPTION_KEY: "${INFISICAL_ENCRYPTION_KEY:?Error: INFISICAL_ENCRYPTION_KEY must be set}"
       AUTH_SECRET: "${INFISICAL_AUTH_SECRET:?Error: INFISICAL_AUTH_SECRET must be set}"
       SITE_URL: ${INFISICAL_SITE_URL:-http://localhost:3001}
       TELEMETRY_ENABLED: "false"
     depends_on:
-      arc-oracle-sql:
+      arc-oracle:
         condition: service_healthy
-      arc-sonic-cache:
+      arc-sonic:
         condition: service_healthy
     ports:
       - "3001:8080"
@@ -385,18 +385,18 @@ services:
   # ===========================================================================
   # FEATURE MANAGEMENT - Unleash
   # ===========================================================================
-  arc-mystique-flags:
+  arc-mystique:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-mystique-flags:latest
     container_name: arc-mystique-flags
-    hostname: arc-mystique-flags
+    hostname: arc-mystique
     restart: unless-stopped
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle-sql:5432/unleash_db?sslmode=disable"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/unleash_db?sslmode=disable"
       DATABASE_SSL: "false"
       LOG_LEVEL: info
     depends_on:
-      arc-oracle-sql:
+      arc-oracle:
         condition: service_healthy
     ports:
       - "4242:4242"
@@ -423,11 +423,11 @@ services:
   # ===========================================================================
   # MEDIA - LiveKit (WebRTC SFU)
   # ===========================================================================
-  arc-daredevil-voice:
+  arc-daredevil:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-daredevil-voice:latest
     container_name: arc-daredevil-voice
-    hostname: arc-daredevil-voice
+    hostname: arc-daredevil
     restart: unless-stopped
     command:
       - "--config"

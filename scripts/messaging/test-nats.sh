@@ -2,6 +2,7 @@
 # ==============================================================================
 # A.R.C. Platform - NATS Testing Script
 # ==============================================================================
+# Task: T019
 # Purpose: Test NATS pub/sub functionality for agent communication
 # Usage: ./scripts/messaging/test-nats.sh [--publish|--subscribe|--full]
 # ==============================================================================
@@ -22,7 +23,7 @@ NATS_PORT="${NATS_PORT:-4222}"
 NATS_URL="nats://${NATS_HOST}:${NATS_PORT}"
 CONTAINER_NAME="${NATS_CONTAINER:-arc-flash-pulse}"
 
-# Test subjects (from docs/architecture/NATS-SUBJECTS.md)
+# Test subjects (from docs/architecture/nats-subjects.md)
 SUBJECTS=(
     "agent.voice.track.published"
     "agent.voice.track.unpublished"

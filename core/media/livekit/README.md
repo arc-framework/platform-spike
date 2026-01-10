@@ -356,8 +356,8 @@ LiveKit is already optimized (Go). For heavy load:
 
 ## Related Documentation
 
-- [ADR-001: Daredevil Real-Time Stack](../../../docs/architecture/adr/003-daredevil-realtime-stack.md)
-- [Data Flow Analysis](../../../docs/architecture/REALTIME-MEDIA-DATA-FLOW.md)
+- [ADR-001: Daredevil Real-Time Stack](../../../docs/architecture/adr/001-daredevil-realtime-stack.md)
+- [Data Flow Analysis](../../../specs/001-realtime-media/data-flow-analysis.md)
 - [LiveKit Setup Guide](./SETUP.md)
 - [LiveKit Official Docs](https://docs.livekit.io/)
 

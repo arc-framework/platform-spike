@@ -44,4 +44,4 @@ media/
 ## References
 
 - [LiveKit Server Docs](https://docs.livekit.io/home/self-hosting/deployment/)
-- [ADR-001: Daredevil Stack](../../docs/architecture/adr/003-daredevil-realtime-stack.md)
+- [ADR-001: Daredevil Stack](../../docs/architecture/adr/001-daredevil-realtime-stack.md)
