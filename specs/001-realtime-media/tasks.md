@@ -74,12 +74,12 @@ Based on current repository structure:
 
 ### Agent Communication Infrastructure
 
-- [x] T017 Define NATS subjects schema in `docs/architecture/nats-subjects.md`:
+- [x] T017 Define NATS subjects schema in `docs/architecture/NATS-SUBJECTS.md`:
   - `agent.voice.track_published`
   - `agent.voice.track_unpublished`
   - `agent.brain.request`
   - `agent.brain.response`
-- [x] T018 Define Pulsar topics schema in `docs/architecture/pulsar-topics.md`:
+- [x] T018 Define Pulsar topics schema in `docs/architecture/PULSAR-TOPICS.md`:
   - `persistent://arc/events/conversation`
   - `persistent://arc/events/agent-lifecycle`
   - `persistent://arc/analytics/session-metrics`
@@ -463,9 +463,9 @@ Based on current repository structure:
   - Add hybrid architecture diagram (LiveKit Agents + microservices)
   - Show NATS communication flows
   - Document plugin architecture
-- [ ] T129 [P] Document service interaction protocols in `docs/architecture/protocols.md`
-- [ ] T130 [P] Create troubleshooting guide in `docs/troubleshooting/voice-agent.md`
-- [ ] T131 [P] Document phase-based implementation strategy in `docs/implementation-phases.md`
+- [ ] T129 [P] Document service interaction protocols in `docs/architecture/PROTOCOLS.md`
+- [ ] T130 [P] Create troubleshooting guide in `docs/troubleshooting/VOICE-AGENT.md`
+- [ ] T131 [P] Document phase-based implementation strategy in `docs/IMPLEMENTATION-PHASES.md`
 
 ### Code Quality
 

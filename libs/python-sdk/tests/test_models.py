@@ -1,7 +1,6 @@
 """
 Unit tests for database models.
 
-Task: T028
 Tests: Conversation and Session SQLAlchemy models with pgvector support
 """
 

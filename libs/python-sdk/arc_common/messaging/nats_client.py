@@ -1,9 +1,8 @@
 """
 NATS client wrapper for A.R.C. agent event publishing and subscribing.
 
-Task: T025
 Purpose: Simplify NATS JetStream interactions for agent services
-Subjects: Defined in docs/architecture/nats-subjects.md
+Subjects: Defined in docs/architecture/NATS-SUBJECTS.md
 """
 
 import asyncio

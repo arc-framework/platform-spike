@@ -47,7 +47,7 @@ services:
       dockerfile: Dockerfile
     image: ghcr.io/arc-framework/arc-deckard-identity:latest
     container_name: arc-deckard-identity
-    hostname: arc-jarvis
+    hostname: arc-deckard-identity
     restart: unless-stopped
     # Command is now in Dockerfile CMD, entrypoint handles migrations
     environment:

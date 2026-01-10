@@ -25,6 +25,7 @@ docs/reports/**/*
 # IDE & Editor
 .vscode/
 .idea/
+.todo
 *.swp
 *.swo
 *~
@@ -68,6 +69,10 @@ Thumbs.db
 *.tmp
 tmp/
 temp/
+
+# Task commit tracking (local only)
+specs/**/.last-recorded-tasks
+specs/**/.commit-msg
 
 # Dependencies
 node_modules/
