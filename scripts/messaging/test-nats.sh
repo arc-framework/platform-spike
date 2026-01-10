@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - NATS Testing Script
 # ==============================================================================
-# Task: T019
 # Purpose: Test NATS pub/sub functionality for agent communication
 # Usage: ./scripts/messaging/test-nats.sh [--publish|--subscribe|--full]
 # ==============================================================================

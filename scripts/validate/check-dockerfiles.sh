@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Dockerfile Linting Script
 # ==============================================================================
-# Task: T024
 # Purpose: Lint all Dockerfiles using hadolint
 # Usage: ./scripts/validate/check-dockerfiles.sh [--json] [--fix]
 # Exit: 0=pass, 1=fail, 2=error

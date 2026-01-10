@@ -1,7 +1,6 @@
 # ==============================================================================
 # A.R.C. Platform - Build Performance Tracking Workflow
 # ==============================================================================
-# Task: T052
 # Purpose: Track Docker build times and image sizes on PRs
 #
 # Triggers:

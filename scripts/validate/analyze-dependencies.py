@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Docker Image Dependency Analyzer
 
-Task: T034
 Purpose: Analyze Docker image dependency tree and generate visualizations
 Usage: python scripts/validate/analyze-dependencies.py [--output FORMAT]
 Exit: 0=success, 1=error

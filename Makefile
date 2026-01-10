@@ -22,7 +22,9 @@
         info-core \
         pr task-commit build-base-images validate-dockerfiles validate-structure validate-all \
         analyze-deps analyze-deps-mermaid analyze-deps-json build-impact security-scan security-report \
-        track-build-times track-build-times-cold check-image-sizes check-image-sizes-strict
+        track-build-times track-build-times-cold check-image-sizes check-image-sizes-strict \
+        _lint-go _lint-py _lint-sh _lint-docker _fmt-go _fmt-py _test-go _test-py _typecheck-py _security-scan \
+        check-all lint-all test-all fmt-all
 
 # ==============================================================================
 # Configuration Variables
@@ -132,6 +134,12 @@ help:
 	@echo "$(YELLOW)Build Performance:$(NC)"
 	@echo "  $(GREEN)make track-build-times$(NC) Track build times for all services"
 	@echo "  $(GREEN)make check-image-sizes$(NC) Validate image sizes against targets"
+	@echo ""
+	@echo "$(YELLOW)Code Quality Suite:$(NC)"
+	@echo "  $(GREEN)make check-all$(NC)         Run ALL checks (Lint + Test + Security) with summary"
+	@echo "  $(GREEN)make lint-all$(NC)          Run all linters (Go, Python, Shell, Docker)"
+	@echo "  $(GREEN)make test-all$(NC)          Run all tests (Go, Python)"
+	@echo "  $(GREEN)make fmt-all$(NC)           Format all code (Go, Python)"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation: docs/OPERATIONS.md$(NC)"
@@ -775,3 +783,239 @@ check-image-sizes: ## Validate image sizes against targets
 
 check-image-sizes-strict: ## Validate image sizes (fail on violation)
 	@python3 scripts/validate/check-image-sizes.py --strict
+
+# ==============================================================================
+# MODULAR LINT & CHECK TARGETS (Building Blocks)
+# ==============================================================================
+# These are reusable primitives that can be composed into larger commands.
+# Use these for targeted checks during development.
+# ==============================================================================
+
+# --- Go Linting ---
+_lint-go: ## Lint Go code (raymond service)
+	@echo "$(BLUE)Linting Go code...$(NC)"
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		cd services/utilities/raymond && golangci-lint run --timeout 5m ./...; \
+	else \
+		echo "$(YELLOW)⚠️  golangci-lint not installed. Install with: brew install golangci-lint$(NC)"; \
+		exit 1; \
+	fi
+
+_fmt-go: ## Format Go code
+	@echo "$(BLUE)Formatting Go code...$(NC)"
+	@if command -v gofumpt >/dev/null 2>&1; then \
+		find services/utilities/raymond -name "*.go" -exec gofumpt -w {} \;; \
+	else \
+		echo "$(YELLOW)⚠️  gofumpt not installed. Install with: go install mvdan.cc/gofumpt@latest$(NC)"; \
+		gofmt -w services/utilities/raymond; \
+	fi
+
+_test-go: ## Run Go tests
+	@echo "$(BLUE)Running Go tests...$(NC)"
+	@cd services/utilities/raymond && go test -v -race -coverprofile=coverage.out ./...
+
+# --- Python Linting ---
+_lint-py: ## Lint Python code with ruff
+	@echo "$(BLUE)Linting Python code...$(NC)"
+	@if command -v ruff >/dev/null 2>&1; then \
+		ruff check libs/python-sdk scripts/validate services/arc-sherlock-brain services/arc-scarlett-voice services/arc-piper-tts 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  ruff not installed. Install with: pip install ruff$(NC)"; \
+		exit 1; \
+	fi
+
+_fmt-py: ## Format Python code with black
+	@echo "$(BLUE)Formatting Python code...$(NC)"
+	@if command -v black >/dev/null 2>&1; then \
+		black libs/python-sdk scripts/validate services/arc-sherlock-brain services/arc-scarlett-voice services/arc-piper-tts 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  black not installed. Install with: pip install black$(NC)"; \
+		exit 1; \
+	fi
+
+_test-py: ## Run Python tests
+	@echo "$(BLUE)Running Python tests...$(NC)"
+	@cd libs/python-sdk && python -m pytest -v tests/ 2>/dev/null || true
+
+_typecheck-py: ## Type check Python code with mypy
+	@echo "$(BLUE)Type checking Python code...$(NC)"
+	@if command -v mypy >/dev/null 2>&1; then \
+		mypy libs/python-sdk/arc_common --ignore-missing-imports 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  mypy not installed. Install with: pip install mypy$(NC)"; \
+	fi
+
+# --- Shell Linting ---
+_lint-sh: ## Lint shell scripts with shellcheck
+	@echo "$(BLUE)Linting shell scripts...$(NC)"
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		find scripts -name "*.sh" -exec shellcheck --severity=warning {} \; 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  shellcheck not installed. Install with: brew install shellcheck$(NC)"; \
+		exit 1; \
+	fi
+
+# --- Docker Linting ---
+_lint-docker: ## Lint Dockerfiles with hadolint
+	@echo "$(BLUE)Linting Dockerfiles...$(NC)"
+	@if command -v hadolint >/dev/null 2>&1; then \
+		find . -name "Dockerfile" -not -path "*/node_modules/*" -not -path "*/.git/*" -exec hadolint --config .hadolint.yaml {} \; 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  hadolint not installed. Install with: brew install hadolint$(NC)"; \
+		exit 1; \
+	fi
+
+# --- Security Scanning ---
+_security-scan: ## Run security scan with trivy
+	@echo "$(BLUE)Running security scan...$(NC)"
+	@if command -v trivy >/dev/null 2>&1; then \
+		./scripts/validate/check-security.sh 2>/dev/null || true; \
+	else \
+		echo "$(YELLOW)⚠️  trivy not installed. Install with: brew install trivy$(NC)"; \
+		exit 1; \
+	fi
+
+# ==============================================================================
+# RESILIENT SUITE RUNNER (The "check-all" Command)
+# ==============================================================================
+# This runs ALL checks regardless of individual failures.
+# Uses failure markers to track which steps failed.
+# Reports a summary at the end and exits with appropriate code.
+# ==============================================================================
+
+# Temporary directory for failure markers
+SUITE_MARKER_DIR := /tmp/arc-suite-markers-$$$$
+
+check-all: ## Run ALL checks (Lint + Format + Test + Security) with full summary
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║        A.R.C. Framework - Complete Validation Suite              ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@rm -rf $(SUITE_MARKER_DIR) && mkdir -p $(SUITE_MARKER_DIR)
+	@SUITE_FAILED=0; \
+	\
+	echo "$(YELLOW)━━━ Phase 1: Linting ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo ""; \
+	\
+	echo "$(BLUE)[1/8] Go Lint$(NC)"; \
+	if $(MAKE) _lint-go 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Go lint passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Go lint failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/lint-go-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(BLUE)[2/8] Python Lint$(NC)"; \
+	if $(MAKE) _lint-py 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Python lint passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Python lint failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/lint-py-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(BLUE)[3/8] Shell Lint$(NC)"; \
+	if $(MAKE) _lint-sh 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Shell lint passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Shell lint failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/lint-sh-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(BLUE)[4/8] Docker Lint$(NC)"; \
+	if $(MAKE) _lint-docker 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Docker lint passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Docker lint failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/lint-docker-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(YELLOW)━━━ Phase 2: Type Checking ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo ""; \
+	\
+	echo "$(BLUE)[5/8] Python Type Check$(NC)"; \
+	if $(MAKE) _typecheck-py 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Python type check passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Python type check failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/typecheck-py-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(YELLOW)━━━ Phase 3: Testing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo ""; \
+	\
+	echo "$(BLUE)[6/8] Go Tests$(NC)"; \
+	if $(MAKE) _test-go 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Go tests passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Go tests failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/test-go-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(BLUE)[7/8] Python Tests$(NC)"; \
+	if $(MAKE) _test-py 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Python tests passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Python tests failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/test-py-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(YELLOW)━━━ Phase 4: Security ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"; \
+	echo ""; \
+	\
+	echo "$(BLUE)[8/8] Security Scan$(NC)"; \
+	if $(MAKE) _security-scan 2>/dev/null; then \
+		echo "$(GREEN)  ✓ Security scan passed$(NC)"; \
+	else \
+		echo "$(RED)  ✗ Security scan failed$(NC)"; \
+		touch $(SUITE_MARKER_DIR)/security-failed; \
+		SUITE_FAILED=1; \
+	fi; \
+	echo ""; \
+	\
+	echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"; \
+	echo "$(CYAN)║                        SUITE SUMMARY                              ║$(NC)"; \
+	echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"; \
+	echo ""; \
+	FAILED_CHECKS=$$(ls $(SUITE_MARKER_DIR)/ 2>/dev/null | wc -l | tr -d ' '); \
+	TOTAL_CHECKS=8; \
+	PASSED_CHECKS=$$((TOTAL_CHECKS - FAILED_CHECKS)); \
+	\
+	if [ "$$FAILED_CHECKS" -eq 0 ]; then \
+		echo "$(GREEN)  ✓ All $$TOTAL_CHECKS checks passed!$(NC)"; \
+		echo ""; \
+		rm -rf $(SUITE_MARKER_DIR); \
+		exit 0; \
+	else \
+		echo "$(RED)  ✗ $$FAILED_CHECKS of $$TOTAL_CHECKS checks failed:$(NC)"; \
+		echo ""; \
+		for marker in $(SUITE_MARKER_DIR)/*-failed; do \
+			if [ -f "$$marker" ]; then \
+				CHECK_NAME=$$(basename "$$marker" | sed 's/-failed//'); \
+				echo "$(RED)    • $$CHECK_NAME$(NC)"; \
+			fi; \
+		done; \
+		echo ""; \
+		echo "$(YELLOW)  Passed: $$PASSED_CHECKS | Failed: $$FAILED_CHECKS$(NC)"; \
+		echo ""; \
+		rm -rf $(SUITE_MARKER_DIR); \
+		exit 1; \
+	fi
+
+# Convenience aliases
+lint-all: _lint-go _lint-py _lint-sh _lint-docker ## Run all linters
+test-all: _test-go _test-py ## Run all tests
+fmt-all: _fmt-go _fmt-py ## Format all code

@@ -1,7 +1,6 @@
 # ==============================================================================
 # A.R.C. Platform - Pre-commit Configuration
 # ==============================================================================
-# Task: T058
 # Purpose: Run validation checks before commits
 # Install: pip install pre-commit && pre-commit install
 # ==============================================================================

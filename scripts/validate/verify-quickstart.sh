@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Quickstart Scenario Verification
 # ==============================================================================
-# Task: T062
 # Purpose: Verify that quickstart documentation commands work as expected
 # Usage: ./scripts/validate/verify-quickstart.sh [--dry-run] [--json]
 # Exit: 0=all pass, 1=failures found

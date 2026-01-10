@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Validation Orchestrator
 # ==============================================================================
-# Task: T056
 # Purpose: Run all validation checks and report results
 # Usage: ./scripts/validate/validate-all.sh [--strict] [--json] [--quick]
 # Exit: 0=all pass, 1=errors found

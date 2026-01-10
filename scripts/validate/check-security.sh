@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Security Scanning Script
 # ==============================================================================
-# Task: T025
 # Purpose: Scan Docker images for vulnerabilities using trivy
 # Usage: ./scripts/validate/check-security.sh [--severity HIGH,CRITICAL] [--json]
 # Exit: 0=pass, 1=vulnerabilities found, 2=error

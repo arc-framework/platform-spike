@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Service Generator
 # ==============================================================================
-# Task: T066
 # Purpose: Scaffold a new service with all required files
 # Usage: ./scripts/create-service.sh --name arc-analytics --tier services --lang python
 # Exit: 0=success, 1=error

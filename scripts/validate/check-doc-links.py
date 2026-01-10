@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Documentation Link Checker
 
-Task: T061
 Purpose: Verify all path references in documentation exist
 Usage: python scripts/validate/check-doc-links.py [--strict] [--json]
 Exit: 0=all pass, 1=broken links found

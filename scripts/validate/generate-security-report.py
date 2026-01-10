@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Security Compliance Report Generator
 
-Task: T026
 Purpose: Generate comprehensive security compliance report for all Docker images
 Usage: python scripts/validate/generate-security-report.py [--output FILE]
 Exit: 0=pass, 1=issues found, 2=error

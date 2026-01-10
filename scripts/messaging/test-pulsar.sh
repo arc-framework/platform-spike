@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Pulsar Testing Script
 # ==============================================================================
-# Task: T019
 # Purpose: Test Pulsar pub/sub functionality for durable event streaming
 # Usage: ./scripts/messaging/test-pulsar.sh [--publish|--consume|--full]
 # ==============================================================================

@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Directory Structure Validator
 
-Task: T054
 Purpose: Validate directory structure follows A.R.C. Constitution patterns
 Usage: python scripts/validate/check-structure.py [--strict] [--json]
 Exit: 0=all pass, 1=validation errors found

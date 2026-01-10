@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Docker Image Size Validator
 
-Task: T048
 Purpose: Validate Docker image sizes against Constitution targets
 Usage: python scripts/validate/check-image-sizes.py [--json] [--strict]
 Exit: 0=all pass, 1=size violations found

@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - SERVICE.MD Registry Validator
 
-Task: T053
 Purpose: Validate SERVICE.MD against actual directory structure
 Usage: python scripts/validate/check-service-registry.py [--strict] [--json]
 Exit: 0=all pass, 1=validation errors found

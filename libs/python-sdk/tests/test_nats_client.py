@@ -1,7 +1,6 @@
 """
 Unit tests for NATS client wrapper.
 
-Task: T028
 Tests: NATSAgentClient publish/subscribe functionality
 """
 

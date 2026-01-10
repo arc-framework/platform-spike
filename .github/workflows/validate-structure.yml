@@ -1,7 +1,6 @@
 # ==============================================================================
 # A.R.C. Platform - Structure Validation Workflow
 # ==============================================================================
-# Task: T057
 # Purpose: Validate directory structure, SERVICE.MD, and Dockerfiles on PRs
 #
 # Triggers:

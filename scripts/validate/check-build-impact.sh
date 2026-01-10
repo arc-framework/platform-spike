@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Build Impact Analysis Script
 # ==============================================================================
-# Task: T035
 # Purpose: Determine which services need rebuilding when files change
 # Usage: ./scripts/validate/check-build-impact.sh [FILE_OR_DIR]
 # Exit: 0=success (outputs affected services)

@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - Build Time Tracking Script
 # ==============================================================================
-# Task: T047
 # Purpose: Build all services and record build times for performance tracking
 # Usage: ./scripts/validate/track-build-times.sh [--cold|--warm] [--json]
 # Exit: 0=success, 1=build failure

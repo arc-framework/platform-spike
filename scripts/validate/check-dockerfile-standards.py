@@ -2,7 +2,6 @@
 """
 A.R.C. Platform - Dockerfile Standards Validator
 
-Task: T055
 Purpose: Validate Dockerfiles follow A.R.C. Constitution security requirements
 Usage: python scripts/validate/check-dockerfile-standards.py [--strict] [--json]
 Exit: 0=all pass, 1=validation errors found

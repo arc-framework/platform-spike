@@ -1,7 +1,6 @@
 # ==============================================================================
 # A.R.C. Platform - Base Image Build & Publish Workflow
 # ==============================================================================
-# Task: T041
 # Purpose: Build, test, and publish base Docker images to GHCR
 #
 # Triggers:
@@ -10,8 +9,8 @@
 #   - Weekly schedule (security updates)
 #
 # Images Built:
-#   - ghcr.io/arc-framework/base-python-ai:3.11-alpine3.19
-#   - ghcr.io/arc-framework/base-go-infra:1.21-alpine3.19 (future)
+#   - ghcr.io/arc-framework/arc-base-python-ai:3.11-alpine3.19
+#   - ghcr.io/arc-framework/arc-base-go-infra:1.24-alpine3.21 (future)
 # ==============================================================================
 
 name: Build Base Images
@@ -101,7 +100,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/base-python-ai
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/arc-base-python-ai
           tags: |
             # Version tag (primary)
             type=raw,value=3.11-alpine3.19
@@ -130,7 +129,7 @@ jobs:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/base-python-ai:3.11-alpine3.19
+          image-ref: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/arc-base-python-ai:3.11-alpine3.19
           format: 'sarif'
           output: 'trivy-results-python-ai.sarif'
           severity: 'CRITICAL,HIGH'
@@ -143,7 +142,7 @@ jobs:
 
       - name: Verify image size
         run: |
-          SIZE=$(docker inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/base-python-ai:3.11-alpine3.19 --format='{{.Size}}' 2>/dev/null || echo "0")
+          SIZE=$(docker inspect ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/arc-base-python-ai:3.11-alpine3.19 --format='{{.Size}}' 2>/dev/null || echo "0")
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "Image size: ${SIZE_MB}MB"
           if [ "$SIZE_MB" -gt 300 ]; then
@@ -194,9 +193,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/base-go-infra
+          images: ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/arc-base-go-infra
           tags: |
-            type=raw,value=1.21-alpine3.19
+            type=raw,value=1.24-alpine3.21
             type=sha,prefix=sha-
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
@@ -212,7 +211,7 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
             VCS_REF=${{ github.sha }}
-            VERSION=1.21-alpine3.19
+            VERSION=1.24-alpine3.21
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
