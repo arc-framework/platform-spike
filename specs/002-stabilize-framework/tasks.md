@@ -165,13 +165,13 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### 2.1 Docker Standards & Base Images
 
-- [ ] T008 Verify docker-standards.md exists and is complete at `specs/002-stabilize-framework/docker-standards.md`
+- [x] T008 Verify docker-standards.md exists and is complete at `specs/002-stabilize-framework/docker-standards.md`
   - Security requirements section (non-root, pinned versions)
   - Build optimization section (layer ordering, cache mounts)
   - Language-specific patterns (Python, Go)
   - Image size targets
 
-- [ ] T009 Verify directory-design.md exists and is complete at `specs/002-stabilize-framework/directory-design.md`
+- [x] T009 Verify directory-design.md exists and is complete at `specs/002-stabilize-framework/directory-design.md`
   - Three-tier structure (core/plugins/services)
   - Inclusion criteria for each tier
   - Naming conventions
@@ -200,7 +200,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### 2.2 Migration & Validation Design
 
-- [ ] T013 Verify migration-guide.md exists and is complete at `specs/002-stabilize-framework/migration-guide.md`
+- [x] T013 Verify migration-guide.md exists and is complete at `specs/002-stabilize-framework/migration-guide.md`
   - Phase-by-phase migration steps
   - Rollback procedures
   - Service migration order
@@ -227,7 +227,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 3.1 Directory-Level Documentation
 
-- [ ] T015 [P] [US1] Create README.md at `core/README.md`
+- [x] T015 [P] [US1] Create README.md at `core/README.md`
   ```markdown
   # A.R.C. Core Infrastructure
   Essential services that MUST run for the platform to function.
@@ -252,7 +252,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   Example: core/persistence/postgres/
   ```
 
-- [ ] T016 [P] [US1] Create README.md at `plugins/README.md`
+- [x] T016 [P] [US1] Create README.md at `plugins/README.md`
   ```markdown
   # A.R.C. Plugins
   Optional and swappable components. Platform works without them.
@@ -272,7 +272,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   | Loki | arc-watson | Log aggregation |
   ```
 
-- [ ] T017 [P] [US1] Create README.md at `services/README.md`
+- [x] T017 [P] [US1] Create README.md at `services/README.md`
   ```markdown
   # A.R.C. Services
   Application logic, AI agents, and reasoning engines.
@@ -291,25 +291,25 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   | raymond | raymond | Bootstrap utilities | Go |
   ```
 
-- [ ] T018 [P] [US1] Create README.md at `.docker/README.md`
+- [x] T018 [P] [US1] Create README.md at `.docker/README.md`
   - Explain base image strategy
   - Document available base images
   - Link to Dockerfile templates
 
-- [ ] T019 [P] [US1] Create README.md at `scripts/validate/README.md`
+- [x] T019 [P] [US1] Create README.md at `scripts/validate/README.md`
   - List all validation scripts
   - Explain how to run validations
   - Document CI/CD integration
 
 #### 3.2 Service Registry Enhancement
 
-- [ ] T020 [US1] Enhance SERVICE.MD with directory structure section
+- [x] T020 [US1] Enhance SERVICE.MD with directory structure section
   - Add "Directory Location" column
   - Add categorization decision tree
   - Add "How to add a new service" section
   - Cross-reference with constitution codename requirements
 
-- [ ] T021 [US1] Create quickstart reference at `specs/002-stabilize-framework/quickstart.md`
+- [x] T021 [US1] Create quickstart reference at `specs/002-stabilize-framework/quickstart.md`
   - 5-minute developer onboarding guide
   - "Find a service" walkthrough
   - "Add a new service" walkthrough
@@ -317,7 +317,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 3.3 Architecture Diagrams
 
-- [ ] T022 [US1] Create architecture diagram at `docs/architecture/directory-structure.md`
+- [x] T022 [US1] Create architecture diagram at `docs/architecture/directory-structure.md`
   ```
   platform-spike/
   ├── core/           # Essential infrastructure (always required)
@@ -330,7 +330,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   └── .docker/        # Base images & templates
   ```
 
-- [ ] T023 [US1] Audit all services and add README.md where missing
+- [x] T023 [US1] Audit all services and add README.md where missing
   - `services/arc-sherlock-brain/README.md`
   - `services/arc-scarlett-voice/README.md`
   - `services/arc-piper-tts/README.md`

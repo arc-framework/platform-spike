@@ -88,3 +88,142 @@ If your system (A.R.C.) stays online, it is truly resilient. If not... _hasta la
 
 > **Why Him?**  
 > "I am the Architect. I created the Matrix." The Architect understands the system structure. Backstage helps developers understand the platform architecture.
+
+---
+
+## 📁 Directory Structure & Service Location
+
+Services are organized into a three-tier structure based on their role in the platform:
+
+```
+platform-spike/
+├── core/                    # ESSENTIAL infrastructure (platform fails without these)
+│   ├── gateway/traefik/     # Heimdall - API gateway
+│   ├── persistence/postgres/ # Oracle - primary database
+│   ├── caching/redis/       # Sonic - working memory
+│   ├── messaging/           # Flash & Strange - communication
+│   │   ├── ephemeral/nats/  # Flash - real-time messaging
+│   │   └── durable/pulsar/  # Strange - event streaming
+│   ├── telemetry/           # Widow - observability pipeline
+│   └── secrets/infisical/   # Fury - secrets management
+│
+├── plugins/                 # OPTIONAL components (swappable, not always needed)
+│   ├── observability/       # Monitoring stack
+│   │   ├── logging/loki/    # Watson - log aggregation
+│   │   ├── metrics/prometheus/ # House - metrics collection
+│   │   ├── tracing/jaeger/  # Columbo - distributed tracing
+│   │   └── visualization/grafana/ # Friday - dashboards
+│   └── security/kratos/     # Jarvis - identity management
+│
+├── services/                # APPLICATION logic (your AI agents and workers)
+│   ├── arc-sherlock-brain/  # Sherlock - reasoning engine
+│   ├── arc-scarlett-voice/  # Scarlett - voice agent
+│   ├── arc-piper-tts/       # Piper - text-to-speech
+│   └── utilities/raymond/   # Raymond - bootstrap utilities
+│
+└── .docker/                 # Shared Docker base images
+    └── base/
+        ├── python-ai/       # Base for Python AI services
+        └── go-infra/        # Base for Go services
+```
+
+### Tier Decision Tree
+
+```
+Is this service required for the platform to start?
+├── YES → Does it have deep integration with multiple services?
+│         ├── YES → core/
+│         └── NO  → Consider if it's truly "core"
+└── NO  → Is it infrastructure (monitoring, auth, storage)?
+          ├── YES → plugins/
+          └── NO  → services/
+```
+
+### Quick Reference: Where Does My Service Go?
+
+| If your service is... | Put it in... | Example |
+|-----------------------|--------------|---------|
+| Required to boot the platform | `core/` | Postgres, Redis, NATS |
+| Optional infrastructure | `plugins/` | Grafana, Jaeger, Kratos |
+| AI agent or reasoning engine | `services/` | arc-sherlock-brain |
+| Business logic worker | `services/` | arc-ramsay-critic |
+| Shared library (not a service) | `libs/` | Common utilities |
+
+---
+
+## 🆕 How to Add a New Service
+
+### 1. Choose Your Tier
+
+Use the decision tree above to determine if your service is `core/`, `plugins/`, or `services/`.
+
+### 2. Pick a Codename
+
+Follow the A.R.C. Constitution naming pattern:
+- **Marvel/Hollywood inspired** - Memorable and descriptive
+- **Matches the service's personality** - What does it "feel" like?
+- **Unique across the platform** - Check this registry first!
+
+### 3. Create Directory Structure
+
+```bash
+# For application services
+mkdir -p services/arc-{codename}-{function}
+
+# Example: New "analyst" service with codename "stark"
+mkdir -p services/arc-stark-analyst
+```
+
+### 4. Add Required Files
+
+**Python Service:**
+```bash
+cd services/arc-{codename}-{function}
+touch Dockerfile requirements.txt README.md
+mkdir -p src
+touch src/__init__.py src/main.py
+```
+
+**Go Service:**
+```bash
+cd services/arc-{codename}-{function}
+touch Dockerfile README.md
+go mod init github.com/arc-framework/arc-{codename}-{function}
+mkdir -p cmd
+```
+
+### 5. Use Base Images
+
+```dockerfile
+# Python AI services
+FROM ghcr.io/arc/base-python-ai:3.11-alpine3.19
+
+# Go infrastructure services
+FROM ghcr.io/arc/base-go-infra:1.21-alpine3.19
+```
+
+### 6. Update This Registry
+
+Add your service to the Master Service Table above with:
+- Service name
+- A.R.C. image name (`arc-{codename}-{function}`)
+- Type (INFRA/CORE/WORKER/SIDECAR)
+- Upstream source
+- Codename
+- Role description
+
+### 7. Add to Docker Compose
+
+Add service definition to the appropriate compose file:
+- `deployments/docker/docker-compose.core.yml` - Core services
+- `deployments/docker/docker-compose.services.yml` - Application services
+
+---
+
+## 🔗 Related Documentation
+
+- **[core/README.md](./core/README.md)** - Core infrastructure details
+- **[plugins/README.md](./plugins/README.md)** - Plugin components
+- **[services/README.md](./services/README.md)** - Application services
+- **[Docker Standards](./specs/002-stabilize-framework/docker-standards.md)** - Dockerfile requirements
+- **[Directory Design](./specs/002-stabilize-framework/directory-design.md)** - Architecture decisions

@@ -200,7 +200,8 @@ TASK_IDS=$(grep -E '^\- \[[Xx]\].*T[0-9]+' "$TASKS_FILE" 2>/dev/null | grep -oE 
 #
 # Tasks: T001, T002, T003
 # Phase: Phase 1: Setup
-cat > "$COMMIT_MSG_FILE" << EOF
+# Appends to .commit-msg so multiple task-commits can accumulate
+cat >> "$COMMIT_MSG_FILE" << EOF
 feat($FEATURE_ID): $COMMIT_SUMMARY
 
 Tasks: $TASK_IDS
