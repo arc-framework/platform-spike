@@ -242,7 +242,7 @@ Infrastructure follows functional naming:
 
 - **[SERVICE.MD](../../SERVICE.MD)** - Service registry with codenames
 - **[Architecture README](./README.md)** - Architecture overview
-- **[Docker Standards](../../specs/002-stabilize-framework/docker-standards.md)** - Dockerfile requirements
+- **[Docker Standards](../standards/docker-standards.md)** - Dockerfile requirements
 - **[services/README.md](../../services/README.md)** - Application services guide
 - **[core/README.md](../../core/README.md)** - Core infrastructure guide
 - **[plugins/README.md](../../plugins/README.md)** - Plugin components guide

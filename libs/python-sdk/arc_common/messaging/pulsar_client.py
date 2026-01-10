@@ -3,7 +3,7 @@ Pulsar client wrapper for A.R.C. durable event streaming.
 
 Task: T026
 Purpose: Simplify Pulsar interactions for conversation events, analytics, and audit logs
-Topics: Defined in docs/architecture/pulsar-topics.md
+Topics: Defined in docs/architecture/PULSAR-TOPICS.md
 """
 
 import json

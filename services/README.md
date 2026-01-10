@@ -183,7 +183,7 @@ docker compose -f deployments/docker/docker-compose.services.yml up arc-sherlock
 
 All services MUST:
 
-1. **Have a Dockerfile** following [docker-standards.md](../specs/002-stabilize-framework/docker-standards.md)
+1. **Have a Dockerfile** following [DOCKER-STANDARDS.md](../docs/standards/DOCKER-STANDARDS.md)
 2. **Run as non-root** (UID 1000, `arcuser`)
 3. **Include health check** endpoint at `/health`
 4. **Have README.md** documenting purpose, dependencies, and usage
@@ -196,6 +196,6 @@ All services MUST:
 
 - [Core Services](../core/) - Required infrastructure
 - [Plugins](../plugins/) - Optional components
-- [Docker Standards](../specs/002-stabilize-framework/docker-standards.md) - Dockerfile requirements
+- [Docker Standards](../docs/standards/DOCKER-STANDARDS.md) - Dockerfile requirements
 - [SERVICE.MD](../SERVICE.MD) - Service registry
 - [Base Images](../.docker/) - Shared Docker base images

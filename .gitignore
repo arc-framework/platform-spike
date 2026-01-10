@@ -25,6 +25,7 @@ docs/reports/**/*
 # IDE & Editor
 .vscode/
 .idea/
+.todo
 *.swp
 *.swo
 *~

@@ -165,13 +165,13 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### 2.1 Docker Standards & Base Images
 
-- [x] T008 Verify docker-standards.md exists and is complete at `specs/002-stabilize-framework/docker-standards.md`
+- [x] T008 Verify docker-standards.md exists and is complete at `docs/standards/DOCKER-STANDARDS.md`
   - Security requirements section (non-root, pinned versions)
   - Build optimization section (layer ordering, cache mounts)
   - Language-specific patterns (Python, Go)
   - Image size targets
 
-- [x] T009 Verify directory-design.md exists and is complete at `specs/002-stabilize-framework/directory-design.md`
+- [x] T009 Verify directory-design.md exists and is complete at `docs/architecture/DIRECTORY-DESIGN.md`
   - Three-tier structure (core/plugins/services)
   - Inclusion criteria for each tier
   - Naming conventions
@@ -200,7 +200,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### 2.2 Migration & Validation Design
 
-- [x] T013 Verify migration-guide.md exists and is complete at `specs/002-stabilize-framework/migration-guide.md`
+- [x] T013 Verify migration-guide.md exists and is complete at `docs/guides/MIGRATION-GUIDE.md`
   - Phase-by-phase migration steps
   - Rollback procedures
   - Service migration order
@@ -317,7 +317,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 3.3 Architecture Diagrams
 
-- [x] T022 [US1] Create architecture diagram at `docs/architecture/directory-structure.md`
+- [x] T022 [US1] Create architecture diagram at `docs/architecture/DIRECTORY-STRUCTURE.md`
   ```
   platform-spike/
   ├── core/           # Essential infrastructure (always required)
@@ -560,7 +560,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   # If lib changed -> services using that lib
   ```
 
-- [ ] T036 [US3] Document image relationships at `docs/architecture/docker-image-hierarchy.md`
+- [ ] T036 [US3] Document image relationships at `docs/architecture/DOCKER-IMAGE-HIERARCHY.md`
   ```markdown
   # Docker Image Hierarchy
 
@@ -852,7 +852,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### Implementation for User Story 6
 
-- [ ] T063 [P] [US6] Create service categorization guide at `docs/architecture/service-categorization.md`
+- [ ] T063 [P] [US6] Create service categorization guide at `docs/architecture/SERVICE-CATEGORIZATION.md`
   ```markdown
   # Service Categorization Decision Tree
 
@@ -863,7 +863,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
            └── NO → services/
   ```
 
-- [ ] T064 [P] [US6] Create scaling strategy document at `docs/architecture/scaling-strategy.md`
+- [ ] T064 [P] [US6] Create scaling strategy document at `docs/architecture/SCALING-STRATEGY.md`
   - When to add subdirectories (>15 services per category)
   - How to handle service variants (GPU/CPU)
   - Multi-tenancy considerations
@@ -907,7 +907,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   - Alternatives considered
   - Trade-offs
 
-- [ ] T070 [US6] Create service roadmap at `docs/architecture/service-roadmap.md`
+- [ ] T070 [US6] Create service roadmap at `docs/architecture/SERVICE-ROADMAP.md`
   - Planned services
   - Deprecation candidates
   - Category evolution

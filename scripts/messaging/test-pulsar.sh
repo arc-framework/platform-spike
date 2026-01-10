@@ -24,7 +24,7 @@ PULSAR_HTTP_PORT="${PULSAR_HTTP_PORT:-8080}"
 PULSAR_URL="pulsar://${PULSAR_HOST}:${PULSAR_PORT}"
 CONTAINER_NAME="${PULSAR_CONTAINER:-arc-strange-stream}"
 
-# Test topics (from docs/architecture/pulsar-topics.md)
+# Test topics (from docs/architecture/PULSAR-TOPICS.md)
 TENANT="arc"
 NAMESPACES=("events" "analytics" "audit")
 TOPICS=(

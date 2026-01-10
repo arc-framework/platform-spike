@@ -225,5 +225,5 @@ Add service definition to the appropriate compose file:
 - **[core/README.md](./core/README.md)** - Core infrastructure details
 - **[plugins/README.md](./plugins/README.md)** - Plugin components
 - **[services/README.md](./services/README.md)** - Application services
-- **[Docker Standards](./specs/002-stabilize-framework/docker-standards.md)** - Dockerfile requirements
-- **[Directory Design](./specs/002-stabilize-framework/directory-design.md)** - Architecture decisions
+- **[Docker Standards](./docs/standards/DOCKER-STANDARDS.md)** - Dockerfile requirements
+- **[Directory Design](./docs/architecture/DIRECTORY-DESIGN.md)** - Architecture decisions

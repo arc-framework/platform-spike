@@ -23,7 +23,7 @@ NATS_PORT="${NATS_PORT:-4222}"
 NATS_URL="nats://${NATS_HOST}:${NATS_PORT}"
 CONTAINER_NAME="${NATS_CONTAINER:-arc-flash-pulse}"
 
-# Test subjects (from docs/architecture/nats-subjects.md)
+# Test subjects (from docs/architecture/NATS-SUBJECTS.md)
 SUBJECTS=(
     "agent.voice.track.published"
     "agent.voice.track.unpublished"
