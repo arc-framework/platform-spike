@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-01-11",
+  "description": "A.R.C. Platform Security Baseline",
+  "standards": {
+    "dockerfile_requirements": {
+      "non_root_user": {
+        "required": true,
+        "user": "arcuser",
+        "uid": 1000
+      },
+      "healthcheck": {
+        "required": true,
+        "interval": "30s",
+        "timeout": "5s",
+        "retries": 3
+      },
+      "base_image_pinning": {
+        "required": true,
+        "no_latest_tag": true
+      },
+      "oci_labels": {
+        "required": true,
+        "labels": [
+          "org.opencontainers.image.title",
+          "arc.service.codename",
+          "arc.service.tier"
+        ]
+      },
+      "multi_stage_build": {
+        "recommended": true
+      }
+    },
+    "vulnerability_thresholds": {
+      "critical": 0,
+      "high": 0,
+      "medium": "informational",
+      "low": "informational"
+    }
+  },
+  "base_images": {
+    "python": {
+      "image": "ghcr.io/arc/base-python-ai",
+      "tag": "3.11-alpine3.19",
+      "last_updated": "2026-01-10",
+      "size_target_mb": 300
+    },
+    "go": {
+      "image": "golang",
+      "tag": "1.21-alpine3.19",
+      "last_updated": "2026-01-10",
+      "size_target_mb": 50
+    },
+    "runtime": {
+      "image": "alpine",
+      "tag": "3.19",
+      "last_updated": "2026-01-10"
+    }
+  },
+  "exceptions": [],
+  "notes": [
+    "All exceptions must be documented with justification",
+    "Review this baseline quarterly",
+    "Update base images monthly or when CVEs are announced"
+  ]
+}

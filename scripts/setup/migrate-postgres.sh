@@ -2,7 +2,6 @@
 # ==============================================================================
 # A.R.C. Platform - PostgreSQL Migration Runner
 # ==============================================================================
-# Task: T016
 # Purpose: Run database migrations with pgvector validation
 # Usage: ./scripts/setup/migrate-postgres.sh [--rollback]
 # ==============================================================================
