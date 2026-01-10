@@ -220,6 +220,126 @@ Add service definition to the appropriate compose file:
 
 ---
 
+## 📊 Capacity Planning
+
+**Task:** T065
+**Last Updated:** January 2026
+
+### Current Service Count by Tier
+
+| Tier | Current | Soft Limit | Hard Limit | Status |
+|------|---------|------------|------------|--------|
+| `core/` | 6 | 10 | 15 | ✅ Healthy |
+| `plugins/` | 5 | 15 | 25 | ✅ Healthy |
+| `services/` | 4 | 15 | 30 | ✅ Healthy |
+| **Total** | **15** | **40** | **70** | ✅ |
+
+### Growth Projections
+
+| Quarter | Projected Services | Notes |
+|---------|-------------------|-------|
+| Q1 2026 | 15-18 | Current + voice enhancements |
+| Q2 2026 | 20-25 | Research agents, analytics |
+| Q3 2026 | 28-35 | Enterprise features, integrations |
+| Q4 2026 | 35-45 | Multi-tenancy, GPU agents |
+
+### Category Limits & Restructuring Triggers
+
+| Tier | Restructuring Trigger | Action |
+|------|----------------------|--------|
+| `core/` | >10 services | Add subcategories (persistence/, messaging/) |
+| `plugins/` | >15 services | Add subcategories (observability/, security/) |
+| `services/` | >15 services | Add subcategories (agents/, workers/) |
+
+### Resource Estimates
+
+| Service Type | CPU | Memory | Storage | Count |
+|--------------|-----|--------|---------|-------|
+| Core Infrastructure | 0.5-2 | 512MB-4GB | 1-100GB | 6 |
+| Plugin Services | 0.25-1 | 256MB-2GB | 100MB-10GB | 5 |
+| AI Agents (CPU) | 1-4 | 2-8GB | 1-10GB | 3 |
+| Utility Services | 0.1-0.5 | 128MB-512MB | 100MB-1GB | 1 |
+
+**Total Estimated Resources**: 8-20 CPU cores, 16-48GB RAM, 50-200GB storage
+
+---
+
+## 🔄 Service Lifecycle
+
+**Task:** T067
+
+Services in A.R.C. follow a defined lifecycle from creation to retirement.
+
+### Lifecycle States
+
+```
+    ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐
+    │ PROTOTYPE  │────▶│   STABLE   │────▶│ DEPRECATED │────▶│  REMOVED   │
+    └────────────┘     └────────────┘     └────────────┘     └────────────┘
+         │                   │                   │
+         │                   │                   │
+         ▼                   ▼                   ▼
+    No SLA             Production SLA      Sunset period
+    Experimental       Maintained          No new features
+    May break          Versioned           Migration guide
+```
+
+### State Definitions
+
+| State | SLA | Support | Breaking Changes | Duration |
+|-------|-----|---------|------------------|----------|
+| **Prototype** | None | Best effort | Allowed | 1-3 months |
+| **Stable** | 99.9% | Full | Versioned only | Indefinite |
+| **Deprecated** | 99.0% | Security only | None | 3-6 months |
+| **Removed** | N/A | N/A | N/A | - |
+
+### Transition Criteria
+
+#### Prototype → Stable
+- [ ] Passes all validation checks (`./scripts/validate/validate-all.sh`)
+- [ ] Has comprehensive README.md
+- [ ] Has health check endpoint
+- [ ] Has at least 60% test coverage
+- [ ] Uses approved base image
+- [ ] Added to Docker Compose configurations
+- [ ] Documented in SERVICE.MD
+- [ ] Reviewed by platform team
+
+#### Stable → Deprecated
+- [ ] Successor service identified and stable
+- [ ] Migration guide written
+- [ ] Deprecation notice issued (minimum 30 days)
+- [ ] No active development (security patches only)
+- [ ] Sunset date announced
+
+#### Deprecated → Removed
+- [ ] Sunset date reached
+- [ ] All dependents migrated
+- [ ] Final backup created
+- [ ] Removal announced to stakeholders
+- [ ] Directory and references removed
+- [ ] SERVICE.MD updated
+
+### Current Service States
+
+| Service | State | Since | Next Review |
+|---------|-------|-------|-------------|
+| arc-sherlock-brain | Stable | 2025-11 | 2026-06 |
+| arc-scarlett-voice | Stable | 2025-11 | 2026-06 |
+| arc-piper-tts | Stable | 2025-11 | 2026-06 |
+| raymond | Stable | 2025-11 | 2026-06 |
+
+### Deprecation Process
+
+1. **Announce**: Create issue with deprecation notice and sunset date
+2. **Document**: Write migration guide to successor service
+3. **Update**: Mark as deprecated in SERVICE.MD
+4. **Monitor**: Track migration progress
+5. **Remind**: Send reminders at 30, 14, and 7 days before sunset
+6. **Remove**: Delete service after sunset date
+
+---
+
 ## 🔗 Related Documentation
 
 - **[core/README.md](./core/README.md)** - Core infrastructure details
@@ -227,3 +347,6 @@ Add service definition to the appropriate compose file:
 - **[services/README.md](./services/README.md)** - Application services
 - **[Docker Standards](./docs/standards/DOCKER-STANDARDS.md)** - Dockerfile requirements
 - **[Directory Design](./docs/architecture/DIRECTORY-DESIGN.md)** - Architecture decisions
+- **[Service Categorization](./docs/architecture/SERVICE-CATEGORIZATION.md)** - Where services belong
+- **[Scaling Strategy](./docs/architecture/SCALING-STRATEGY.md)** - Growth planning
+- **[Service Roadmap](./docs/architecture/SERVICE-ROADMAP.md)** - Future plans

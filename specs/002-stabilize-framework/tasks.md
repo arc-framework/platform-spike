@@ -857,7 +857,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### Implementation for User Story 6
 
-- [ ] T063 [P] [US6] Create service categorization guide at `docs/architecture/SERVICE-CATEGORIZATION.md`
+- [x] T063 [P] [US6] Create service categorization guide at `docs/architecture/SERVICE-CATEGORIZATION.md`
   ```markdown
   # Service Categorization Decision Tree
 
@@ -868,29 +868,29 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
            └── NO → services/
   ```
 
-- [ ] T064 [P] [US6] Create scaling strategy document at `docs/architecture/SCALING-STRATEGY.md`
+- [x] T064 [P] [US6] Create scaling strategy document at `docs/architecture/SCALING-STRATEGY.md`
   - When to add subdirectories (>15 services per category)
   - How to handle service variants (GPU/CPU)
   - Multi-tenancy considerations
 
-- [ ] T065 [US6] Add capacity planning to SERVICE.MD
+- [x] T065 [US6] Add capacity planning to SERVICE.MD
   - Current service count per tier
   - Growth projections
   - Category limits
 
-- [ ] T066 [US6] Create new service generator at `scripts/create-service.sh`
+- [x] T066 [US6] Create new service generator at `scripts/create-service.sh`
   ```bash
   #!/bin/bash
   # Usage: ./scripts/create-service.sh --name arc-analytics --tier services --lang python
   # Creates: Directory, Dockerfile, README, adds to SERVICE.MD
   ```
 
-- [ ] T067 [US6] Document service lifecycle in SERVICE.MD
+- [x] T067 [US6] Document service lifecycle in SERVICE.MD
   - States: prototype → stable → deprecated → removed
   - Transition criteria
   - Deprecation process
 
-- [ ] T068 [US6] Create ADR template at `docs/architecture/adr/000-template.md`
+- [x] T068 [US6] Create ADR template at `docs/architecture/adr/000-template.md`
   ```markdown
   # ADR-000: [Title]
 
@@ -907,12 +907,12 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   [What are the results?]
   ```
 
-- [ ] T069 [US6] Write ADR for three-tier structure at `docs/architecture/adr/002-three-tier-structure.md`
+- [x] T069 [US6] Write ADR for three-tier structure at `docs/architecture/adr/002-three-tier-structure.md`
   - Why core/plugins/services?
   - Alternatives considered
   - Trade-offs
 
-- [ ] T070 [US6] Create service roadmap at `docs/architecture/SERVICE-ROADMAP.md`
+- [x] T070 [US6] Create service roadmap at `docs/architecture/SERVICE-ROADMAP.md`
   - Planned services
   - Deprecation candidates
   - Category evolution
