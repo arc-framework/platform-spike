@@ -6,6 +6,12 @@
 [![Security](https://img.shields.io/badge/security-hardened-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+<!-- CI/CD Validation Badges -->
+[![Validate Structure](https://github.com/arc-framework/platform-spike/actions/workflows/validate-structure.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/validate-structure.yml)
+[![Validate Docker](https://github.com/arc-framework/platform-spike/actions/workflows/validate-docker.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/validate-docker.yml)
+[![Security Scan](https://github.com/arc-framework/platform-spike/actions/workflows/security-scan.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/security-scan.yml)
+[![Build Performance](https://github.com/arc-framework/platform-spike/actions/workflows/track-build-performance.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/track-build-performance.yml)
+
 ---
 
 ## 🚀 Quick Start

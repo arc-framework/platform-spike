@@ -734,7 +734,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 7.1 Structure Validation
 
-- [ ] T053 [P] [US5] Create SERVICE.MD validator at `scripts/validate/check-service-registry.py`
+- [x] T053 [P] [US5] Create SERVICE.MD validator at `scripts/validate/check-service-registry.py`
   ```python
   #!/usr/bin/env python3
   """Validate SERVICE.MD against actual directory structure."""
@@ -749,7 +749,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
               raise ValidationError(f"Service {service} missing Dockerfile")
   ```
 
-- [ ] T054 [P] [US5] Create directory structure validator at `scripts/validate/check-structure.py`
+- [x] T054 [P] [US5] Create directory structure validator at `scripts/validate/check-structure.py`
   ```python
   #!/usr/bin/env python3
   """Validate directory structure follows constitution."""
@@ -759,7 +759,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   # Check: Naming follows convention (arc-{codename}-{function})
   ```
 
-- [ ] T055 [P] [US5] Create Dockerfile standards validator at `scripts/validate/check-dockerfile-standards.py`
+- [x] T055 [P] [US5] Create Dockerfile standards validator at `scripts/validate/check-dockerfile-standards.py`
   ```python
   #!/usr/bin/env python3
   """Validate Dockerfiles follow constitution security requirements."""
@@ -773,7 +773,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 7.2 Validation Orchestration
 
-- [ ] T056 [US5] Create validation orchestrator at `scripts/validate/validate-all.sh`
+- [x] T056 [US5] Create validation orchestrator at `scripts/validate/validate-all.sh`
   ```bash
   #!/bin/bash
   set -euo pipefail
@@ -793,7 +793,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   echo "✅ All validations passed!"
   ```
 
-- [ ] T057 [US5] Create GitHub Actions workflow at `.github/workflows/validate-structure.yml`
+- [x] T057 [US5] Create GitHub Actions workflow at `.github/workflows/validate-structure.yml`
   ```yaml
   name: Validate Structure
   on: [pull_request]
@@ -806,7 +806,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
           run: ./scripts/validate/validate-all.sh
   ```
 
-- [ ] T058 [US5] Create pre-commit hooks at `.pre-commit-config.yaml`
+- [x] T058 [US5] Create pre-commit hooks at `.pre-commit-config.yaml`
   ```yaml
   repos:
     - repo: local
@@ -823,22 +823,22 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
           types: [dockerfile]
   ```
 
-- [ ] T059 [US5] Create validation failure guide at `docs/guides/VALIDATION-FAILURES.md`
+- [x] T059 [US5] Create validation failure guide at `docs/guides/VALIDATION-FAILURES.md`
   - Common errors and fixes
   - How to run validations locally
   - How to add exceptions
 
-- [ ] T060 [US5] Add CI/CD status badge to README.md
+- [x] T060 [US5] Add CI/CD status badges to README.md
   ```markdown
   [![Validation](https://github.com/arc/platform-spike/actions/workflows/validate-structure.yml/badge.svg)](...)
   ```
 
-- [ ] T061 [US5] Create doc path sync checker
+- [x] T061 [US5] Create doc path sync checker at `scripts/validate/check-doc-links.py`
   - Verify all path references in docs exist
   - Check SERVICE.MD references
   - Check README.md links
 
-- [ ] T062 [US5] Add quickstart.md scenario verification
+- [x] T062 [US5] Add quickstart scenario verification at `scripts/validate/verify-quickstart.sh`
   - Automated test that runs quickstart steps
   - Verify commands work as documented
 
