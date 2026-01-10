@@ -19,7 +19,8 @@
         logs-core logs-observability logs-security logs-services \
         shell-postgres shell-redis shell-nats test-connectivity \
         validate-architecture validate-compose validate-paths ci-validate \
-        info-core
+        info-core \
+        pr task-commit build-base-images validate-dockerfiles validate-structure validate-all
 
 # ==============================================================================
 # Configuration Variables
@@ -107,6 +108,16 @@ help:
 	@echo "$(YELLOW)Information:$(NC)"
 	@echo "  $(GREEN)make info$(NC)              Display service URLs and credentials"
 	@echo "  $(GREEN)make version$(NC)           Display component versions"
+	@echo ""
+	@echo "$(YELLOW)PR & Git Workflow:$(NC)"
+	@echo "  $(GREEN)make pr$(NC)                Generate feature PR description (full feature)"
+	@echo "  $(GREEN)make task-commit$(NC)       Generate commit message for task completions"
+	@echo ""
+	@echo "$(YELLOW)Docker & Validation:$(NC)"
+	@echo "  $(GREEN)make build-base-images$(NC) Build shared Docker base images"
+	@echo "  $(GREEN)make validate-dockerfiles$(NC) Lint all Dockerfiles with hadolint"
+	@echo "  $(GREEN)make validate-structure$(NC) Validate directory structure"
+	@echo "  $(GREEN)make validate-all$(NC)      Run all validation checks"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation: docs/OPERATIONS.md$(NC)"
@@ -618,3 +629,74 @@ dev: up-dev
 prod: up-full
 	@echo "$(GREEN)✓ Production environment ready$(NC)"
 	@echo "$(YELLOW)All services are running$(NC)"
+
+# ==============================================================================
+# PR & Git Workflow
+# ==============================================================================
+
+# PR generation variables
+PR_BASE_BRANCH ?= main
+
+pr: ## Generate feature PR description (full feature summary)
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Generating Feature PR Description                    ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@./scripts/generate-pr-description.sh $(PR_BASE_BRANCH)
+
+task-commit: ## Generate commit message for intermediate task commits
+	@./scripts/generate-task-commit.sh
+
+# ==============================================================================
+# Docker Base Images & Validation
+# ==============================================================================
+
+build-base-images: ## Build shared Docker base images
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Building Base Images                                 ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@echo "$(BLUE)Building arc-base-python-ai...$(NC)"
+	@docker build -t arc-base-python-ai:local .docker/base/python-ai/
+	@echo "$(GREEN)✓ arc-base-python-ai built successfully$(NC)"
+	@docker images arc-base-python-ai:local --format "  Size: {{.Size}}"
+	@echo ""
+	@if [ -d ".docker/base/go-infra" ] && [ -f ".docker/base/go-infra/Dockerfile" ]; then \
+		echo "$(BLUE)Building arc-base-go-infra...$(NC)"; \
+		docker build -t arc-base-go-infra:local .docker/base/go-infra/; \
+		echo "$(GREEN)✓ arc-base-go-infra built successfully$(NC)"; \
+		docker images arc-base-go-infra:local --format "  Size: {{.Size}}"; \
+	fi
+
+validate-dockerfiles: ## Lint all Dockerfiles with hadolint
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Validating Dockerfiles                               ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@if command -v hadolint >/dev/null 2>&1; then \
+		find . -name "Dockerfile" -not -path "*/node_modules/*" -not -path "*/.git/*" | while read -r dockerfile; do \
+			echo "$(BLUE)Linting: $$dockerfile$(NC)"; \
+			hadolint "$$dockerfile" && echo "$(GREEN)  ✓ Passed$(NC)" || echo "$(RED)  ✗ Failed$(NC)"; \
+		done; \
+	else \
+		echo "$(YELLOW)⚠️  hadolint not installed. Install with: brew install hadolint$(NC)"; \
+		exit 1; \
+	fi
+
+validate-structure: ## Validate directory structure against SERVICE.MD
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Validating Structure                                 ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@if [ -f "scripts/validate/check-structure.py" ]; then \
+		python3 scripts/validate/check-structure.py; \
+	else \
+		echo "$(YELLOW)⚠️  Validation script not yet implemented$(NC)"; \
+		echo "$(BLUE)Checking basic structure...$(NC)"; \
+		echo "  core/: $$([ -d core ] && echo '$(GREEN)✓$(NC)' || echo '$(RED)✗$(NC)')"; \
+		echo "  plugins/: $$([ -d plugins ] && echo '$(GREEN)✓$(NC)' || echo '$(RED)✗$(NC)')"; \
+		echo "  services/: $$([ -d services ] && echo '$(GREEN)✓$(NC)' || echo '$(RED)✗$(NC)')"; \
+		echo "  SERVICE.MD: $$([ -f SERVICE.MD ] && echo '$(GREEN)✓$(NC)' || echo '$(RED)✗$(NC)')"; \
+	fi
+
+validate-all: validate-structure validate-dockerfiles ## Run all validation checks
+	@echo ""
+	@echo "$(GREEN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(GREEN)║              All Validations Complete                             ║$(NC)"
+	@echo "$(GREEN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
