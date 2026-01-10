@@ -640,22 +640,26 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 6.1 Dockerfile Optimization
 
-- [ ] T042 [P] [US4] Audit arc-sherlock-brain Dockerfile for cache optimization
+- [x] T042 [P] [US4] Audit arc-sherlock-brain Dockerfile for cache optimization
   - Layer ordering: OS packages → pip deps → source code
   - Add cache mounts for pip
   - Review .dockerignore
+  - **Result**: Already optimized with multi-stage builds and cache mounts
 
-- [ ] T043 [P] [US4] Audit arc-scarlett-voice Dockerfile for cache optimization
+- [x] T043 [P] [US4] Audit arc-scarlett-voice Dockerfile for cache optimization
   - Same as T042
+  - **Result**: Already optimized
 
-- [ ] T044 [P] [US4] Audit arc-piper-tts Dockerfile for cache optimization
+- [x] T044 [P] [US4] Audit arc-piper-tts Dockerfile for cache optimization
   - Same as T042
+  - **Result**: Already optimized
 
-- [ ] T045 [P] [US4] Audit raymond (Go) Dockerfile for cache optimization
+- [x] T045 [P] [US4] Audit raymond (Go) Dockerfile for cache optimization
   - Layer ordering: go.mod → go mod download → source code
   - Add cache mounts for go modules
+  - **Result**: Already optimized with dual cache mounts
 
-- [ ] T046 [P] [US4] Create .dockerignore for all services
+- [x] T046 [P] [US4] Create .dockerignore for all services
   ```
   # services/arc-sherlock-brain/.dockerignore
   __pycache__/
@@ -670,7 +674,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 #### 6.2 Build Performance Tracking
 
-- [ ] T047 [US4] Create build time tracking script at `scripts/validate/track-build-times.sh`
+- [x] T047 [US4] Create build time tracking script at `scripts/validate/track-build-times.sh`
   ```bash
   #!/bin/bash
   # Build all services and record times
@@ -678,7 +682,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   # Compare against baseline
   ```
 
-- [ ] T048 [US4] Create image size validation at `scripts/validate/check-image-sizes.py`
+- [x] T048 [US4] Create image size validation at `scripts/validate/check-image-sizes.py`
   ```python
   #!/usr/bin/env python3
   """Validate image sizes against targets from Constitution."""
@@ -690,23 +694,24 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   }
   ```
 
-- [ ] T049 [US4] Create build performance baseline at `reports/build-performance-baseline.json`
+- [x] T049 [US4] Create build performance baseline at `reports/build-performance-baseline.json`
   - Current build times per service
   - Current image sizes
   - Cache hit rates
 
-- [ ] T050 [US4] Create build optimization guide at `docs/guides/DOCKER-BUILD-OPTIMIZATION.md`
+- [x] T050 [US4] Create build optimization guide at `docs/guides/DOCKER-BUILD-OPTIMIZATION.md`
   - Layer ordering best practices
   - Cache mount usage
   - .dockerignore configuration
   - BuildKit features
 
-- [ ] T051 [US4] Document BuildKit configuration
+- [x] T051 [US4] Document BuildKit configuration
   - Enable BuildKit: `export DOCKER_BUILDKIT=1`
   - Configure cache backends
   - Parallel build stages
+  - **Location**: Makefile exports + DOCKER-BUILD-OPTIMIZATION.md
 
-- [ ] T052 [US4] Create GitHub Actions workflow for build tracking at `.github/workflows/track-build-performance.yml`
+- [x] T052 [US4] Create GitHub Actions workflow for build tracking at `.github/workflows/track-build-performance.yml`
   - Measure build times on PR
   - Compare against baseline
   - Alert on regressions

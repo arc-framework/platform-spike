@@ -1,5 +1,5 @@
 # ==============================================================================
-# raymond Docker Build Context Exclusions
+# arc-sherlock-brain Docker Build Context Exclusions
 # ==============================================================================
 # Purpose: Reduce build context size for faster builds
 # Impact: Files listed here are NOT sent to Docker daemon during build
@@ -13,31 +13,38 @@
 *.md
 docs/
 
-# Go artifacts
-raymond
-*.exe
-*.exe~
-*.dll
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
 *.so
-*.dylib
-
-# Test binaries
-*.test
-
-# Output of go coverage
-*.out
-coverage.txt
-
-# Go workspace
-go.work
-go.work.sum
-
-# Vendor (if using modules, vendor not needed)
-# vendor/
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Testing
-*_test.go
-testdata/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+tests/
+test_*.py
+*_test.py
+conftest.py
 
 # IDE and editor
 .idea/
@@ -51,6 +58,9 @@ testdata/
 .env
 .env.*
 *.env
+.venv/
+venv/
+ENV/
 
 # CI/CD
 .github/
@@ -70,10 +80,7 @@ tmp/
 temp/
 
 # Local development
-.air.toml
+.mypy_cache/
+.ruff_cache/
 .pre-commit-config.yaml
 Makefile
-
-# Build artifacts
-bin/
-dist/

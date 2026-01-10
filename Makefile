@@ -21,7 +21,8 @@
         validate-architecture validate-compose validate-paths ci-validate \
         info-core \
         pr task-commit build-base-images validate-dockerfiles validate-structure validate-all \
-        analyze-deps analyze-deps-mermaid analyze-deps-json build-impact security-scan security-report
+        analyze-deps analyze-deps-mermaid analyze-deps-json build-impact security-scan security-report \
+        track-build-times track-build-times-cold check-image-sizes check-image-sizes-strict
 
 # ==============================================================================
 # Configuration Variables
@@ -60,7 +61,9 @@ CYAN := \033[0;36m
 WHITE := \033[1;37m
 NC := \033[0m
 
-# Docker Compose optimization
+# Docker optimization
+export DOCKER_BUILDKIT := 1
+export COMPOSE_DOCKER_CLI_BUILD := 1
 export COMPOSE_BAKE := true
 
 # Script paths
@@ -125,6 +128,10 @@ help:
 	@echo "  $(GREEN)make build-impact$(NC)      Show which services need rebuilding (FILE=path)"
 	@echo "  $(GREEN)make security-scan$(NC)     Run trivy security scan on images"
 	@echo "  $(GREEN)make security-report$(NC)   Generate security compliance report"
+	@echo ""
+	@echo "$(YELLOW)Build Performance:$(NC)"
+	@echo "  $(GREEN)make track-build-times$(NC) Track build times for all services"
+	@echo "  $(GREEN)make check-image-sizes$(NC) Validate image sizes against targets"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation: docs/OPERATIONS.md$(NC)"
@@ -746,3 +753,25 @@ security-report: ## Generate security compliance report
 	@echo "$(CYAN)║              Generating Security Report                           ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
 	@python3 scripts/validate/generate-security-report.py --output markdown
+
+# ==============================================================================
+# Build Performance
+# ==============================================================================
+
+track-build-times: ## Track build times for all services
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Tracking Build Times                                 ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@./scripts/validate/track-build-times.sh --warm
+
+track-build-times-cold: ## Track cold build times (no cache)
+	@./scripts/validate/track-build-times.sh --cold
+
+check-image-sizes: ## Validate image sizes against targets
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Checking Image Sizes                                 ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@python3 scripts/validate/check-image-sizes.py
+
+check-image-sizes-strict: ## Validate image sizes (fail on violation)
+	@python3 scripts/validate/check-image-sizes.py --strict

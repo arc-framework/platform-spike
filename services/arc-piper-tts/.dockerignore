@@ -1,0 +1,105 @@
+# ==============================================================================
+# arc-piper-tts Docker Build Context Exclusions
+# ==============================================================================
+# Purpose: Reduce build context size for faster builds
+# Impact: Files listed here are NOT sent to Docker daemon during build
+# Note: This service builds from repo root, so paths are relative to root
+# ==============================================================================
+
+# Git
+.git/
+.gitignore
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# Python artifacts
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+**/.Python
+**/build/
+**/develop-eggs/
+**/dist/
+**/downloads/
+**/eggs/
+**/.eggs/
+**/lib/
+**/lib64/
+**/parts/
+**/sdist/
+**/var/
+**/wheels/
+**/*.egg-info/
+**/.installed.cfg
+**/*.egg
+
+# Testing
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/.tox/
+**/.nox/
+**/tests/
+**/test_*.py
+**/*_test.py
+**/conftest.py
+
+# IDE and editor
+.idea/
+.vscode/
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+
+# Environment
+.env
+.env.*
+**/*.env
+**/.venv/
+**/venv/
+**/ENV/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+.travis.yml
+
+# Docker (except what we need)
+.docker/
+docker-compose*.yml
+
+# Other services (not needed for piper build)
+services/arc-sherlock-brain/
+services/arc-scarlett-voice/
+services/utilities/
+
+# Core and plugins (not needed)
+core/
+plugins/
+deployments/
+
+# Scripts and specs
+scripts/
+specs/
+
+# Logs and temp files
+**/*.log
+**/logs/
+**/tmp/
+**/temp/
+
+# Local development
+**/.mypy_cache/
+**/.ruff_cache/
+.pre-commit-config.yaml
+Makefile
+
+# Model files (downloaded during build)
+**/models/
+**/*.onnx
+**/*.onnx.json
