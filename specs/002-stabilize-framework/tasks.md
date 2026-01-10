@@ -532,7 +532,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
 
 ### Implementation for User Story 3
 
-- [ ] T034 [P] [US3] Create image dependency analyzer at `scripts/validate/analyze-dependencies.py`
+- [x] T034 [P] [US3] Create image dependency analyzer at `scripts/validate/analyze-dependencies.py`
   ```python
   #!/usr/bin/env python3
   """Analyze Docker image dependency tree."""
@@ -549,7 +549,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
       # Output formats: JSON, Mermaid, ASCII tree
   ```
 
-- [ ] T035 [P] [US3] Create build impact analysis script at `scripts/validate/check-build-impact.sh`
+- [x] T035 [P] [US3] Create build impact analysis script at `scripts/validate/check-build-impact.sh`
   ```bash
   #!/bin/bash
   # Input: Changed file or directory
@@ -560,7 +560,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   # If lib changed -> services using that lib
   ```
 
-- [ ] T036 [US3] Document image relationships at `docs/architecture/DOCKER-IMAGE-HIERARCHY.md`
+- [x] T036 [US3] Document image relationships at `docs/architecture/DOCKER-IMAGE-HIERARCHY.md`
   ```markdown
   # Docker Image Hierarchy
 
@@ -574,7 +574,7 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   3. Compose stacks (on config changes)
   ```
 
-- [ ] T037 [US3] Add Makefile targets for dependency analysis
+- [x] T037 [US3] Add Makefile targets for dependency analysis
   ```makefile
   .PHONY: analyze-deps build-impact
 
@@ -585,23 +585,23 @@ logger.info("validation.complete", status="passed", services_checked=25, issues=
   	@scripts/validate/check-build-impact.sh $(FILE)
   ```
 
-- [ ] T038 [US3] Create image tagging documentation at `docs/guides/IMAGE-TAGGING.md`
+- [x] T038 [US3] Create image tagging documentation at `docs/guides/IMAGE-TAGGING.md`
   - Semantic versioning for images
   - Tag format: `{service}:{version}-{git-sha}`
   - GHCR publication workflow
 
-- [ ] T039 [US3] Create GHCR publishing guide at `docs/guides/GHCR-PUBLISHING.md`
+- [x] T039 [US3] Create GHCR publishing guide at `docs/guides/GHCR-PUBLISHING.md`
   - Authentication setup
   - Manual publishing steps
   - Automated publishing via GitHub Actions
 
-- [ ] T040 [US3] Update base image Dockerfiles with metadata labels
+- [x] T040 [US3] Update base image Dockerfiles with metadata labels
   - OCI annotations
   - Build timestamp
   - Git SHA
   - Dependency versions
 
-- [ ] T041 [US3] Create GitHub Actions workflow for base images at `.github/workflows/build-base-images.yml`
+- [x] T041 [US3] Create GitHub Actions workflow for base images at `.github/workflows/build-base-images.yml`
   ```yaml
   name: Build Base Images
   on:

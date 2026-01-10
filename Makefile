@@ -20,7 +20,8 @@
         shell-postgres shell-redis shell-nats test-connectivity \
         validate-architecture validate-compose validate-paths ci-validate \
         info-core \
-        pr task-commit build-base-images validate-dockerfiles validate-structure validate-all
+        pr task-commit build-base-images validate-dockerfiles validate-structure validate-all \
+        analyze-deps analyze-deps-mermaid analyze-deps-json build-impact security-scan security-report
 
 # ==============================================================================
 # Configuration Variables
@@ -118,6 +119,12 @@ help:
 	@echo "  $(GREEN)make validate-dockerfiles$(NC) Lint all Dockerfiles with hadolint"
 	@echo "  $(GREEN)make validate-structure$(NC) Validate directory structure"
 	@echo "  $(GREEN)make validate-all$(NC)      Run all validation checks"
+	@echo ""
+	@echo "$(YELLOW)Dependency Analysis & Security:$(NC)"
+	@echo "  $(GREEN)make analyze-deps$(NC)      Analyze Docker image dependencies"
+	@echo "  $(GREEN)make build-impact$(NC)      Show which services need rebuilding (FILE=path)"
+	@echo "  $(GREEN)make security-scan$(NC)     Run trivy security scan on images"
+	@echo "  $(GREEN)make security-report$(NC)   Generate security compliance report"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(WHITE)Documentation: docs/OPERATIONS.md$(NC)"
@@ -700,3 +707,42 @@ validate-all: validate-structure validate-dockerfiles ## Run all validation chec
 	@echo "$(GREEN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
 	@echo "$(GREEN)║              All Validations Complete                             ║$(NC)"
 	@echo "$(GREEN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+
+# ==============================================================================
+# Dependency Analysis & Security
+# ==============================================================================
+
+analyze-deps: ## Analyze Docker image dependencies
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Analyzing Docker Dependencies                        ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@python3 scripts/validate/analyze-dependencies.py --output tree
+
+analyze-deps-mermaid: ## Generate Mermaid diagram of dependencies
+	@python3 scripts/validate/analyze-dependencies.py --output mermaid
+
+analyze-deps-json: ## Export dependencies as JSON
+	@python3 scripts/validate/analyze-dependencies.py --output json
+
+build-impact: ## Analyze which services need rebuilding
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Build Impact Analysis                                ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@./scripts/validate/check-build-impact.sh $(FILE)
+
+security-scan: ## Run security scan on Docker images
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Running Security Scan                                ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@if command -v trivy >/dev/null 2>&1; then \
+		./scripts/validate/check-security.sh; \
+	else \
+		echo "$(YELLOW)⚠️  trivy not installed. Install with: brew install trivy$(NC)"; \
+		exit 1; \
+	fi
+
+security-report: ## Generate security compliance report
+	@echo "$(CYAN)╔═══════════════════════════════════════════════════════════════════╗$(NC)"
+	@echo "$(CYAN)║              Generating Security Report                           ║$(NC)"
+	@echo "$(CYAN)╚═══════════════════════════════════════════════════════════════════╝$(NC)"
+	@python3 scripts/validate/generate-security-report.py --output markdown
