@@ -192,7 +192,7 @@ services:
   # ===========================================================================
   # VISUALIZATION - Grafana
   # ===========================================================================
-  arc-friday:
+  arc-friday-viz:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-friday-viz:latest
     container_name: arc-friday-viz
@@ -218,11 +218,11 @@ services:
           - arc-grafana
           - arc_grafana
     depends_on:
-      arc-house:
+      arc-house-metrics:
         condition: service_healthy
-      arc-columbo:
+      arc-columbo-traces:
         condition: service_healthy
-      arc-watson:
+      arc-watson-logs:
         condition: service_started  # Loki v3 has no health check (distroless)
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]

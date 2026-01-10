@@ -276,7 +276,7 @@ services:
           - arc-nats
           - arc_nats
     depends_on:
-      arc-widow:
+      arc-widow-otel:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
@@ -342,7 +342,7 @@ services:
   # ===========================================================================
   # SECRETS - Infisical
   # ===========================================================================
-  arc-fury:
+  arc-fury-vault:
     <<: *medium-service
     image: ghcr.io/arc-framework/arc-fury-vault:latest
     container_name: arc-fury-vault
@@ -450,9 +450,9 @@ services:
           - arc-livekit
           - arc_livekit
     depends_on:
-      arc-sonic:
+      arc-sonic-cache:
         condition: service_healthy
-      arc-widow:
+      arc-widow-otel:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7880/metrics || exit 1"]

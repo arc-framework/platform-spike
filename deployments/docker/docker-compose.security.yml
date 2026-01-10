@@ -40,7 +40,7 @@ services:
   # ===========================================================================
   # IDENTITY & AUTHENTICATION - Ory Kratos
   # ===========================================================================
-  arc-jarvis:
+  arc-deckard-identity:
     <<: *medium-service
     build:
       context: ../../plugins/security/identity/kratos
@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
     # Command is now in Dockerfile CMD, entrypoint handles migrations
     environment:
-      DSN: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4"
+      DSN: "postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be set}@arc-oracle-sql:5432/${POSTGRES_DB:-arc_db}?sslmode=disable&max_conns=20&max_idle_conns=4"
       LOG_LEVEL: info
       # NOTE: Kratos config is fully managed via /etc/config/kratos/kratos.yml
       # Only DSN and secrets need env vars (secrets can't be in config files)
@@ -69,11 +69,9 @@ services:
           - arc-kratos
           - arc_kratos
     depends_on:
-      arc-oracle:
+      arc-oracle-sql:
         condition: service_healthy
-      arc-heimdall:
-        condition: service_healthy
-      arc_traefik:
+      arc-heimdall-gateway:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4434/health/alive"]

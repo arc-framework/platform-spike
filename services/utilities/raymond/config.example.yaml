@@ -1,0 +1,108 @@
+server:
+  port: 8081
+  read_timeout: 10s
+  write_timeout: 10s
+  shutdown_timeout: 30s
+  enable_pprof: false
+
+telemetry:
+  otlp_endpoint: "arc-widow:4317"
+  otlp_insecure: true
+  service_name: "arc-raymond-bootstrap"
+  log_level: "info"
+
+bootstrap:
+  timeout: 5m
+  retry_attempts: 5
+  retry_backoff: 2s
+
+  dependencies:
+    - name: "arc-oracle-sql"
+      type: "tcp"
+      address: "arc-oracle:5432"
+      critical: true
+      timeout: 5s
+
+    - name: "arc-sonic-cache"
+      type: "tcp"
+      address: "arc-sonic:6379"
+      critical: true
+      timeout: 5s
+
+    - name: "arc-flash-pulse"
+      type: "tcp"
+      address: "arc-flash:4222"
+      critical: true
+      timeout: 5s
+
+    - name: "arc-strange-stream"
+      type: "http"
+      url: "http://arc-strange:8080/admin/v2/clusters"
+      critical: true
+      timeout: 10s
+
+    - name: "arc-widow-otel"
+      type: "tcp"
+      address: "arc-widow:4317"
+      critical: false
+      timeout: 5s
+
+  nats:
+    url: "nats://arc-flash:4222"
+    streams:
+      - name: "AGENT_COMMANDS"
+        subjects:
+          - "agent.*.cmd"
+        retention: "limits"
+        max_age: 24h
+        replicas: 1
+
+      - name: "AGENT_EVENTS"
+        subjects:
+          - "agent.*.event"
+          - "agent.*.status"
+        retention: "interest"
+        max_age: 168h
+        replicas: 1
+
+      - name: "SYSTEM_METRICS"
+        subjects:
+          - "metrics.>"
+        retention: "limits"
+        max_age: 6h
+        replicas: 1
+
+  pulsar:
+    admin_url: "http://arc-strange:8080"
+    service_url: "pulsar://arc-strange:6650"
+    tenant: "arc"
+    namespaces:
+      - "events"
+      - "logs"
+      - "audit"
+    topics:
+      - name: "persistent://arc/events/agent-lifecycle"
+        partitions: 3
+
+      - name: "persistent://arc/logs/application"
+        partitions: 4
+
+      - name: "persistent://arc/audit/command-log"
+        partitions: 1
+
+  postgres:
+    host: "arc-oracle"
+    port: 5432
+    user: "arc"
+    password: "${POSTGRES_PASSWORD}"
+    database: "arc_db"
+    ssl_mode: "disable"
+    max_conns: 25
+    min_conns: 2
+
+  redis:
+    host: "arc-sonic"
+    port: 6379
+    password: ""
+    db: 0
+
