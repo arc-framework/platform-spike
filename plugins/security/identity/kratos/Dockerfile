@@ -6,15 +6,15 @@
 # Base: Ory Kratos
 # ==============================================================================
 
-FROM oryd/kratos:v1.0.0
+FROM oryd/kratos:v1.3.0-alpine
 
-LABEL org.opencontainers.image.title="arc-deckard-identity"
-LABEL org.opencontainers.image.description="Ory Kratos identity and authentication service for A.R.C. Framework"
-LABEL org.opencontainers.image.vendor="A.R.C. Framework"
-LABEL arc.service.codename="deckard"
-LABEL arc.service.role="The Authenticator"
-LABEL arc.service.layer="plugin"
-LABEL arc.service.category="security"
+LABEL org.opencontainers.image.title="arc-deckard-identity" \
+      org.opencontainers.image.description="Ory Kratos identity and authentication service for A.R.C. Framework" \
+      org.opencontainers.image.vendor="A.R.C. Framework" \
+      arc.service.codename="deckard" \
+      arc.service.role="The Authenticator" \
+      arc.service.layer="plugin" \
+      arc.service.category="security"
 
 # Switch to root to copy and set permissions
 USER root
@@ -36,4 +36,3 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 # Default command (can be overridden in docker-compose)
 CMD ["kratos", "serve", "-c", "/etc/config/kratos/kratos.yml", "--dev", "--watch-courier"]
-

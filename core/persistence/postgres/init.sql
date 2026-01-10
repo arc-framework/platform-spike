@@ -18,8 +18,23 @@ GRANT ALL PRIVILEGES ON DATABASE infisical_db TO arc;
 CREATE DATABASE unleash_db;
 GRANT ALL PRIVILEGES ON DATABASE unleash_db TO arc;
 
--- Example: Create an extension in the default database
--- \c arc_db;
--- CREATE EXTENSION IF NOT EXISTS vector;
+-- ==============================================================================
+-- pgvector Extension Installation (Task T012)
+-- ==============================================================================
+-- Install vector extension for semantic search and embeddings
+-- Required for agents.conversations table embedding column
+
+\c arc_db;
+
+-- Install pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Verify installation
+SELECT 'pgvector extension installed: version ' || extversion 
+FROM pg_extension 
+WHERE extname = 'vector';
+
+-- Grant usage to arc user
+GRANT ALL ON SCHEMA public TO arc;
 
 SELECT 'PostgreSQL initialization complete' AS status;

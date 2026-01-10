@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiveKit WebRTC Test Client | A.R.C. Platform</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        padding: 40px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+
+      .status {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 500;
+      }
+
+      .status.disconnected {
+        background: #fee;
+        color: #c33;
+      }
+
+      .status.connecting {
+        background: #ffd;
+        color: #880;
+      }
+
+      .status.connected {
+        background: #efe;
+        color: #3c3;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        color: #555;
+        margin-bottom: 8px;
+        font-weight: 500;
+        font-size: 14px;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .info {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .info h3 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .info p {
+        color: #666;
+        margin-bottom: 10px;
+      }
+
+      .info code {
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        color: #667eea;
+      }
+
+      #logs {
+        background: #1e1e1e;
+        color: #00ff00;
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        margin-top: 20px;
+        line-height: 1.4;
+      }
+
+      .log-entry {
+        margin-bottom: 4px;
+      }
+
+      .log-error {
+        color: #ff6b6b;
+      }
+
+      .log-success {
+        color: #51cf66;
+      }
+
+      .log-info {
+        color: #74c0fc;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎙️ LiveKit WebRTC Test Client</h1>
+      <p class="subtitle">
+        A.R.C. Daredevil Real-Time Stack - Connection Validator
+      </p>
+
+      <div id="status" class="status disconnected">
+        ⚪ Disconnected - Ready to connect
+      </div>
+
+      <div class="form-group">
+        <label for="wsUrl">LiveKit WebSocket URL</label>
+        <input
+          type="text"
+          id="wsUrl"
+          value="ws://localhost:7880"
+          placeholder="ws://livekit.arc.local" />
+      </div>
+
+      <div class="form-group">
+        <label for="token"
+          >Access Token (generate with:
+          ./scripts/livekit/generate-token.sh)</label
+        >
+        <input type="text" id="token" placeholder="Paste JWT token here" />
+      </div>
+
+      <button id="connectBtn" onclick="connect()">Connect to LiveKit</button>
+      <button
+        id="disconnectBtn"
+        onclick="disconnect()"
+        disabled
+        style="margin-left: 10px">
+        Disconnect
+      </button>
+
+      <div id="logs"></div>
+
+      <div class="info">
+        <h3>📋 Instructions</h3>
+        <p><strong>1. Generate a token:</strong></p>
+        <code>./scripts/livekit/generate-token.sh test-room my-test-user</code>
+
+        <p style="margin-top: 10px">
+          <strong>2. Paste the token above and click Connect</strong>
+        </p>
+
+        <p style="margin-top: 10px"><strong>3. Expected behavior:</strong></p>
+        <ul style="margin-left: 20px; color: #666">
+          <li>Status changes to "Connecting..."</li>
+          <li>WebSocket connection established</li>
+          <li>Room joined successfully</li>
+          <li>Status changes to "Connected"</li>
+        </ul>
+
+        <p style="margin-top: 10px"><strong>Troubleshooting:</strong></p>
+        <ul style="margin-left: 20px; color: #666">
+          <li>
+            Ensure LiveKit is running:
+            <code>docker ps | grep arc-daredevil</code>
+          </li>
+          <li>Check DNS: <code>./scripts/livekit/validate-dns.sh</code></li>
+          <li>Verify health: <code>make health-core</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <script>
+      let room;
+      const statusEl = document.getElementById('status');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const logsEl = document.getElementById('logs');
+
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-${type}`;
+        entry.textContent = `[${timestamp}] ${message}`;
+        logsEl.appendChild(entry);
+        logsEl.scrollTop = logsEl.scrollHeight;
+      }
+
+      function updateStatus(message, state) {
+        statusEl.textContent = message;
+        statusEl.className = `status ${state}`;
+      }
+
+      async function connect() {
+        const wsUrl = document.getElementById('wsUrl').value;
+        const token = document.getElementById('token').value;
+
+        if (!token) {
+          alert(
+            'Please paste a LiveKit token first!\n\nGenerate one with:\n./scripts/livekit/generate-token.sh test-room my-user'
+          );
+          return;
+        }
+
+        try {
+          connectBtn.disabled = true;
+          updateStatus('🔄 Connecting to LiveKit...', 'connecting');
+          log('Attempting connection to ' + wsUrl, 'info');
+
+          room = new LivekitClient.Room({
+            adaptiveStream: true,
+            dynacast: true,
+          });
+
+          // Set up event listeners
+          room.on('connected', () => {
+            updateStatus('✅ Connected to LiveKit!', 'connected');
+            log('Successfully connected to room: ' + room.name, 'success');
+            log('Participant: ' + room.localParticipant.identity, 'success');
+            disconnectBtn.disabled = false;
+          });
+
+          room.on('disconnected', () => {
+            updateStatus('⚪ Disconnected', 'disconnected');
+            log('Disconnected from room', 'info');
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+          });
+
+          room.on('participantConnected', (participant) => {
+            log('Participant joined: ' + participant.identity, 'info');
+          });
+
+          room.on('trackSubscribed', (track, publication, participant) => {
+            log(
+              'Track subscribed: ' +
+                track.kind +
+                ' from ' +
+                participant.identity,
+              'success'
+            );
+          });
+
+          // Connect to room
+          await room.connect(wsUrl, token);
+
+          log('WebRTC connection established', 'success');
+          log(
+            'ICE connection state: ' +
+              room.engine.pcManager?.subscriber?.pc?.iceConnectionState,
+            'info'
+          );
+        } catch (error) {
+          updateStatus('❌ Connection failed', 'disconnected');
+          log('Error: ' + error.message, 'error');
+          connectBtn.disabled = false;
+          alert(
+            'Connection failed!\n\n' +
+              error.message +
+              '\n\nCheck the logs below for details.'
+          );
+        }
+      }
+
+      function disconnect() {
+        if (room) {
+          room.disconnect();
+          log('Disconnect requested', 'info');
+        }
+      }
+
+      // Initial log
+      log('LiveKit Test Client initialized', 'success');
+      log(
+        'Generate token: ./scripts/livekit/generate-token.sh <room> <user>',
+        'info'
+      );
+    </script>
+  </body>
+</html>
