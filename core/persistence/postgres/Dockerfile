@@ -8,15 +8,18 @@
 
 FROM pgvector/pgvector:pg16
 
-LABEL org.opencontainers.image.title="arc-oracle-sql"
-LABEL org.opencontainers.image.description="PostgreSQL 16 with pgvector extension for A.R.C. Framework"
-LABEL org.opencontainers.image.vendor="A.R.C. Framework"
-LABEL arc.service.codename="oracle"
-LABEL arc.service.role="The Knowledge Keeper"
-LABEL arc.service.layer="core"
+LABEL org.opencontainers.image.title="arc-oracle-sql" \
+      org.opencontainers.image.description="PostgreSQL 16 with pgvector extension for A.R.C. Framework" \
+      org.opencontainers.image.vendor="A.R.C. Framework" \
+      arc.service.codename="oracle" \
+      arc.service.role="The Knowledge Keeper" \
+      arc.service.layer="core"
 
-# Install additional tools for health checks and debugging (Debian-based)
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+# Install additional tools for health checks (Debian-based, minimized)
+# hadolint ignore=DL3008
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy initialization scripts

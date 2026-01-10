@@ -40,7 +40,7 @@ services:
       - "arc.service.swappable=false"
 
   # NATS - Remove monitoring port, keep only internal client port
-  arc-flash:
+  arc-flash-pulse:
     ports:
       - "4222:4222"  # Keep client connections for services
     # Removed: 8222 (monitoring), 6222 (cluster)
@@ -54,7 +54,7 @@ services:
       - "arc.service.swappable=false"
 
   # Pulsar - Remove admin port exposure
-  arc-strange:
+  arc-strange-stream:
     ports:
       - "6650:6650"  # Keep broker for services
     # Removed: 8082 (admin HTTP)
@@ -68,7 +68,7 @@ services:
       - "arc.service.swappable=false"
 
   # Infisical - Remove direct port (access via Traefik)
-  arc-fury:
+  arc-fury-vault:
     ports: []
     labels:
       - "arc.service.layer=core"
@@ -84,7 +84,7 @@ services:
       - "traefik.http.routers.infisical.tls=true"
 
   # Unleash - Remove direct port (access via Traefik)
-  arc-mystique:
+  arc-mystique-flags:
     ports: []
     labels:
       - "arc.service.layer=core"
@@ -183,7 +183,7 @@ services:
   # ===========================================================================
 
   # Kratos - Remove direct ports (access via Traefik)
-  arc-jarvis:
+  arc-deckard-identity:
     ports: []
     labels:
       - "arc.service.layer=plugin"
@@ -213,7 +213,7 @@ services:
   # ===========================================================================
 
   # OTEL Collector - Keep OTLP ports, remove health check port
-  arc-widow:
+  arc-widow-otel:
     ports:
       - "4317:4317"   # OTLP gRPC (required by services)
       - "4318:4318"   # OTLP HTTP (required by services)

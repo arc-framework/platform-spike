@@ -6,26 +6,27 @@
 # ------------------------------------------------------------------------------
 # Stage 1: Builder (Install dependencies + download models)
 # ------------------------------------------------------------------------------
-FROM python:3.11-slim AS builder
+FROM python:3.11-alpine3.19 AS builder
 
-LABEL org.opencontainers.image.title="arc-scarlett-voice (builder)"
-LABEL org.opencontainers.image.description="LiveKit voice agent - build stage"
-LABEL arc.service.tier="services"
-LABEL arc.service.category="voice-agent"
+LABEL org.opencontainers.image.title="arc-scarlett-voice (builder)" \
+      org.opencontainers.image.description="LiveKit voice agent - build stage" \
+      arc.service.tier="services" \
+      arc.service.category="voice-agent"
 
 WORKDIR /build
 
-# Install build dependencies (needed for faster-whisper and piper-tts)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
     gcc \
     g++ \
-    wget \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    wget
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --user --no-warn-script-location -r requirements.txt
 
 # Download Piper TTS model (en_US-lessac-medium, 22kHz, ~40MB)
 RUN mkdir -p /build/models && \
@@ -36,24 +37,23 @@ RUN mkdir -p /build/models && \
 # ------------------------------------------------------------------------------
 # Stage 2: Runtime
 # ------------------------------------------------------------------------------
-FROM python:3.11-slim
+FROM python:3.11-alpine3.19
 
-LABEL org.opencontainers.image.title="arc-scarlett-voice"
-LABEL org.opencontainers.image.description="LiveKit voice agent with Whisper STT, Sherlock LLM (NATS), and embedded Piper TTS"
-LABEL org.opencontainers.image.version="0.1.0"
-LABEL arc.service.tier="services"
-LABEL arc.service.category="voice-agent"
-LABEL arc.service.role="realtime-interface"
-LABEL arc.monitoring.enabled="true"
-LABEL arc.monitoring.type="otel"
+LABEL org.opencontainers.image.title="arc-scarlett-voice" \
+      org.opencontainers.image.description="LiveKit voice agent with Whisper STT, Sherlock LLM (NATS), and embedded Piper TTS" \
+      org.opencontainers.image.version="0.1.0" \
+      arc.service.tier="services" \
+      arc.service.category="voice-agent" \
+      arc.service.role="realtime-interface" \
+      arc.monitoring.enabled="true" \
+      arc.monitoring.type="otel"
 
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgomp1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    libgomp \
+    libstdc++
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /root/.local
@@ -62,13 +62,16 @@ COPY --from=builder /root/.local /root/.local
 COPY --from=builder /build/models /app/models
 
 # Ensure Python packages are in PATH
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 # Copy application code
 COPY src/ ./src/
 
 # Create non-root user for security
-RUN useradd -m -u 1000 scarlett && \
+RUN addgroup -g 1000 scarlett && \
+    adduser -D -u 1000 -G scarlett scarlett && \
     chown -R scarlett:scarlett /app
 
 USER scarlett

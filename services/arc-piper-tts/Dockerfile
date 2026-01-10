@@ -1,25 +1,50 @@
-# Multi-stage Dockerfile for A.R.C. Piper TTS Service
-# Stage 1: Builder - Download models and dependencies
-FROM python:3.12-slim as builder
+# ==============================================================================
+# A.R.C. Piper TTS Service
+# Multi-stage build for minimal production image
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Stage 1: Builder - Download models and build dependencies
+# ------------------------------------------------------------------------------
+FROM python:3.12-alpine3.19 AS builder
+
+LABEL org.opencontainers.image.title="arc-piper-tts (builder)" \
+      org.opencontainers.image.description="TTS service - build stage"
 
 WORKDIR /build
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
+RUN apk add --no-cache \
+    build-base \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    wget
 
 # Download Piper TTS model
 RUN mkdir -p /build/models && \
     cd /build/models && \
-    wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx \
+    wget -q https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx \
          -O en_US-lessac-medium.onnx && \
-    wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json \
+    wget -q https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json \
          -O en_US-lessac-medium.onnx.json
 
+# Copy and install Python dependencies
+WORKDIR /build/app
+
+# Copy A.R.C. Common SDK first
+COPY libs/python-sdk /build/libs/python-sdk
+
+# Copy service requirements
+COPY services/arc-piper-tts/requirements.txt .
+
+# Install Python dependencies with cache mount
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --user --no-warn-script-location -e /build/libs/python-sdk && \
+    pip install --user --no-warn-script-location -r requirements.txt
+
+# ------------------------------------------------------------------------------
 # Stage 2: Runtime
-FROM python:3.12-slim
+# ------------------------------------------------------------------------------
+FROM python:3.12-alpine3.19
 
 LABEL org.opencontainers.image.title="arc-piper-tts" \
       org.opencontainers.image.description="A.R.C. Text-to-Speech Service (Piper)" \
@@ -30,33 +55,33 @@ LABEL org.opencontainers.image.title="arc-piper-tts" \
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsndfile1 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache \
+    libsndfile
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
 
 # Copy models from builder
 COPY --from=builder /build/models /app/models
 
-# Copy A.R.C. Common SDK
-COPY libs/python-sdk /libs/python-sdk
-
 # Copy service code
-COPY services/arc-piper-tts/requirements.txt .
 COPY services/arc-piper-tts/src ./src
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e /libs/python-sdk && \
-    pip install --no-cache-dir -r requirements.txt
+# Ensure Python packages are in PATH
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 # Create non-root user
-RUN useradd -m -u 1000 arcuser && \
+RUN addgroup -g 1000 arcuser && \
+    adduser -D -u 1000 -G arcuser arcuser && \
     chown -R arcuser:arcuser /app
 
 USER arcuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health').raise_for_status()" || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
 
 # Expose port
 EXPOSE 8000
