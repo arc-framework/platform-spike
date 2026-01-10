@@ -436,23 +436,35 @@ make up  # Everything including demo apps
 
 ### Getting Started
 
+- [Quickstart Guide](specs/002-stabilize-framework/quickstart.md) - 5-minute onboarding
 - [Operations Guide](docs/OPERATIONS.md) - Deployment and management
-- [Security Fixes](docs/guides/SECURITY-FIXES.md) - Security hardening details
-- [Environment Migration](docs/guides/ENV-MIGRATION.md) - Configuration updates
+- [Validation Failures](docs/guides/VALIDATION-FAILURES.md) - Troubleshooting
 
 ### Architecture
 
-- [Architecture Overview](docs/architecture/README.md) - Design patterns and principles
-- [Naming Conventions](docs/guides/NAMING-CONVENTIONS.md) - Coding standards
+- [Directory Design](docs/architecture/DIRECTORY-DESIGN.md) - Three-tier structure
+- [Service Categorization](docs/architecture/SERVICE-CATEGORIZATION.md) - Where services belong
+- [Service Roadmap](docs/architecture/SERVICE-ROADMAP.md) - Development plan
+- [Docker Image Hierarchy](docs/architecture/DOCKER-IMAGE-HIERARCHY.md) - Image relationships
 
-### Guides
+### Standards & Guides
 
-- [Setup Scripts](scripts/setup/README.md) - Secret management tools
-- [Migration Guide](docs/guides/MIGRATION-v1-to-v2.md) - Upgrade instructions
+- [Docker Standards](docs/standards/DOCKER-STANDARDS.md) - Container best practices
+- [Docker Build Optimization](docs/guides/DOCKER-BUILD-OPTIMIZATION.md) - Performance tuning
+- [Security Scanning](docs/guides/SECURITY-SCANNING.md) - Security processes
+- [Migration Guide](docs/guides/MIGRATION-GUIDE.md) - Service migration
+
+### Architecture Decision Records
+
+- [ADR Index](docs/architecture/adr/README.md) - All decisions
+- [ADR-001](docs/architecture/adr/001-codename-convention.md) - Codename convention
+- [ADR-002](docs/architecture/adr/002-three-tier-structure.md) - Directory structure
 
 ### Reports
 
-- [Analysis Reports](reports/) - System analysis and recommendations
+- [Progress Tracker](PROGRESS.md) - Development status
+- [Changelog](CHANGELOG.md) - Version history
+- [Security Baseline](reports/security-baseline.json) - Security status
 
 ---
 
@@ -712,372 +724,37 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Project Status
 
-**Current Version**: 2.0.0  
-**Status**: Active Development  
-**Security Audit**: 67% Complete (12/18 issues fixed)  
-**Last Updated**: November 9, 2025
+**Current Version**: 2.1.0 (Spec 002 - Framework Stabilization)
+**Status**: Active Development
+**Last Updated**: January 11, 2026
 
-### Recent Updates
+### Recent Updates (Spec 002)
 
-- ✅ All critical security issues resolved
-- ✅ Automated secret management
-- ✅ Resource limits on all services
-- ✅ Log rotation configured
-- ✅ Production deployment mode
-- ✅ Centralized configuration
+- ✅ Three-tier directory structure (core/plugins/services)
+- ✅ Docker base images and templates
+- ✅ Validation tooling (10+ scripts)
+- ✅ CI/CD pipelines (GitHub Actions)
+- ✅ Comprehensive documentation (25+ guides)
+- ✅ Service roadmap (34 services mapped)
 
-### Roadmap
+### Service Reality Check
 
-- [ ] TLS/SSL configuration
-- [ ] Automated backup strategy
-- [ ] Prometheus alerting rules
-- [ ] Network segmentation
-- [ ] CI/CD pipeline
+| Category | Count | Status |
+|----------|-------|--------|
+| External (Docker config) | 18 | ✅ Ready |
+| Built (raymond) | 1 | 🟢 Working |
+| Stubs (sherlock, scarlett, piper) | 3 | 🟡 Skeleton |
+| Planned (not built) | 12 | ⚪ Roadmapped |
 
-See [PROGRESS.md](PROGRESS.md) for detailed status.
+### Next Phases
 
----
+- [ ] Phase 1: Sherlock LLM Integration
+- [ ] Phase 2: Voice Pipeline (Piper, Scarlett)
+- [ ] Phase 3: Safety Layer (Guard, Ramsay)
+- [ ] Phase 4: Specialized Workers
 
-**Built with ❤️ for the A.R.C. Framework**# View Kratos admin API docs
-curl http://localhost:4434/admin/
-
-# List identities
-
-curl http://localhost:4434/admin/identities
-
-# Get health status
-
-curl http://localhost:4434/health/alive
-
-````
-
-**Troubleshooting**:
-- "config not found" → Create `config/kratos/kratos.yml` (see `config/kratos/README.md`).
-- DB migration errors → Ensure Postgres is healthy: `make health-postgres`
-- Port already in use → Check what's using 4433/4434: `lsof -i :4433`
+See [PROGRESS.md](PROGRESS.md) and [SERVICE-ROADMAP.md](docs/architecture/SERVICE-ROADMAP.md) for details.
 
 ---
 
-### 6. Unleash (Feature Flags)
-
-**Purpose**: Progressive feature rollout and A/B testing via feature flags.
-
-**Quick Start**:
-```bash
-make health-unleash
-````
-
-**Configuration**:
-
-- Config: `config/unleash/.env.example`
-- Port: 4242
-- Database: Uses Postgres
-- Default URL: http://localhost:4242
-
-**First Access**:
-
-1. Open http://localhost:4242
-2. Click "Sign Up" to create an admin account
-3. Log in and enable/create feature flags
-
-**Common Operations**:
-
-```bash
-# Check Unleash is ready
-make health-unleash
-
-# View admin API
-curl http://localhost:4242/api/admin/
-
-# List features
-curl http://localhost:4242/api/admin/features
-
-# Get feature flags for your app
-curl http://localhost:4242/client/features
-```
-
-**Troubleshooting**:
-
-- "Database error" → Ensure Postgres is healthy: `make health-postgres`
-- UI not loading → Wait 10-20s for migrations to complete; check logs: `make logs-service SERVICE=unleash`
-
----
-
-### 7. Infisical (Secrets Management)
-
-**Purpose**: Self-hosted vault for managing API keys, credentials, and sensitive configuration.
-
-**Quick Start**:
-
-```bash
-make health-infisical
-```
-
-**Configuration**:
-
-- Config: `config/infisical/.env.example`
-- Port: 3001
-- Database: Uses Postgres
-- Default URL: http://localhost:3001
-
-**First Access**:
-
-1. Open http://localhost:3001
-2. Click "Sign Up" to create an account
-3. Create a project and add secrets
-
-**Troubleshooting**:
-
-- "Database error" → Ensure Postgres is healthy: `make health-postgres`
-- Master key issues → Check logs: `make logs-service SERVICE=infisical`
-
----
-
-### 8. Traefik (API Gateway)
-
-**Purpose**: Reverse proxy and auto-discovery gateway for routing traffic to microservices.
-
-**Quick Start**:
-
-```bash
-make health-traefik
-```
-
-**Configuration**:
-
-- Config: `core/gateway/traefik/traefik.yml`
-- Env: project-level `.env`
-- Ports: 80 (HTTP), 443 (HTTPS)
-- Dashboard: internal-only; expose via Traefik router when needed
-
-**How It Works**:
-
-- Traefik watches Docker container labels and auto-discovers services.
-- Services expose themselves via Docker labels (e.g., `traefik.enable=true`).
-- Example: See `docker-compose.yml` for how services can add labels.
-
-**Common Operations**:
-
-```bash
-# Temporarily expose the dashboard via secure router override
-cat <<'EOF' > docker-compose.override.yml
-services:
-  arc_traefik:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)"
-      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
-      - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.routers.traefik-dashboard.service=api@internal"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:?Set secure credentials}"
-      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
-EOF
-make up
-
-# Check Traefik health (ping endpoint exposed internally)
-docker compose -f deployments/docker/docker-compose.core.yml exec arc_traefik traefik healthcheck --ping
-```
-
-**Troubleshooting**:
-
-- Dashboard not loading → Check logs: `make logs-service SERVICE=traefik`
-- Routes not auto-discovered → Ensure Docker labels are correct on services.
-
----
-
-### 9-13. Observability Stack (Grafana, Prometheus, Jaeger, Loki, OTel Collector)
-
-These services are core to the observability layer and should be started first via `make up-observability`.
-
-**Grafana (Visualization)**:
-
-- URL: http://localhost:3000
-- Login: admin / admin (change on first login in production)
-- Auto-provisioned data sources: Prometheus, Loki, Jaeger
-
-**Prometheus (Metrics)**:
-
-- URL: http://localhost:9090
-- Scrapes metrics from OTel Collector and infra services
-- Retention: 15d (configurable)
-
-**Jaeger (Distributed Tracing)**:
-
-- URL: http://localhost:16686
-- Stores traces from OTel Collector
-- In-memory storage (production should use Elasticsearch or Badger)
-
-**Loki (Log Aggregation)**:
-
-- URL: http://localhost:3100
-- Stores logs from OTel Collector
-- Lightweight and cost-efficient for high-volume logging
-
-**OTel Collector (Telemetry Pipeline)**:
-
-- Ports: 4317 (gRPC), 4318 (HTTP), 13133 (health)
-- Receives signals from apps and exports to Jaeger, Prometheus, Loki
-- Config: `config/otel-collector-config.yml`
-
-**Health Checks**:
-
-```bash
-make health-observability
-make health-grafana
-make health-prometheus
-make health-jaeger
-make health-loki
-make health-otel
-```
-
----
-
-## Running Specific Service Combinations
-
-### Observability Only (for testing telemetry pipeline)
-
-```bash
-make up-observability
-# Services: loki, prometheus, jaeger, grafana, otel-collector, arc_raymond-go
-```
-
-### Observability + Data Layer (for agent development)
-
-```bash
-make up  # Starts all services
-
-# Or selectively:
-make up-observability
-make up-minimal  # Core services only
-make up-core-services  # Core + platform utilities
-```
-
-### Full Platform (for end-to-end testing)
-
-```bash
-make up  # Starts everything
-make health-all
-```
-
----
-
-## Environment Variables & Secrets Management
-
-### Multi-Service `.env` Strategy
-
-All configuration is centralized in the root `.env` file generated by
-`make generate-secrets`. Service-level `.env.example` files remain only as
-deprecation stubs that point developers to the new workflow. See
-`docs/guides/ENV-MIGRATION.md` for the mapping and migration steps.
-
----
-
-## Troubleshooting & Common Issues
-
-### All Services Fail to Start
-
-```bash
-# Check Docker and compose versions
-docker --version
-docker compose --version
-
-# Validate compose files
-make validate-compose
-
-# Check logs for all services
-make logs
-
-# Ensure .env exists
-make .env
-```
-
-### Port Already in Use
-
-```bash
-# Find what's using a port (example: 5432 for Postgres)
-lsof -i :5432
-
-# Kill the process or remap the port in docker-compose.stack.yml
-```
-
-### Out of Memory
-
-```bash
-# Check Docker resources
-docker stats
-
-# Reduce Pulsar memory (high by default)
-# Edit config/pulsar/.env.example:
-# PULSAR_MEM=-Xms64m -Xmx256m
-
-# Restart
-make restart
-```
-
-### Services Won't Connect
-
-```bash
-# Test connectivity between services
-make test-connectivity
-
-# Check network
-docker network ls
-docker network inspect arc_net
-
-# Restart networking
-make down && make up
-```
-
-### Persistent Data Loss on Restart
-
-```bash
-# Ensure volumes are persistent
-docker volume ls | grep arc_
-
-# Don't use 'make clean' unless you want to wipe data
-make down        # Keeps volumes
-make clean       # Removes volumes
-```
-
----
-
-## Performance & Resource Requirements
-
-### Minimum (Observability Only)
-
-- CPU: 2 cores
-- Memory: 2GB
-- Disk: 10GB
-
-### Recommended (Observability + Platform Stack)
-
-- CPU: 4 cores
-- Memory: 8GB
-- Disk: 20GB
-
-### Production (with HA, clustering, external storage)
-
-- CPU: 16+ cores
-- Memory: 32+GB
-- Disk: 100+GB
-- External storage: Elasticsearch, S3, managed Postgres
-
----
-
-## Next Steps
-
-1. **Deploy a test service**: Add a new microservice and wire it to observability.
-2. **Create Grafana dashboards**: Custom dashboards for your application metrics.
-3. **Implement LangGraph agents**: Add Python agent services using LangGraph framework.
-4. **Configure Kratos identity flows**: Set up login, registration, password recovery.
-5. **Wire up Pulsar topics**: Create topics for your domain events.
-
----
-
-## Contributing
-
-This spike is part of the A.R.C. framework. For contributions, see `CONTRIBUTING.md` in the parent repository.
-
-## License
-
-Apache 2.0 (see `LICENSE` file)
+**Built with ❤️ for the A.R.C. Framework**
