@@ -1,0 +1,248 @@
+name: Publish Vendor Images
+
+# Orchestration workflow for publishing vendor images to GHCR
+# Handles rate limiting through sequential group publishing
+#
+# Features:
+#   - Selective publishing by group
+#   - Weekly scheduled runs
+#   - Rate limit mitigation via sequential jobs
+#   - Comprehensive summary of all published images
+#
+# Schedule: Weekly on Sundays at 8 AM UTC
+
+on:
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: 'Image groups to publish'
+        required: true
+        type: choice
+        options:
+          - all
+          - gateway
+          - data
+          - observability
+          - communication
+          - tools
+        default: all
+      dry-run:
+        description: 'Dry run (no actual push)'
+        required: false
+        type: boolean
+        default: false
+      tag-suffix:
+        description: 'Tag suffix (e.g., -rc1, -beta)'
+        required: false
+        type: string
+        default: ''
+
+  schedule:
+    # Weekly on Sunday at 8 AM UTC
+    - cron: '0 8 * * 0'
+
+# Only one vendor publish at a time
+concurrency:
+  group: publish-vendor-images
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  # ============================================
+  # Job 1: Gateway Services (Priority 1)
+  # ============================================
+  publish-gateway:
+    name: Gateway
+    if: ${{ github.event.inputs.groups == 'all' || github.event.inputs.groups == 'gateway' || github.event_name == 'schedule' }}
+    uses: ./.github/workflows/_reusable-publish-group.yml
+    with:
+      group-name: 'Gateway Services'
+      config-file: '.github/config/publish-gateway.json'
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+      tag-suffix: ${{ github.event.inputs.tag-suffix || '' }}
+    secrets: inherit
+
+  # ============================================
+  # Job 2: Data Services (Priority 2, after Gateway)
+  # ============================================
+  publish-data:
+    name: Data
+    needs: [publish-gateway]
+    if: |
+      always() &&
+      (needs.publish-gateway.result == 'success' || needs.publish-gateway.result == 'skipped') &&
+      (github.event.inputs.groups == 'all' || github.event.inputs.groups == 'data' || github.event_name == 'schedule')
+    uses: ./.github/workflows/_reusable-publish-group.yml
+    with:
+      group-name: 'Data Services'
+      config-file: '.github/config/publish-data.json'
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+      tag-suffix: ${{ github.event.inputs.tag-suffix || '' }}
+    secrets: inherit
+
+  # ============================================
+  # Job 3: Communication Services (Priority 2, parallel with Data)
+  # ============================================
+  publish-communication:
+    name: Communication
+    needs: [publish-gateway]
+    if: |
+      always() &&
+      (needs.publish-gateway.result == 'success' || needs.publish-gateway.result == 'skipped') &&
+      (github.event.inputs.groups == 'all' || github.event.inputs.groups == 'communication' || github.event_name == 'schedule')
+    uses: ./.github/workflows/_reusable-publish-group.yml
+    with:
+      group-name: 'Communication Services'
+      config-file: '.github/config/publish-communication.json'
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+      tag-suffix: ${{ github.event.inputs.tag-suffix || '' }}
+    secrets: inherit
+
+  # ============================================
+  # Job 4: Observability Services (Priority 3, after Data)
+  # ============================================
+  publish-observability:
+    name: Observability
+    needs: [publish-data]
+    if: |
+      always() &&
+      (needs.publish-data.result == 'success' || needs.publish-data.result == 'skipped') &&
+      (github.event.inputs.groups == 'all' || github.event.inputs.groups == 'observability' || github.event_name == 'schedule')
+    uses: ./.github/workflows/_reusable-publish-group.yml
+    with:
+      group-name: 'Observability Services'
+      config-file: '.github/config/publish-observability.json'
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+      tag-suffix: ${{ github.event.inputs.tag-suffix || '' }}
+    secrets: inherit
+
+  # ============================================
+  # Job 5: Tools (Priority 4, after Communication)
+  # ============================================
+  publish-tools:
+    name: Tools
+    needs: [publish-communication]
+    if: |
+      always() &&
+      (needs.publish-communication.result == 'success' || needs.publish-communication.result == 'skipped') &&
+      (github.event.inputs.groups == 'all' || github.event.inputs.groups == 'tools' || github.event_name == 'schedule')
+    uses: ./.github/workflows/_reusable-publish-group.yml
+    with:
+      group-name: 'Tools & Utilities'
+      config-file: '.github/config/publish-tools.json'
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+      tag-suffix: ${{ github.event.inputs.tag-suffix || '' }}
+    secrets: inherit
+
+  # ============================================
+  # Job 6: Summary
+  # ============================================
+  summary:
+    name: Summary
+    needs: [publish-gateway, publish-data, publish-communication, publish-observability, publish-tools]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate comprehensive summary
+        run: |
+          echo "## 📦 Vendor Image Publishing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Groups:** ${{ github.event.inputs.groups || 'all (scheduled)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** ${{ github.event.inputs.dry-run || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Group Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Group | Published | Failed | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Gateway
+          GW_STATUS="${{ needs.publish-gateway.result }}"
+          GW_PUB="${{ needs.publish-gateway.outputs.images-published || '0' }}"
+          GW_FAIL="${{ needs.publish-gateway.outputs.images-failed || '0' }}"
+          case "$GW_STATUS" in
+            success) GW_EMOJI="✅" ;;
+            skipped) GW_EMOJI="⏭️" ;;
+            *) GW_EMOJI="❌" ;;
+          esac
+          echo "| Gateway | $GW_PUB | $GW_FAIL | $GW_EMOJI $GW_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Data
+          DATA_STATUS="${{ needs.publish-data.result }}"
+          DATA_PUB="${{ needs.publish-data.outputs.images-published || '0' }}"
+          DATA_FAIL="${{ needs.publish-data.outputs.images-failed || '0' }}"
+          case "$DATA_STATUS" in
+            success) DATA_EMOJI="✅" ;;
+            skipped) DATA_EMOJI="⏭️" ;;
+            *) DATA_EMOJI="❌" ;;
+          esac
+          echo "| Data | $DATA_PUB | $DATA_FAIL | $DATA_EMOJI $DATA_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Communication
+          COMM_STATUS="${{ needs.publish-communication.result }}"
+          COMM_PUB="${{ needs.publish-communication.outputs.images-published || '0' }}"
+          COMM_FAIL="${{ needs.publish-communication.outputs.images-failed || '0' }}"
+          case "$COMM_STATUS" in
+            success) COMM_EMOJI="✅" ;;
+            skipped) COMM_EMOJI="⏭️" ;;
+            *) COMM_EMOJI="❌" ;;
+          esac
+          echo "| Communication | $COMM_PUB | $COMM_FAIL | $COMM_EMOJI $COMM_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Observability
+          OBS_STATUS="${{ needs.publish-observability.result }}"
+          OBS_PUB="${{ needs.publish-observability.outputs.images-published || '0' }}"
+          OBS_FAIL="${{ needs.publish-observability.outputs.images-failed || '0' }}"
+          case "$OBS_STATUS" in
+            success) OBS_EMOJI="✅" ;;
+            skipped) OBS_EMOJI="⏭️" ;;
+            *) OBS_EMOJI="❌" ;;
+          esac
+          echo "| Observability | $OBS_PUB | $OBS_FAIL | $OBS_EMOJI $OBS_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          # Tools
+          TOOLS_STATUS="${{ needs.publish-tools.result }}"
+          TOOLS_PUB="${{ needs.publish-tools.outputs.images-published || '0' }}"
+          TOOLS_FAIL="${{ needs.publish-tools.outputs.images-failed || '0' }}"
+          case "$TOOLS_STATUS" in
+            success) TOOLS_EMOJI="✅" ;;
+            skipped) TOOLS_EMOJI="⏭️" ;;
+            *) TOOLS_EMOJI="❌" ;;
+          esac
+          echo "| Tools | $TOOLS_PUB | $TOOLS_FAIL | $TOOLS_EMOJI $TOOLS_STATUS |" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Calculate totals
+          TOTAL_PUB=$((${GW_PUB:-0} + ${DATA_PUB:-0} + ${COMM_PUB:-0} + ${OBS_PUB:-0} + ${TOOLS_PUB:-0}))
+          TOTAL_FAIL=$((${GW_FAIL:-0} + ${DATA_FAIL:-0} + ${COMM_FAIL:-0} + ${OBS_FAIL:-0} + ${TOOLS_FAIL:-0}))
+
+          echo "### Totals" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Published:** $TOTAL_PUB images" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Failed:** $TOTAL_FAIL images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Registry location
+          echo "### Registry" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for failures
+        run: |
+          # Check if any required job failed
+          if [ "${{ needs.publish-gateway.outputs.status }}" = "failure" ]; then
+            echo "::error::Gateway publishing failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.publish-data.outputs.status }}" = "failure" ]; then
+            echo "::error::Data services publishing failed"
+            exit 1
+          fi
+
+          echo "Vendor image publishing completed!"

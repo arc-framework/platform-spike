@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Cache configuration for A.R.C. CI/CD workflows",
+  "version": "1.0.0",
+  "global": {
+    "restore_keys_enabled": true,
+    "save_always": false,
+    "fail_on_cache_miss": false
+  },
+  "caches": {
+    "go-modules": {
+      "description": "Go module dependencies",
+      "path": "~/go/pkg/mod",
+      "key_template": "go-mod-${{ runner.os }}-${{ hashFiles('**/go.sum') }}",
+      "restore_keys": [
+        "go-mod-${{ runner.os }}-"
+      ],
+      "retention_days": 7,
+      "expected_hit_rate": 90,
+      "priority": "high"
+    },
+    "go-build": {
+      "description": "Go build cache",
+      "path": "~/.cache/go-build",
+      "key_template": "go-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}",
+      "restore_keys": [
+        "go-build-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-",
+        "go-build-${{ runner.os }}-"
+      ],
+      "retention_days": 7,
+      "expected_hit_rate": 75,
+      "priority": "high"
+    },
+    "golangci-lint": {
+      "description": "golangci-lint cache",
+      "path": "~/.cache/golangci-lint",
+      "key_template": "golangci-lint-${{ runner.os }}-${{ hashFiles('.golangci.yml', '**/go.sum') }}",
+      "restore_keys": [
+        "golangci-lint-${{ runner.os }}-"
+      ],
+      "retention_days": 7,
+      "expected_hit_rate": 95,
+      "priority": "medium"
+    },
+    "node-modules": {
+      "description": "Node.js dependencies",
+      "path": "node_modules",
+      "key_template": "node-${{ runner.os }}-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}",
+      "restore_keys": [
+        "node-${{ runner.os }}-"
+      ],
+      "retention_days": 7,
+      "expected_hit_rate": 85,
+      "priority": "high"
+    },
+    "python-pip": {
+      "description": "Python pip dependencies",
+      "path": "~/.cache/pip",
+      "key_template": "pip-${{ runner.os }}-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}",
+      "restore_keys": [
+        "pip-${{ runner.os }}-"
+      ],
+      "retention_days": 7,
+      "expected_hit_rate": 85,
+      "priority": "medium"
+    },
+    "docker-buildx": {
+      "description": "Docker BuildKit cache (GHA mode)",
+      "type": "gha",
+      "mode": "max",
+      "key_template": "buildx-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}",
+      "restore_keys": [
+        "buildx-${{ runner.os }}-${{ github.ref_name }}-",
+        "buildx-${{ runner.os }}-main-",
+        "buildx-${{ runner.os }}-"
+      ],
+      "scope": "buildkit",
+      "expected_hit_rate": 70,
+      "priority": "high",
+      "notes": "Uses inline cache + GHA backend for optimal layer sharing"
+    },
+    "trivy-db": {
+      "description": "Trivy vulnerability database",
+      "path": "~/.cache/trivy",
+      "key_template": "trivy-db-${{ runner.os }}",
+      "restore_keys": [],
+      "retention_days": 1,
+      "expected_hit_rate": 95,
+      "priority": "low",
+      "notes": "Short retention due to daily DB updates"
+    },
+    "pre-commit": {
+      "description": "Pre-commit hooks cache",
+      "path": "~/.cache/pre-commit",
+      "key_template": "pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}",
+      "restore_keys": [
+        "pre-commit-${{ runner.os }}-"
+      ],
+      "retention_days": 14,
+      "expected_hit_rate": 95,
+      "priority": "low"
+    }
+  },
+  "strategies": {
+    "pr_workflow": {
+      "description": "Caching strategy for PR checks",
+      "caches": ["go-modules", "go-build", "golangci-lint", "docker-buildx"],
+      "notes": "Focus on build and test caches for fast feedback"
+    },
+    "main_workflow": {
+      "description": "Caching strategy for main branch",
+      "caches": ["go-modules", "go-build", "docker-buildx"],
+      "save_always": true,
+      "notes": "Always save to seed cache for feature branches"
+    },
+    "security_scan": {
+      "description": "Caching strategy for security scans",
+      "caches": ["trivy-db"],
+      "notes": "Only cache vulnerability database"
+    },
+    "minimal": {
+      "description": "Minimal caching for scheduled/maintenance jobs",
+      "caches": ["go-modules"],
+      "notes": "Reduce cache churn from scheduled runs"
+    }
+  },
+  "optimization_rules": {
+    "branch_isolation": {
+      "description": "Prevent cache pollution between unrelated branches",
+      "enabled": true,
+      "allowed_restore_from": ["main", "develop"],
+      "notes": "Feature branches can restore from main/develop but not other features"
+    },
+    "size_limits": {
+      "description": "Warn on large caches",
+      "warn_threshold_mb": 500,
+      "fail_threshold_mb": 2000
+    },
+    "stale_detection": {
+      "description": "Detect unused caches",
+      "stale_days": 14,
+      "auto_cleanup": false
+    }
+  },
+  "monitoring": {
+    "track_hit_rates": true,
+    "alert_on_miss_streak": 3,
+    "report_frequency": "weekly"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "A.R.C. Platform License Policy Configuration",
+
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2024-01-15",
+    "owner": "A.R.C. Security Team",
+    "description": "Defines allowed, denied, and excepted software licenses for the A.R.C. platform"
+  },
+
+  "allowed_licenses": [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MPL-2.0",
+    "CC0-1.0",
+    "Unlicense",
+    "0BSD",
+    "WTFPL",
+    "Zlib",
+    "BSL-1.0",
+    "PSF-2.0",
+    "Python-2.0",
+    "PostgreSQL",
+    "Unicode-DFS-2016",
+    "AFL-3.0",
+    "Artistic-2.0",
+    "BlueOak-1.0.0"
+  ],
+
+  "allowed_licenses_conditional": [
+    {
+      "license": "LGPL-2.0",
+      "condition": "Dynamic linking only, no modifications"
+    },
+    {
+      "license": "LGPL-2.1",
+      "condition": "Dynamic linking only, no modifications"
+    },
+    {
+      "license": "LGPL-3.0",
+      "condition": "Dynamic linking only, no modifications"
+    },
+    {
+      "license": "EPL-1.0",
+      "condition": "Separate module only"
+    },
+    {
+      "license": "EPL-2.0",
+      "condition": "Separate module only"
+    },
+    {
+      "license": "CDDL-1.0",
+      "condition": "File-level separation maintained"
+    }
+  ],
+
+  "denied_licenses": [
+    "GPL-2.0",
+    "GPL-2.0-only",
+    "GPL-2.0-or-later",
+    "GPL-3.0",
+    "GPL-3.0-only",
+    "GPL-3.0-or-later",
+    "AGPL-1.0",
+    "AGPL-3.0",
+    "AGPL-3.0-only",
+    "AGPL-3.0-or-later",
+    "SSPL-1.0",
+    "Commons-Clause",
+    "Elastic-2.0",
+    "CC-BY-NC-4.0",
+    "CC-BY-NC-SA-4.0",
+    "BUSL-1.1"
+  ],
+
+  "exceptions": {
+    "readline": "System library, not distributed with application",
+    "linux-headers": "Required for container builds, kernel headers exception applies",
+    "glibc": "System C library, LGPL exception for linking applies",
+    "musl": "System C library for Alpine, permissive terms"
+  },
+
+  "unknown_action": "warn",
+
+  "policy_notes": {
+    "viral_licenses": "GPL, AGPL, and similar copyleft licenses are denied due to their viral nature requiring derivative works to be open-sourced under the same license.",
+    "lgpl_handling": "LGPL is conditionally allowed when packages are dynamically linked and not modified, as the linking exception applies.",
+    "commercial_restrictions": "Licenses with commercial use restrictions (CC-BY-NC, SSPL, Elastic) are denied for commercial deployment.",
+    "unknown_handling": "Unknown licenses generate warnings but don't block builds. Security team reviews quarterly.",
+    "exception_process": "To add an exception, create a PR modifying this file with justification in the commit message."
+  },
+
+  "compliance_contacts": {
+    "security_team": "security@example.com",
+    "legal_review": "legal@example.com"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Tools & Utilities",
+  "description": "Development tools, collectors, and utility services",
+  "group": "tools",
+  "priority": 4,
+
+  "images": [
+    {
+      "source": "otel/opentelemetry-collector-contrib:0.91",
+      "target": "arc-conduit-collector",
+      "description": "OpenTelemetry Collector for telemetry routing",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/",
+      "required": true
+    },
+    {
+      "source": "curlimages/curl:8",
+      "target": "arc-scout-healthcheck",
+      "description": "Curl-based health check sidecar",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": null,
+      "required": false
+    },
+    {
+      "source": "busybox:1.36",
+      "target": "arc-toolbox-utils",
+      "description": "BusyBox utilities for debugging",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": null,
+      "required": false
+    },
+    {
+      "source": "ghcr.io/chaos-mesh/chaos-mesh:v2.6",
+      "target": "arc-havoc-chaos",
+      "description": "Chaos Mesh for chaos engineering",
+      "platforms": ["linux/amd64"],
+      "health_check": "/api/health",
+      "required": false
+    },
+    {
+      "source": "dpage/pgadmin4:8",
+      "target": "arc-console-pgadmin",
+      "description": "pgAdmin database management UI",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/misc/ping",
+      "required": false
+    }
+  ],
+
+  "settings": {
+    "rate_limit_delay_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 60,
+    "timeout_minutes": 20,
+    "fail_on_required_only": false
+  },
+
+  "labels": {
+    "arc.image.group": "tools",
+    "arc.image.vendor": "true"
+  }
+}

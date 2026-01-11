@@ -77,9 +77,9 @@ None - all critical security requirements met.
 
 | Workflow | Purpose | Schedule |
 |----------|---------|----------|
-| validate-docker.yml | Hadolint on all Dockerfiles | On PR |
-| security-scan.yml | Trivy vulnerability scan | Daily 6 AM |
-| validate-structure.yml | Directory structure compliance | On PR |
+| pr-checks.yml | Hadolint, structure validation, security scan | On PR |
+| scheduled-maintenance.yml | Trivy scan, SBOM generation, CVE tracking | Daily midnight |
+| main-deploy.yml | Build, publish, security attestation | On merge to main |
 
 ---
 
@@ -116,7 +116,7 @@ None - all critical security requirements met.
 ## Raw Validation Output
 
 ### Hadolint Status
-Hadolint not installed locally. CI/CD runs via `.github/workflows/validate-docker.yml`.
+Hadolint not installed locally. CI/CD runs via `.github/workflows/pr-checks.yml`.
 
 Manual analysis documented in `reports/hadolint-results.txt`.
 

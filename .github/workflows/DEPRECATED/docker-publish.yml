@@ -1,0 +1,39 @@
+# ============================================================================
+# DEPRECATED - DO NOT USE
+# ============================================================================
+# This workflow has been deprecated as of 2026-01-11.
+#
+# REPLACEMENT: publish-vendor-images.yml
+#   - Uses configuration-driven image publishing
+#   - Includes rate limiting to avoid GHCR throttling
+#   - Supports multi-architecture builds (amd64 + arm64)
+#   - Generates SBOM and security attestations
+#
+# MIGRATION:
+#   Instead of manually triggering this workflow, use:
+#   $ gh workflow run publish-vendor-images.yml -f groups=all
+#
+# REMOVAL DATE: 2026-02-11 (30-day grace period)
+#
+# See: docs/guides/CICD-DEVELOPER-GUIDE.md for details
+# ============================================================================
+
+name: "[DEPRECATED] Publish A.R.C. Images"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecation Warning
+        run: |
+          echo "::warning::This workflow is DEPRECATED and will be removed on 2026-02-11"
+          echo "::warning::Please use 'publish-vendor-images.yml' instead"
+          echo ""
+          echo "Migration instructions:"
+          echo "  gh workflow run publish-vendor-images.yml -f groups=all"
+          echo ""
+          echo "See docs/guides/CICD-DEVELOPER-GUIDE.md for details"
+          exit 1

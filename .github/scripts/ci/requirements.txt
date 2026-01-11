@@ -1,0 +1,20 @@
+# Python dependencies for CI/CD helper scripts
+# Install: pip install -r .github/scripts/ci/requirements.txt
+
+# YAML parsing (for SERVICE.MD and workflow files)
+pyyaml>=6.0.1
+
+# Template rendering (for job summaries)
+jinja2>=3.1.2
+
+# GitHub API (for creating issues, PR comments)
+PyGithub>=2.1.1
+
+# HTTP requests (for API calls)
+requests>=2.31.0
+
+# Data processing
+pandas>=2.0.0
+
+# JSON schema validation
+jsonschema>=4.20.0

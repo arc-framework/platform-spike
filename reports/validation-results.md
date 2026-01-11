@@ -111,7 +111,7 @@ All errors are for services listed in SERVICE.MD but not yet implemented:
 
 **Status:** SKIPPED (not installed locally)
 
-Hadolint runs in CI/CD via `.github/workflows/validate-docker.yml`.
+Hadolint runs in CI/CD via `.github/workflows/pr-checks.yml`.
 
 Manual results documented in `reports/hadolint-results.txt`.
 

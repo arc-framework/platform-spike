@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Data Services",
+  "description": "Databases, caches, and data storage services",
+  "group": "data",
+  "priority": 2,
+
+  "images": [
+    {
+      "source": "postgres:16-alpine",
+      "target": "arc-oracle-postgres",
+      "description": "PostgreSQL database with pgvector extension",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "pg_isready",
+      "required": true,
+      "build_args": {
+        "POSTGRES_VERSION": "16"
+      }
+    },
+    {
+      "source": "redis:7-alpine",
+      "target": "arc-quicksilver-cache",
+      "description": "Redis in-memory cache and message broker",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "redis-cli ping",
+      "required": true
+    },
+    {
+      "source": "qdrant/qdrant:v1.7",
+      "target": "arc-cerebro-vectors",
+      "description": "Qdrant vector database for embeddings",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/readyz",
+      "required": true
+    },
+    {
+      "source": "minio/minio:latest",
+      "target": "arc-warehouse-storage",
+      "description": "MinIO S3-compatible object storage",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/minio/health/live",
+      "required": false
+    },
+    {
+      "source": "clickhouse/clickhouse-server:24",
+      "target": "arc-analyst-warehouse",
+      "description": "ClickHouse analytics database",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/ping",
+      "required": false
+    }
+  ],
+
+  "settings": {
+    "rate_limit_delay_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 60,
+    "timeout_minutes": 20,
+    "fail_on_required_only": true
+  },
+
+  "labels": {
+    "arc.image.group": "data",
+    "arc.image.vendor": "true"
+  }
+}

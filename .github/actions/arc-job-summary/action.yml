@@ -1,0 +1,246 @@
+name: 'A.R.C. Job Summary'
+description: 'Generate formatted job summaries with visual indicators, failure diagnostics, and fix suggestions for A.R.C. workflows'
+
+inputs:
+  title:
+    description: 'Summary title'
+    required: false
+    default: 'A.R.C. CI/CD Results'
+  status:
+    description: 'Overall status (success, failure, warning, running)'
+    required: true
+  results-json:
+    description: 'Path to JSON file with detailed results'
+    required: false
+    default: ''
+  summary-type:
+    description: 'Type of summary (build, security, validation, deployment, metrics)'
+    required: false
+    default: 'build'
+  show-diagnostics:
+    description: 'Show failure diagnostics with fix suggestions'
+    required: false
+    default: 'true'
+  show-timing:
+    description: 'Show timing breakdown for performance analysis'
+    required: false
+    default: 'true'
+  show-quick-stats:
+    description: 'Show quick stats header (passed/failed/warnings)'
+    required: false
+    default: 'true'
+  additional-content:
+    description: 'Additional markdown content to append'
+    required: false
+    default: ''
+  docs-base-url:
+    description: 'Base URL for documentation links'
+    required: false
+    default: 'https://github.com/arc-framework/platform-spike/blob/main/docs'
+
+outputs:
+  summary-path:
+    description: 'Path to the generated summary file'
+    value: ${{ steps.generate.outputs.summary-path }}
+  quick-stats:
+    description: 'Quick stats string (e.g., "✅ 5 passed, ❌ 1 failed")'
+    value: ${{ steps.generate.outputs.quick-stats }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate summary
+      id: generate
+      shell: bash
+      run: |
+        # Status emoji mapping
+        case "${{ inputs.status }}" in
+          success) STATUS_EMOJI="✅"; STATUS_TEXT="Success" ;;
+          failure) STATUS_EMOJI="❌"; STATUS_TEXT="Failed" ;;
+          warning) STATUS_EMOJI="⚠️"; STATUS_TEXT="Warning" ;;
+          running) STATUS_EMOJI="🔄"; STATUS_TEXT="Running" ;;
+          *) STATUS_EMOJI="❓"; STATUS_TEXT="Unknown" ;;
+        esac
+
+        # Initialize counters for quick stats
+        PASSED=0
+        FAILED=0
+        WARNINGS=0
+
+        # Generate header
+        echo "## $STATUS_EMOJI ${{ inputs.title }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Add metadata bar
+        echo "| Run | Commit | Branch | Actor | Duration |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|--------|-------|----------|" >> $GITHUB_STEP_SUMMARY
+
+        BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+        DURATION="${{ github.event.workflow_run.run_started_at && 'calculating...' || '-' }}"
+
+        echo "| [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) | [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) | \`$BRANCH\` | @${{ github.actor }} | $DURATION |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Process results JSON if provided
+        if [ -n "${{ inputs.results-json }}" ] && [ -f "${{ inputs.results-json }}" ]; then
+
+          # Count results for quick stats
+          if [ "${{ inputs.show-quick-stats }}" = "true" ]; then
+            case "${{ inputs.summary-type }}" in
+              build)
+                PASSED=$(jq '[.builds[]? | select(.status == "success")] | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                FAILED=$(jq '[.builds[]? | select(.status != "success")] | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                ;;
+              validation)
+                PASSED=$(jq '[.checks[]? | select(.passed == true)] | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                FAILED=$(jq '[.checks[]? | select(.passed == false)] | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                WARNINGS=$(jq '[.checks[]? | select(.warning == true)] | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                ;;
+              security)
+                CRITICAL=$(jq '.vulnerabilities.CRITICAL // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                HIGH=$(jq '.vulnerabilities.HIGH // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                if [ "$CRITICAL" -gt 0 ]; then
+                  FAILED=$CRITICAL
+                fi
+                WARNINGS=$HIGH
+                ;;
+            esac
+
+            # Show quick stats
+            QUICK_STATS=""
+            [ "$PASSED" -gt 0 ] && QUICK_STATS="✅ $PASSED passed"
+            [ "$FAILED" -gt 0 ] && QUICK_STATS="$QUICK_STATS${QUICK_STATS:+, }❌ $FAILED failed"
+            [ "$WARNINGS" -gt 0 ] && QUICK_STATS="$QUICK_STATS${QUICK_STATS:+, }⚠️ $WARNINGS warnings"
+
+            if [ -n "$QUICK_STATS" ]; then
+              echo "**Quick Stats:** $QUICK_STATS" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "quick-stats=$QUICK_STATS" >> $GITHUB_OUTPUT
+          fi
+
+          # Parse based on summary type
+          case "${{ inputs.summary-type }}" in
+            build)
+              echo "### 🏗️ Build Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Service | Status | Duration | Image Size | Cache |" >> $GITHUB_STEP_SUMMARY
+              echo "|---------|--------|----------|------------|-------|" >> $GITHUB_STEP_SUMMARY
+              jq -r '.builds[]? | "| \(.service) | \(if .status == "success" then "✅ Built" elif .status == "cached" then "⚡ Cached" else "❌ Failed" end) | \(.duration // "-") | \(.size // "-") | \(.cache_hit // "-") |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "| No build data | - | - | - | - |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Show timing breakdown if enabled
+              if [ "${{ inputs.show-timing }}" = "true" ]; then
+                TOTAL_TIME=$(jq '[.builds[]?.duration_seconds // 0] | add' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+                if [ "$TOTAL_TIME" != "0" ] && [ "$TOTAL_TIME" != "null" ]; then
+                  echo "<details><summary>⏱️ Timing Breakdown</summary>" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "| Phase | Duration |" >> $GITHUB_STEP_SUMMARY
+                  echo "|-------|----------|" >> $GITHUB_STEP_SUMMARY
+                  jq -r '.timing[]? | "| \(.phase) | \(.duration) |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "</details>" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                fi
+              fi
+              ;;
+
+            security)
+              echo "### 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Vulnerability summary table
+              echo "| Severity | Count | Action Required |" >> $GITHUB_STEP_SUMMARY
+              echo "|----------|-------|-----------------|" >> $GITHUB_STEP_SUMMARY
+
+              CRITICAL=$(jq '.vulnerabilities.CRITICAL // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+              HIGH=$(jq '.vulnerabilities.HIGH // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+              MEDIUM=$(jq '.vulnerabilities.MEDIUM // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+              LOW=$(jq '.vulnerabilities.LOW // 0' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+
+              [ "$CRITICAL" -gt 0 ] && echo "| 🔴 CRITICAL | $CRITICAL | **Immediate fix required** |" >> $GITHUB_STEP_SUMMARY
+              [ "$HIGH" -gt 0 ] && echo "| 🟠 HIGH | $HIGH | Fix within 7 days |" >> $GITHUB_STEP_SUMMARY
+              [ "$MEDIUM" -gt 0 ] && echo "| 🟡 MEDIUM | $MEDIUM | Fix within 30 days |" >> $GITHUB_STEP_SUMMARY
+              [ "$LOW" -gt 0 ] && echo "| 🟢 LOW | $LOW | Fix when convenient |" >> $GITHUB_STEP_SUMMARY
+              [ "$CRITICAL" -eq 0 ] && [ "$HIGH" -eq 0 ] && [ "$MEDIUM" -eq 0 ] && [ "$LOW" -eq 0 ] && echo "| ✅ None | 0 | No action required |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Show CVE details if present
+              CVE_COUNT=$(jq '.cves | length' "${{ inputs.results-json }}" 2>/dev/null || echo "0")
+              if [ "$CVE_COUNT" -gt 0 ]; then
+                echo "<details><summary>📋 CVE Details ($CVE_COUNT found)</summary>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "| CVE ID | Severity | Package | Fixed Version |" >> $GITHUB_STEP_SUMMARY
+                echo "|--------|----------|---------|---------------|" >> $GITHUB_STEP_SUMMARY
+                jq -r '.cves[:20][]? | "| [\(.id)](https://nvd.nist.gov/vuln/detail/\(.id)) | \(.severity) | \(.package)@\(.version) | \(.fixed // "No fix") |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null
+                [ "$CVE_COUNT" -gt 20 ] && echo "" >> $GITHUB_STEP_SUMMARY && echo "_...and $((CVE_COUNT - 20)) more_" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "</details>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+              ;;
+
+            validation)
+              echo "### ✔️ Validation Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Check | Status | File | Details |" >> $GITHUB_STEP_SUMMARY
+              echo "|-------|--------|------|---------|" >> $GITHUB_STEP_SUMMARY
+              jq -r '.checks[]? | "| \(.name) | \(if .passed then "✅" elif .warning then "⚠️" else "❌" end) | \(.file // "-") | \(.details // "-") |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "| No checks | - | - | - |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              ;;
+
+            deployment)
+              echo "### 🚀 Deployment Results" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Service | Environment | Status | Image | URL |" >> $GITHUB_STEP_SUMMARY
+              echo "|---------|-------------|--------|-------|-----|" >> $GITHUB_STEP_SUMMARY
+              jq -r '.deployments[]? | "| \(.service) | \(.env) | \(if .status == "success" then "✅ Live" elif .status == "pending" then "🔄 Deploying" else "❌ Failed" end) | \`\(.image // "-")\` | \(.url // "-") |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "| No deployments | - | - | - | - |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              ;;
+
+            metrics)
+              echo "### 📊 Performance Metrics" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value | Target | Status |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+              jq -r '.metrics[]? | "| \(.name) | \(.value)\(.unit // "") | \(.target)\(.unit // "") | \(if .met then "✅" else "❌" end) |"' "${{ inputs.results-json }}" >> $GITHUB_STEP_SUMMARY 2>/dev/null
+              echo "" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+
+          # Show failure diagnostics if enabled and there are failures
+          if [ "${{ inputs.show-diagnostics }}" = "true" ] && [ "${{ inputs.status }}" = "failure" ]; then
+            ERRORS=$(jq '.errors // []' "${{ inputs.results-json }}" 2>/dev/null)
+            ERROR_COUNT=$(echo "$ERRORS" | jq 'length' 2>/dev/null || echo "0")
+
+            if [ "$ERROR_COUNT" -gt 0 ]; then
+              echo "### 🔍 Failure Diagnostics" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              echo "$ERRORS" | jq -r '.[]? | "#### ❌ \(.type // "Error")\n\n**Message:** \(.message)\n\n**File:** \`\(.file // "N/A")\`\(.line | if . then ":\(.)" else "" end)\n\n**Suggested Fix:**\n\(.fix // "Review the error message and logs for more details.")\n\n**Documentation:** [\(.doc_title // "Troubleshooting")](\(.doc_url // "${{ inputs.docs-base-url }}/troubleshooting.md"))\n\n---\n"' >> $GITHUB_STEP_SUMMARY 2>/dev/null
+            fi
+          fi
+        fi
+
+        # Add additional content if provided
+        if [ -n "${{ inputs.additional-content }}" ]; then
+          echo "${{ inputs.additional-content }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Add helpful links section
+        echo "<details><summary>📚 Helpful Links</summary>" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- [Workflow Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [CI/CD Documentation](${{ inputs.docs-base-url }}/ci-cd.md)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Troubleshooting Guide](${{ inputs.docs-base-url }}/troubleshooting.md)" >> $GITHUB_STEP_SUMMARY
+        echo "- [Security Policy](${{ github.server_url }}/${{ github.repository }}/security/policy)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "</details>" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Add footer with timestamp
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "_Generated $(date -u '+%Y-%m-%d %H:%M UTC') by [A.R.C. CI/CD](${{ github.server_url }}/${{ github.repository }})_" >> $GITHUB_STEP_SUMMARY
+
+        echo "summary-path=$GITHUB_STEP_SUMMARY" >> $GITHUB_OUTPUT

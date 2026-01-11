@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Observability Services",
+  "description": "Monitoring, logging, tracing, and visualization",
+  "group": "observability",
+  "priority": 3,
+
+  "images": [
+    {
+      "source": "prom/prometheus:v2.48",
+      "target": "arc-watchtower-metrics",
+      "description": "Prometheus metrics collection and alerting",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/-/healthy",
+      "required": true
+    },
+    {
+      "source": "grafana/grafana:10",
+      "target": "arc-vision-dashboards",
+      "description": "Grafana visualization and dashboards",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/api/health",
+      "required": true
+    },
+    {
+      "source": "grafana/loki:2.9",
+      "target": "arc-chronicle-logs",
+      "description": "Loki log aggregation",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/ready",
+      "required": true
+    },
+    {
+      "source": "grafana/tempo:2.3",
+      "target": "arc-tracker-traces",
+      "description": "Tempo distributed tracing",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/ready",
+      "required": false
+    },
+    {
+      "source": "jaegertracing/all-in-one:1.52",
+      "target": "arc-detective-tracing",
+      "description": "Jaeger distributed tracing (development)",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/",
+      "required": false
+    },
+    {
+      "source": "prom/alertmanager:v0.26",
+      "target": "arc-sentinel-alerts",
+      "description": "Alertmanager for alert routing",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/-/healthy",
+      "required": false
+    }
+  ],
+
+  "settings": {
+    "rate_limit_delay_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 60,
+    "timeout_minutes": 25,
+    "fail_on_required_only": true
+  },
+
+  "labels": {
+    "arc.image.group": "observability",
+    "arc.image.vendor": "true"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Gateway Services",
+  "description": "API Gateway, Identity, Feature Flags, and Secrets Management",
+  "group": "gateway",
+  "priority": 1,
+
+  "images": [
+    {
+      "source": "traefik:v3.0",
+      "target": "arc-heimdall-gateway",
+      "description": "Traefik reverse proxy and API gateway",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/api/http/routers",
+      "required": true
+    },
+    {
+      "source": "oryd/kratos:v1.1",
+      "target": "arc-jarvis-identity",
+      "description": "Ory Kratos identity and user management",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/health/alive",
+      "required": true
+    },
+    {
+      "source": "unleashorg/unleash-server:5",
+      "target": "arc-mystique-flags",
+      "description": "Unleash feature flag management",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/health",
+      "required": false
+    },
+    {
+      "source": "infisical/infisical:latest",
+      "target": "arc-fury-vault",
+      "description": "Infisical secrets management",
+      "platforms": ["linux/amd64"],
+      "health_check": "/api/status",
+      "required": false
+    }
+  ],
+
+  "settings": {
+    "rate_limit_delay_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 60,
+    "timeout_minutes": 15,
+    "fail_on_required_only": true
+  },
+
+  "labels": {
+    "arc.image.group": "gateway",
+    "arc.image.vendor": "true"
+  }
+}

@@ -1,0 +1,299 @@
+# Cost Monitoring Workflow
+# Tracks GitHub Actions usage and generates cost reports
+#
+# Schedule: Daily at midnight UTC
+# Outputs: Cost reports, alerts if approaching limits
+#
+# Part of A.R.C. CI/CD Optimization - Phase 8: Cost Controller
+
+name: Cost Monitoring
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Number of days to analyze'
+        required: false
+        default: '7'
+        type: string
+      create_issue:
+        description: 'Create alert issue if threshold exceeded'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  FREE_TIER_WARNING: 70
+  FREE_TIER_CRITICAL: 80
+
+jobs:
+  calculate-costs:
+    name: Calculate CI/CD Costs
+    runs-on: ubuntu-latest
+    outputs:
+      total_minutes: ${{ steps.calculate.outputs.total_minutes }}
+      billable_minutes: ${{ steps.calculate.outputs.billable_minutes }}
+      free_tier_used: ${{ steps.calculate.outputs.free_tier_used }}
+      total_cost: ${{ steps.calculate.outputs.total_cost }}
+      alert_level: ${{ steps.calculate.outputs.alert_level }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyGithub
+
+      - name: Calculate costs
+        id: calculate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          DAYS="${{ github.event.inputs.days || '7' }}"
+
+          python .github/scripts/ci/calculate-costs.py \
+            --days "$DAYS" \
+            --output cost-data.json \
+            --summary || true
+
+          # Extract key metrics for outputs
+          if [ -f cost-data.json ]; then
+            TOTAL_MINUTES=$(jq -r '.total_minutes // 0' cost-data.json)
+            BILLABLE_MINUTES=$(jq -r '.total_billable_minutes // 0' cost-data.json)
+            FREE_TIER_USED=$(jq -r '.free_tier_used_percent // 0' cost-data.json)
+            TOTAL_COST=$(jq -r '.total_cost_usd // 0' cost-data.json)
+
+            echo "total_minutes=$TOTAL_MINUTES" >> "$GITHUB_OUTPUT"
+            echo "billable_minutes=$BILLABLE_MINUTES" >> "$GITHUB_OUTPUT"
+            echo "free_tier_used=$FREE_TIER_USED" >> "$GITHUB_OUTPUT"
+            echo "total_cost=$TOTAL_COST" >> "$GITHUB_OUTPUT"
+
+            # Determine alert level
+            FREE_TIER_INT=${FREE_TIER_USED%.*}
+            if [ "${FREE_TIER_INT:-0}" -ge "$FREE_TIER_CRITICAL" ]; then
+              echo "alert_level=critical" >> "$GITHUB_OUTPUT"
+            elif [ "${FREE_TIER_INT:-0}" -ge "$FREE_TIER_WARNING" ]; then
+              echo "alert_level=warning" >> "$GITHUB_OUTPUT"
+            else
+              echo "alert_level=normal" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "total_minutes=0" >> "$GITHUB_OUTPUT"
+            echo "billable_minutes=0" >> "$GITHUB_OUTPUT"
+            echo "free_tier_used=0" >> "$GITHUB_OUTPUT"
+            echo "total_cost=0" >> "$GITHUB_OUTPUT"
+            echo "alert_level=normal" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload cost data
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-data
+          path: cost-data.json
+          retention-days: 30
+
+  generate-reports:
+    name: Generate Cost Reports
+    runs-on: ubuntu-latest
+    needs: calculate-costs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download cost data
+        uses: actions/download-artifact@v4
+        with:
+          name: cost-data
+
+      - name: Generate reports
+        run: |
+          # Generate markdown report
+          python .github/scripts/ci/generate-cost-report.py \
+            --input cost-data.json \
+            --format markdown \
+            --output cost-report.md
+
+          # Generate HTML report
+          python .github/scripts/ci/generate-cost-report.py \
+            --input cost-data.json \
+            --format html \
+            --output cost-report.html
+
+          # Generate GitHub summary
+          python .github/scripts/ci/generate-cost-report.py \
+            --input cost-data.json \
+            --format github-summary >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: cost-reports
+          path: |
+            cost-report.md
+            cost-report.html
+            cost-data.json
+          retention-days: 90
+
+  check-alerts:
+    name: Check Cost Alerts
+    runs-on: ubuntu-latest
+    needs: calculate-costs
+    if: needs.calculate-costs.outputs.alert_level != 'normal'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for existing alert issue
+        id: check_issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Look for existing open cost alert issues
+          EXISTING=$(gh issue list \
+            --label "cost-alert" \
+            --state open \
+            --json number \
+            --jq 'length')
+
+          echo "existing_issues=$EXISTING" >> "$GITHUB_OUTPUT"
+
+      - name: Create alert issue
+        if: |
+          steps.check_issue.outputs.existing_issues == '0' &&
+          (github.event.inputs.create_issue != 'false')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_LEVEL: ${{ needs.calculate-costs.outputs.alert_level }}
+          FREE_TIER_USED: ${{ needs.calculate-costs.outputs.free_tier_used }}
+          BILLABLE_MINUTES: ${{ needs.calculate-costs.outputs.billable_minutes }}
+          TOTAL_COST: ${{ needs.calculate-costs.outputs.total_cost }}
+        run: |
+          if [ "$ALERT_LEVEL" = "critical" ]; then
+            TITLE="🔴 Critical: GitHub Actions Free Tier Almost Exhausted"
+            URGENCY="immediate"
+          else
+            TITLE="🟡 Warning: GitHub Actions Free Tier Usage High"
+            URGENCY="soon"
+          fi
+
+          BODY=$(cat <<'EOF'
+          ## CI/CD Cost Alert
+
+          **Alert Level:** ${ALERT_LEVEL}
+          **Free Tier Used:** ${FREE_TIER_USED}%
+          **Billable Minutes:** ${BILLABLE_MINUTES}
+          **Estimated Cost:** $${TOTAL_COST}
+
+          ### Recommended Actions
+
+          1. **Review recent workflow activity**
+             - Check for runaway workflows or infinite loops
+             - Identify any unusual spikes in usage
+
+          2. **Optimize high-cost workflows**
+             - Enable more aggressive caching
+             - Reduce scheduled workflow frequency
+             - Cancel redundant workflow runs on rapid pushes
+
+          3. **Consider alternatives**
+             - Self-hosted runners for heavy workloads
+             - Split large workflows into smaller, targeted ones
+             - Use path filters to skip unnecessary runs
+
+          ### Investigation Commands
+
+          ```bash
+          # View recent workflow runs
+          gh run list --limit 20
+
+          # Check specific workflow usage
+          gh run list --workflow "workflow-name.yml" --limit 10
+
+          # View billing information (requires admin)
+          gh api /repos/${GITHUB_REPOSITORY}/actions/cache/usage
+          ```
+
+          ---
+
+          This alert was automatically generated by the Cost Monitoring workflow.
+          It will auto-close when usage drops below the warning threshold.
+          EOF
+          )
+
+          # Substitute variables
+          BODY=$(echo "$BODY" | envsubst)
+
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "cost-alert,automated,ci-cd"
+
+  weekly-summary:
+    name: Weekly Cost Summary
+    runs-on: ubuntu-latest
+    needs: [calculate-costs, generate-reports]
+    # Only run on Mondays
+    if: github.event.schedule && (format('{0}', github.event.schedule) == '0 0 * * 1' || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Download reports
+        uses: actions/download-artifact@v4
+        with:
+          name: cost-reports
+
+      - name: Post weekly summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FREE_TIER_USED: ${{ needs.calculate-costs.outputs.free_tier_used }}
+          TOTAL_MINUTES: ${{ needs.calculate-costs.outputs.total_minutes }}
+        run: |
+          # For now, just log the summary
+          echo "=== Weekly Cost Summary ==="
+          echo "Free Tier Used: ${FREE_TIER_USED}%"
+          echo "Total Minutes: ${TOTAL_MINUTES}"
+          echo ""
+
+          # The full report is available in the artifacts
+          cat cost-report.md || true
+
+  close-resolved-alerts:
+    name: Close Resolved Alert Issues
+    runs-on: ubuntu-latest
+    needs: calculate-costs
+    if: needs.calculate-costs.outputs.alert_level == 'normal'
+    steps:
+      - name: Close resolved alert issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Find and close any open cost alert issues
+          gh issue list \
+            --label "cost-alert" \
+            --state open \
+            --json number \
+            --jq '.[].number' | while read -r issue_number; do
+              if [ -n "$issue_number" ]; then
+                gh issue close "$issue_number" \
+                  --comment "✅ Automatically closing: Free tier usage has dropped below warning threshold."
+              fi
+            done

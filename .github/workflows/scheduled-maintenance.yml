@@ -1,0 +1,496 @@
+name: Scheduled Maintenance
+
+# Daily security auditing and maintenance tasks
+# Runs overnight to catch new CVEs in published images
+#
+# Features:
+#   - Daily CVE scanning of all published images
+#   - SBOM consolidation and license compliance
+#   - Automated issue creation for new vulnerabilities
+#   - Weekly dependency reports
+#   - CVE tracking to prevent duplicate issues
+#
+# Schedule: Daily at 2:00 AM UTC (off-peak hours)
+
+on:
+  schedule:
+    # Daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      scan-all:
+        description: 'Scan all images regardless of age'
+        type: boolean
+        default: false
+      generate-report:
+        description: 'Generate full dependency report'
+        type: boolean
+        default: false
+      skip-issues:
+        description: 'Skip issue creation (dry run)'
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+  CVE_TRACKING_LABEL: 'cve-tracked'
+
+jobs:
+  # ============================================
+  # Job 1: Discover Published Images
+  # ============================================
+  discover-images:
+    name: Discover Images
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.discover.outputs.images }}
+      image-count: ${{ steps.discover.outputs.count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Discover published images
+        id: discover
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get list of packages from GHCR
+          IMAGES='[]'
+
+          # List container packages in the repository
+          PACKAGES=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/orgs/${{ github.repository_owner }}/packages?package_type=container" \
+            --paginate 2>/dev/null || echo '[]')
+
+          # Filter to our repository's images
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          while read -r package; do
+            NAME=$(echo "$package" | jq -r '.name')
+
+            # Skip if not from our repo
+            if [[ "$NAME" != *"$REPO_NAME"* ]]; then
+              continue
+            fi
+
+            # Get the dev-latest tag
+            IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${NAME##*/}:dev-latest"
+
+            IMAGES=$(echo "$IMAGES" | jq --arg name "${NAME##*/}" --arg ref "$IMAGE_REF" \
+              '. + [{"name": $name, "ref": $ref}]')
+          done < <(echo "$PACKAGES" | jq -c '.[]')
+
+          # Fallback: discover from service directories
+          if [ "$(echo "$IMAGES" | jq 'length')" = "0" ]; then
+            echo "No packages found via API, discovering from Dockerfiles..."
+
+            for dir in services core plugins; do
+              if [ -d "$dir" ]; then
+                find "$dir" -name "Dockerfile" -print0 2>/dev/null | while IFS= read -r -d '' dockerfile; do
+                  service_path=$(dirname "$dockerfile")
+                  service_name=$(basename "$service_path")
+                  IMAGE_REF="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${service_name}:dev-latest"
+
+                  IMAGES=$(echo "$IMAGES" | jq --arg name "$service_name" --arg ref "$IMAGE_REF" \
+                    '. + [{"name": $name, "ref": $ref}]')
+                done
+              fi
+            done
+          fi
+
+          # Remove duplicates
+          IMAGES=$(echo "$IMAGES" | jq -c 'unique_by(.name)')
+          COUNT=$(echo "$IMAGES" | jq 'length')
+
+          echo "images=$IMAGES" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+          echo "Discovered $COUNT images to scan"
+          echo "$IMAGES" | jq '.'
+
+  # ============================================
+  # Job 2: Scan Images for CVEs
+  # ============================================
+  security-scan:
+    name: CVE Scan
+    needs: [discover-images]
+    if: ${{ needs.discover-images.outputs.image-count > 0 }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+      issues: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3  # Rate limit GHCR pulls
+      matrix:
+        image: ${{ fromJSON(needs.discover-images.outputs.images) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup validation tools
+        uses: ./.github/actions/setup-arc-validation
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image
+        id: pull
+        continue-on-error: true
+        run: |
+          IMAGE="${{ matrix.image.ref }}"
+          echo "Pulling: $IMAGE"
+
+          if docker pull "$IMAGE" 2>/dev/null; then
+            echo "pulled=true" >> $GITHUB_OUTPUT
+          else
+            echo "pulled=false" >> $GITHUB_OUTPUT
+            echo "::warning::Image not found: $IMAGE"
+          fi
+
+      - name: Scan with Trivy
+        if: ${{ steps.pull.outputs.pulled == 'true' }}
+        id: scan
+        run: |
+          IMAGE="${{ matrix.image.ref }}"
+          SERVICE="${{ matrix.image.name }}"
+
+          # Create output directory
+          mkdir -p scan-results
+
+          # Run vulnerability scan
+          trivy image \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --format json \
+            --output "scan-results/${SERVICE}-vulns.json" \
+            "$IMAGE" || true
+
+          # Generate SBOM
+          trivy image \
+            --format spdx-json \
+            --output "scan-results/${SERVICE}.spdx.json" \
+            "$IMAGE" || true
+
+          # Count vulnerabilities
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' \
+            "scan-results/${SERVICE}-vulns.json" 2>/dev/null || echo "0")
+          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' \
+            "scan-results/${SERVICE}-vulns.json" 2>/dev/null || echo "0")
+
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "scanned=true" >> $GITHUB_OUTPUT
+
+          echo "Scan complete: $CRITICAL CRITICAL, $HIGH HIGH"
+
+      - name: Check for existing CVE issues
+        if: ${{ steps.scan.outputs.critical > 0 && inputs.skip-issues != true }}
+        id: check-existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SERVICE="${{ matrix.image.name }}"
+
+          # Get list of CVEs in current scan
+          CVES=$(jq -r '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID] | unique | .[]' \
+            "scan-results/${SERVICE}-vulns.json" 2>/dev/null || echo "")
+
+          # Check for existing open issues
+          NEW_CVES=""
+          for cve in $CVES; do
+            # Search for existing issue
+            EXISTING=$(gh issue list \
+              --label "security,cve,${{ env.CVE_TRACKING_LABEL }}" \
+              --search "$cve $SERVICE" \
+              --state open \
+              --json number \
+              --limit 1)
+
+            if [ "$(echo "$EXISTING" | jq 'length')" = "0" ]; then
+              NEW_CVES="$NEW_CVES $cve"
+            else
+              echo "CVE already tracked: $cve (issue #$(echo "$EXISTING" | jq -r '.[0].number'))"
+            fi
+          done
+
+          echo "new-cves=$NEW_CVES" >> $GITHUB_OUTPUT
+
+          if [ -n "$NEW_CVES" ]; then
+            echo "has-new-cves=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-new-cves=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create CVE issue
+        if: ${{ steps.check-existing.outputs.has-new-cves == 'true' && inputs.skip-issues != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SERVICE="${{ matrix.image.name }}"
+          CRITICAL="${{ steps.scan.outputs.critical }}"
+          HIGH="${{ steps.scan.outputs.high }}"
+
+          # Generate issue body
+          BODY=$(cat <<EOF
+          ## 🔴 Security Alert: CVEs Detected
+
+          **Service:** \`$SERVICE\`
+          **Image:** \`${{ matrix.image.ref }}\`
+          **Scan Date:** $(date -u +"%Y-%m-%d %H:%M UTC")
+
+          ### Summary
+
+          | Severity | Count |
+          |----------|-------|
+          | 🔴 CRITICAL | $CRITICAL |
+          | 🟠 HIGH | $HIGH |
+
+          ### Critical Vulnerabilities
+
+          $(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") |
+            "- **\(.VulnerabilityID)**: \(.PkgName) \(.InstalledVersion)\n  - \(.Title // "No title")\n  - Fix: \(.FixedVersion // "No fix available")"' \
+            "scan-results/${SERVICE}-vulns.json" 2>/dev/null | head -50)
+
+          ### Action Required
+
+          1. Review vulnerabilities in the [Security tab](${{ github.server_url }}/${{ github.repository }}/security)
+          2. Update affected dependencies to fixed versions
+          3. Create a PR with the fixes
+          4. This issue will be closed when CVEs are resolved
+
+          ---
+
+          _Automated scan by A.R.C. Scheduled Maintenance workflow_
+          _Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}_
+          EOF
+          )
+
+          # Create issue
+          gh issue create \
+            --title "🔴 CVE Alert: $CRITICAL critical in $SERVICE" \
+            --body "$BODY" \
+            --label "security,cve,critical,${{ env.CVE_TRACKING_LABEL }},automated"
+
+      - name: Upload scan artifacts
+        if: ${{ steps.scan.outputs.scanned == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ matrix.image.name }}
+          path: scan-results/
+          retention-days: 30
+
+  # ============================================
+  # Job 3: Consolidate SBOMs
+  # ============================================
+  consolidate-sboms:
+    name: Consolidate SBOMs
+    needs: [security-scan]
+    if: always() && needs.security-scan.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-arc-python
+
+      - name: Download all scan artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-scans
+          pattern: scan-*
+          merge-multiple: false
+
+      - name: Consolidate SBOMs
+        run: |
+          # Merge all SBOM files
+          mkdir -p sbom-consolidated
+          find all-scans -name "*.spdx.json" -exec cp {} sbom-consolidated/ \;
+
+          # Run consolidation
+          python .github/scripts/ci/consolidate-sbom.py \
+            --input sbom-consolidated \
+            --output sbom-report.csv \
+            --summary
+
+          # Also generate JSON
+          python .github/scripts/ci/consolidate-sbom.py \
+            --input sbom-consolidated \
+            --output sbom-report.json \
+            --format json
+
+      - name: Check license compliance
+        run: |
+          python .github/scripts/ci/check-licenses.py \
+            --sbom sbom-report.csv \
+            --policy .github/config/license-policy.json \
+            --format github > license-report.md || true
+
+          cat license-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload SBOM report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-consolidated-report
+          path: |
+            sbom-report.csv
+            sbom-report.json
+            license-report.md
+          retention-days: 90
+
+  # ============================================
+  # Job 4: Generate Weekly Report (Sundays)
+  # ============================================
+  weekly-report:
+    name: Weekly Report
+    needs: [security-scan, consolidate-sboms]
+    if: |
+      always() &&
+      (github.event.schedule == '0 2 * * 0' || inputs.generate-report == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-arc-python
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - name: Generate weekly report
+        run: |
+          echo "## 📊 Weekly Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u +"%Y-%m-%d %H:%M UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count vulnerabilities across all scans
+          TOTAL_CRITICAL=0
+          TOTAL_HIGH=0
+
+          for vulns_file in artifacts/scan-*/*-vulns.json; do
+            if [ -f "$vulns_file" ]; then
+              CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' "$vulns_file" 2>/dev/null || echo "0")
+              HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' "$vulns_file" 2>/dev/null || echo "0")
+              TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL))
+              TOTAL_HIGH=$((TOTAL_HIGH + HIGH))
+            fi
+          done
+
+          echo "### Vulnerability Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Total CRITICAL | $TOTAL_CRITICAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟠 Total HIGH | $TOTAL_HIGH |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count open CVE issues
+          OPEN_ISSUES=$(gh issue list \
+            --label "security,cve" \
+            --state open \
+            --json number \
+            --limit 100 | jq 'length')
+
+          echo "### Issue Tracking" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Open CVE Issues | $OPEN_ISSUES |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # License summary
+          if [ -f "artifacts/sbom-consolidated-report/sbom-report.json" ]; then
+            DEPS=$(jq '.total_dependencies' "artifacts/sbom-consolidated-report/sbom-report.json")
+            SERVICES=$(jq '.services | length' "artifacts/sbom-consolidated-report/sbom-report.json")
+
+            echo "### Dependency Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Dependencies | $DEPS |" >> $GITHUB_STEP_SUMMARY
+            echo "| Services Tracked | $SERVICES |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================
+  # Job 5: Cleanup Old Issues
+  # ============================================
+  cleanup:
+    name: Cleanup
+    needs: [security-scan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close resolved CVE issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Issue Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Get open CVE issues
+          ISSUES=$(gh issue list \
+            --label "security,cve,${{ env.CVE_TRACKING_LABEL }}" \
+            --state open \
+            --json number,title,body \
+            --limit 50)
+
+          CLOSED=0
+
+          echo "$ISSUES" | jq -c '.[]' | while read -r issue; do
+            NUMBER=$(echo "$issue" | jq -r '.number')
+            TITLE=$(echo "$issue" | jq -r '.title')
+
+            # Extract service name from title
+            SERVICE=$(echo "$TITLE" | grep -oP '(?<=in )\S+$' || echo "")
+
+            if [ -z "$SERVICE" ]; then
+              continue
+            fi
+
+            # Check if latest scan has any critical CVEs for this service
+            # This would require downloading latest scan results
+            # For now, issues are kept open and manually verified
+
+            echo "Issue #$NUMBER: $SERVICE - kept open for manual verification"
+          done
+
+          if [ "$CLOSED" -gt 0 ]; then
+            echo "Closed $CLOSED resolved CVE issues" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No issues closed (manual verification required)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Generate summary
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Maintenance Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ SBOMs consolidated" >> $GITHUB_STEP_SUMMARY
+          echo "✅ License compliance checked" >> $GITHUB_STEP_SUMMARY

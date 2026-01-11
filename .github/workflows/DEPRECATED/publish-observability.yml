@@ -1,0 +1,38 @@
+# ============================================================================
+# DEPRECATED - DO NOT USE
+# ============================================================================
+# This workflow has been deprecated as of 2026-01-11.
+#
+# REPLACEMENT: publish-vendor-images.yml
+#   - Unified vendor image publishing workflow
+#   - Configuration-driven via .github/config/publish-observability.json
+#   - Includes rate limiting to avoid GHCR throttling
+#   - Multi-architecture builds (amd64 + arm64)
+#
+# MIGRATION:
+#   $ gh workflow run publish-vendor-images.yml -f groups=observability
+#
+# REMOVAL DATE: 2026-02-11 (30-day grace period)
+#
+# See: docs/guides/CICD-DEVELOPER-GUIDE.md for details
+# ============================================================================
+
+name: "[DEPRECATED] Publish Observability Images"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecation Warning
+        run: |
+          echo "::warning::This workflow is DEPRECATED and will be removed on 2026-02-11"
+          echo "::warning::Please use 'publish-vendor-images.yml' with groups=observability"
+          echo ""
+          echo "Migration instructions:"
+          echo "  gh workflow run publish-vendor-images.yml -f groups=observability"
+          echo ""
+          echo "See docs/guides/CICD-DEVELOPER-GUIDE.md for details"
+          exit 1

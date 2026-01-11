@@ -1,0 +1,41 @@
+# ============================================================================
+# DEPRECATED - DO NOT USE
+# ============================================================================
+# This workflow has been deprecated as of 2026-01-11.
+#
+# REPLACEMENT: pr-checks.yml
+#   - Consolidated validation workflow
+#   - Includes structure validation
+#   - SERVICE.MD synchronization checks
+#   - Docker Compose validation
+#
+# MIGRATION:
+#   Structure validation is now automatic on all PRs via pr-checks.yml.
+#   No manual action required.
+#
+# REMOVAL DATE: 2026-02-11 (30-day grace period)
+#
+# See: docs/guides/CICD-DEVELOPER-GUIDE.md for details
+# ============================================================================
+
+name: "[DEPRECATED] Validate Structure"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecation Warning
+        run: |
+          echo "::warning::This workflow is DEPRECATED and will be removed on 2026-02-11"
+          echo "::warning::Structure validation is now part of 'pr-checks.yml'"
+          echo ""
+          echo "The new pr-checks.yml workflow automatically validates:"
+          echo "  - Directory structure"
+          echo "  - SERVICE.MD synchronization"
+          echo "  - Docker Compose files"
+          echo ""
+          echo "See docs/guides/CICD-DEVELOPER-GUIDE.md for details"
+          exit 1

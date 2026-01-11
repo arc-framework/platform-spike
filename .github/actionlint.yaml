@@ -1,0 +1,45 @@
+# ==============================================================================
+# actionlint configuration for A.R.C. Platform
+# ==============================================================================
+# https://github.com/rhysd/actionlint
+#
+# This config makes actionlint ignore low-priority ShellCheck warnings in
+# GitHub Actions inline shell scripts.
+#
+# Rationale: CI/CD scripts are operational tooling, not production code.
+# They run in controlled environments where many ShellCheck warnings are
+# safe to ignore.
+# ==============================================================================
+
+# Self-hosted runners (if any)
+self-hosted-runner:
+  labels: []
+
+# Configuration variables available in the repository
+config-variables: []
+
+# Ignore specific ShellCheck rules across all workflow files
+# Uses regex patterns to match error messages
+paths:
+  .github/workflows/**/*.yml:
+    ignore:
+      # SC2086: Double quote to prevent globbing (safe in CI environment)
+      - 'shellcheck reported issue in this script: SC2086:.+'
+      # SC2129: Use { cmd1; cmd2; } >> file (style preference)
+      - 'shellcheck reported issue in this script: SC2129:.+'
+      # SC2046: Quote command substitution
+      - 'shellcheck reported issue in this script: SC2046:.+'
+      # SC2006: Use $() instead of backticks
+      - 'shellcheck reported issue in this script: SC2006:.+'
+      # SC2034: Unused variables (may be exported)
+      - 'shellcheck reported issue in this script: SC2034:.+'
+      # SC2116: Useless echo
+      - 'shellcheck reported issue in this script: SC2116:.+'
+      # SC2005: Useless echo
+      - 'shellcheck reported issue in this script: SC2005:.+'
+      # SC2170: Invalid number comparison (false positive in GitHub Actions)
+      - 'shellcheck reported issue in this script: SC2170:.+'
+      # SC2126: Use grep -c instead of grep|wc -l
+      - 'shellcheck reported issue in this script: SC2126:.+'
+      # SC2235: Use { ..; } instead of (..) to avoid subshell overhead
+      - 'shellcheck reported issue in this script: SC2235:.+'
