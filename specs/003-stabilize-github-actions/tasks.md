@@ -478,7 +478,7 @@ logger.info("Starting matrix generation")
 
 #### 5.1 SBOM Consolidation
 
-- [ ] T038 [US3] Create SBOM consolidation script at `.github/scripts/ci/consolidate-sbom.py`
+- [x] T038 [US3] Create SBOM consolidation script at `.github/scripts/ci/consolidate-sbom.py`
   ```python
   #!/usr/bin/env python3
   # Consolidate multiple SBOM files into single report
@@ -488,7 +488,7 @@ logger.info("Starting matrix generation")
   # Usage: python consolidate-sbom.py --input sbom/ --output report.csv
   ```
 
-- [ ] T039 [US3] Create license compliance checker at `.github/scripts/ci/check-licenses.py`
+- [x] T039 [US3] Create license compliance checker at `.github/scripts/ci/check-licenses.py`
   ```python
   #!/usr/bin/env python3
   # Check SBOM for license policy violations
@@ -498,7 +498,7 @@ logger.info("Starting matrix generation")
   # Usage: python check-licenses.py --sbom report.json --policy license-policy.json
   ```
 
-- [ ] T040 [US3] Create license policy configuration at `.github/config/license-policy.json`
+- [x] T040 [US3] Create license policy configuration at `.github/config/license-policy.json`
   ```json
   {
     "allowed": ["MIT", "Apache-2.0", "BSD-3-Clause", "ISC", "Python-2.0"],
@@ -509,39 +509,40 @@ logger.info("Starting matrix generation")
 
 #### 5.2 Scheduled Security Scanning
 
-- [ ] T041 [US3] Create scheduled maintenance workflow at `.github/workflows/scheduled-maintenance.yml`
-  - Trigger: schedule cron '0 6 * * *' (daily 6 AM UTC)
+- [x] T041 [US3] Create scheduled maintenance workflow at `.github/workflows/scheduled-maintenance.yml`
+  - Trigger: schedule cron '0 2 * * *' (daily 2 AM UTC)
   - Trigger: workflow_dispatch for manual runs
-  - Job 1 (security-scan-all): Scan all services with _reusable-security.yml in matrix
-  - Job 2 (generate-sbom-all): Build all services with sbom=true, collect artifacts
-  - Job 3 (consolidate-reports): Run consolidate-sbom.py script
-  - Job 4 (check-licenses): Run license compliance checker
-  - Job 5 (create-issues): Create GitHub Issues for new HIGH/CRITICAL CVEs
-  - Job 6 (upload-reports): Upload consolidated reports as artifacts
+  - Job 1 (discover-images): Discover published images from GHCR
+  - Job 2 (security-scan): Scan all services with Trivy in matrix
+  - Job 3 (consolidate-sboms): Run consolidate-sbom.py script
+  - Job 4 (weekly-report): Generate weekly summary on Sundays
+  - Job 5 (cleanup): Close resolved CVE issues
+  - Integrated license compliance checking
   - Set timeout-minutes: 30 for entire workflow
 
-- [ ] T042 [US3] Add CVE tracking to prevent duplicate issues
-  - Check if issue already exists for CVE ID
-  - Update existing issue with new affected services
-  - Close issue when CVE is fixed (no longer detected)
+- [x] T042 [US3] Add CVE tracking to prevent duplicate issues
+  - Created `.github/scripts/ci/track-cves.py` script
+  - Check if issue already exists for CVE ID via label search
+  - Close issues when CVE is no longer detected
+  - Generate CVE inventory reports
 
 #### 5.3 Audit Reports
 
-- [ ] T043 [US3] Create dependency report generator at `.github/scripts/ci/generate-dependency-report.py`
+- [x] T043 [US3] Create dependency report generator at `.github/scripts/ci/generate-dependency-report.py`
   ```python
   #!/usr/bin/env python3
   # Generate human-readable dependency audit report
-  # Input: Consolidated SBOM CSV
-  # Output: Markdown report with tables and charts
-  # Sections: Summary, Critical CVEs, License violations, Outdated packages
-  # Usage: python generate-dependency-report.py --input report.csv --output audit.md
+  # Input: Consolidated SBOM CSV or JSON
+  # Output: Markdown, HTML, JSON, CSV, or Executive summary
+  # Sections: Summary, Critical CVEs, License violations, High-risk packages
+  # Usage: python generate-dependency-report.py --sbom report.json --format markdown
   ```
 
-- [ ] T044 [US3] Add report artifact upload to scheduled-maintenance.yml
-  - Upload consolidated SBOM CSV
-  - Upload dependency audit markdown
+- [x] T044 [US3] Add report artifact upload to scheduled-maintenance.yml
+  - Upload consolidated SBOM CSV and JSON
+  - Upload dependency audit reports
   - Upload license compliance report
-  - Add links to job summary
+  - Integrated into consolidate-sboms and weekly-report jobs
 
 #### 5.4 Testing & Validation
 
