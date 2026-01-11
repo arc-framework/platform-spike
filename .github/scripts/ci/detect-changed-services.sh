@@ -91,7 +91,7 @@ get_service_type() {
 
 # Find services with Dockerfiles
 find_all_services() {
-  local services=()
+  local first=true
 
   for dir in "${SERVICE_DIRS[@]}"; do
     if [ -d "$dir" ]; then
@@ -101,19 +101,22 @@ find_all_services() {
         local service_name=$(get_service_name "$service_path")
         local service_type=$(get_service_type "$service_path")
 
-        services+=("{\"name\": \"$service_name\", \"path\": \"$service_path\", \"type\": \"$service_type\"}")
+        if [ "$first" = true ]; then
+          first=false
+        else
+          echo ","
+        fi
+        echo "{\"name\": \"$service_name\", \"path\": \"$service_path\", \"type\": \"$service_type\"}"
       done < <(find "$dir" -name "Dockerfile" -print0 2>/dev/null)
     fi
   done
-
-  echo "${services[@]}"
 }
 
 # Find changed services
 find_changed_services() {
   local changed_files="$1"
-  local services=()
   local seen_services=()
+  local first=true
 
   for dir in "${SERVICE_DIRS[@]}"; do
     if [ -d "$dir" ]; then
@@ -134,15 +137,18 @@ find_changed_services() {
             local service_name=$(get_service_name "$service_path")
             local service_type=$(get_service_type "$service_path")
 
-            services+=("{\"name\": \"$service_name\", \"path\": \"$service_path\", \"type\": \"$service_type\"}")
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo ","
+            fi
+            echo "{\"name\": \"$service_name\", \"path\": \"$service_path\", \"type\": \"$service_type\"}"
             seen_services+=("$service_path")
           fi
         fi
       done <<< "$changed_files"
     fi
   done
-
-  echo "${services[@]}"
 }
 
 # Main
@@ -167,19 +173,27 @@ main() {
   fi
 
   # Build JSON output
+  # Services are now output as newline-separated JSON with commas
   if [ -z "$SERVICES" ]; then
     # No services changed
     OUTPUT='{"services": [], "count": 0, "all_changed": false}'
   else
-    # Convert space-separated JSON objects to array
-    SERVICE_ARRAY=$(echo "$SERVICES" | tr ' ' '\n' | grep -v '^$' | paste -sd ',' -)
-    SERVICE_COUNT=$(echo "$SERVICES" | tr ' ' '\n' | grep -c . || echo "0")
+    # Remove newlines to create compact JSON array content
+    SERVICE_ARRAY=$(echo "$SERVICES" | tr -d '\n')
+    # Count services by counting opening braces
+    SERVICE_COUNT=$(echo "$SERVICES" | grep -c '{' || echo "0")
 
     OUTPUT="{\"services\": [$SERVICE_ARRAY], \"count\": $SERVICE_COUNT, \"all_changed\": $ALL_CHANGED}"
   fi
 
-  # Pretty print and output
-  echo "$OUTPUT" | jq '.'
+  # Validate and pretty print
+  if ! echo "$OUTPUT" | jq '.' 2>/dev/null; then
+    log_info "Warning: JSON validation failed, outputting raw"
+    log_info "Raw output: $OUTPUT"
+    # Fallback to empty array
+    echo '{"services": [], "count": 0, "all_changed": false}'
+    exit 1
+  fi
 }
 
 main "$@"

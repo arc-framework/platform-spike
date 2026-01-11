@@ -115,8 +115,8 @@ jobs:
       max-parallel: 1  # Sequential to respect rate limits
       matrix:
         image: ${{ fromJSON(needs.parse-config.outputs.images) }}
-    outputs:
-      result-${{ strategy.job-index }}: ${{ steps.publish.outputs.result }}
+    # Results are passed via artifacts (upload-artifact/download-artifact)
+    # Matrix jobs cannot use dynamic output names
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

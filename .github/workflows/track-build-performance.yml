@@ -235,15 +235,15 @@ jobs:
           SIZE_ICON=$([[ "$SIZE_STATUS" = "pass" ]] && echo "✅" || echo "❌")
           TIME_ICON=$([[ "$TIME_STATUS" = "pass" ]] && echo "✅" || echo "⚠️")
 
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## Build Performance: $SERVICE
-
-          | Metric | Value | Status |
-          |--------|-------|--------|
-          | Build Time | ${BUILD_TIME}s | $TIME_ICON $TIME_MSG |
-          | Image Size | $IMAGE_SIZE | $SIZE_ICON $SIZE_MSG |
-
-          EOF
+          {
+            echo "## Build Performance: $SERVICE"
+            echo ""
+            echo "| Metric | Value | Status |"
+            echo "|--------|-------|--------|"
+            echo "| Build Time | ${BUILD_TIME}s | $TIME_ICON $TIME_MSG |"
+            echo "| Image Size | $IMAGE_SIZE | $SIZE_ICON $SIZE_MSG |"
+            echo ""
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Upload metrics
         uses: actions/upload-artifact@v4
