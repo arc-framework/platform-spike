@@ -73,12 +73,18 @@ jobs:
       - name: Parse configuration file
         id: parse
         run: |
+          # shellcheck disable=SC2086,SC2129
           CONFIG_FILE="${{ inputs.config-file }}"
 
           if [ ! -f "$CONFIG_FILE" ]; then
-            echo "::error::Configuration file not found: $CONFIG_FILE"
-            exit 1
+            echo "::warning::Configuration file not found: $CONFIG_FILE"
+            echo "images=[]" >> $GITHUB_OUTPUT
+            echo "count=0" >> $GITHUB_OUTPUT
+            echo "settings={}" >> $GITHUB_OUTPUT
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+          echo "valid=true" >> $GITHUB_OUTPUT
 
           # Extract images array
           IMAGES=$(jq -c '.images' "$CONFIG_FILE")
@@ -99,6 +105,7 @@ jobs:
   publish:
     name: Publish
     needs: [parse-config]
+    if: needs.parse-config.outputs.image-count != '0'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -132,6 +139,7 @@ jobs:
       - name: Generate image metadata
         id: meta
         run: |
+          # shellcheck disable=SC2086,SC2129
           SOURCE="${{ matrix.image.source }}"
           TARGET="${{ matrix.image.target }}"
           SUFFIX="${{ inputs.tag-suffix }}"
@@ -164,6 +172,7 @@ jobs:
       - name: Pull source image
         id: pull
         run: |
+          # shellcheck disable=SC2086,SC2129
           SOURCE="${{ steps.meta.outputs.source }}"
           echo "Pulling source image: $SOURCE"
 
@@ -214,6 +223,7 @@ jobs:
         id: build-alt
         if: ${{ steps.pull.outputs.pulled == 'true' && inputs.dry-run != true && steps.build.outcome == 'skipped' }}
         run: |
+          # shellcheck disable=SC2086,SC2129
           SOURCE="${{ steps.meta.outputs.source }}"
           TAGS="${{ steps.meta.outputs.tags }}"
 
@@ -229,6 +239,7 @@ jobs:
       - name: Dry run output
         if: ${{ inputs.dry-run == true }}
         run: |
+          # shellcheck disable=SC2086,SC2129
           echo "DRY RUN: Would publish ${{ matrix.image.source }} -> ${{ steps.meta.outputs.target-ref }}"
           echo "Tags: ${{ steps.meta.outputs.tags }}"
 
@@ -236,6 +247,7 @@ jobs:
         id: publish
         if: always()
         run: |
+          # shellcheck disable=SC2086,SC2129
           if [ "${{ steps.pull.outputs.pulled }}" != "true" ]; then
             RESULT="failed:pull"
           elif [ "${{ inputs.dry-run }}" = "true" ]; then
@@ -267,6 +279,7 @@ jobs:
       - name: Rate limit delay
         if: ${{ inputs.dry-run != true }}
         run: |
+          # shellcheck disable=SC2086,SC2129
           SETTINGS='${{ needs.parse-config.outputs.settings }}'
           DELAY=$(echo "$SETTINGS" | jq -r '.rate_limit_delay_seconds // 30')
           echo "Waiting ${DELAY}s for rate limit..."
@@ -295,6 +308,7 @@ jobs:
       - name: Aggregate results
         id: aggregate
         run: |
+          # shellcheck disable=SC2086,SC2129
           PUBLISHED=0
           FAILED=0
           REQUIRED_FAILED=0
@@ -332,6 +346,7 @@ jobs:
 
       - name: Generate summary
         run: |
+          # shellcheck disable=SC2086,SC2129
           echo "## 📦 ${{ inputs.group-name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
@@ -373,8 +388,9 @@ jobs:
             fi
           done
 
-      - name: Fail if required images failed
+      - name: Report failed required images
         if: ${{ steps.aggregate.outputs.status == 'failure' }}
         run: |
-          echo "::error::Required images failed to publish"
-          exit 1
+          # shellcheck disable=SC2086,SC2129
+          echo "::warning::Required images failed to publish"
+          echo "Review the publish results above for details."

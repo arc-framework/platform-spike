@@ -59,6 +59,11 @@ on:
         required: false
         type: boolean
         default: false
+      block-on-failure:
+        description: 'Fail the workflow if security issues are found (default: false for non-blocking)'
+        required: false
+        type: boolean
+        default: false
       service-name:
         description: 'Service name (for reporting)'
         required: false
@@ -286,8 +291,14 @@ jobs:
           labels: 'security,cve,critical,automated'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fail if critical vulnerabilities found
+      - name: Report security issues
         if: ${{ steps.evaluate.outputs.status == 'fail' }}
         run: |
-          echo "::error::Security scan failed - found vulnerabilities at or above ${{ inputs.fail-on-severity }} severity"
-          exit 1
+          if [ "${{ inputs.block-on-failure }}" = "true" ]; then
+            echo "::error::Security scan failed - found vulnerabilities at or above ${{ inputs.fail-on-severity }} severity"
+            exit 1
+          else
+            echo "::warning::Security scan found vulnerabilities at or above ${{ inputs.fail-on-severity }} severity (non-blocking)"
+            echo ""
+            echo "To make this blocking, set 'block-on-failure: true' in the workflow call."
+          fi

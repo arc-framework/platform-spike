@@ -185,11 +185,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate PR summary
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           echo "## 🚀 A.R.C. PR Checks Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`${{ github.head_ref }}\` → \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`$HEAD_REF\` → \`$BASE_REF\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 

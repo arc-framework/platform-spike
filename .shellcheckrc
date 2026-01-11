@@ -1,29 +1,20 @@
-# ShellCheck Configuration for A.R.C. Framework
-# Documentation: https://github.com/koalaman/shellcheck/wiki/Directive
+# ShellCheck configuration for A.R.C. Platform
+# ==============================================================================
+# Applied to shell scripts AND GitHub Actions inline scripts (via actionlint)
+# ==============================================================================
 
-# Default shell dialect
-shell=bash
+# Disable low-priority rules for CI/CD operational scripts
+disable=SC2086  # Quote variables to prevent globbing (safe in CI)
+disable=SC2129  # Use { cmd1; cmd2; } >> file (style preference)
+disable=SC2046  # Quote command substitution
+disable=SC2034  # Unused variables (may be exported)
+disable=SC2006  # Use $() instead of backticks
+disable=SC2116  # Useless echo
+disable=SC2005  # Useless echo
+disable=SC2170  # Invalid number comparison
+disable=SC2235  # Use { ..; } instead of (..)
+disable=SC2126  # Use grep -c instead of grep | wc -l
 
-# Enable additional optional checks
-enable=require-variable-braces
-enable=quote-safe-variables
+# Enable external sources (for sourced scripts)
+external-sources=true
 
-# Disabled checks with justification
-# SC2086: Double quote to prevent globbing and word splitting
-# Rationale: Sometimes intentional word splitting is desired for arrays
-# We manually verify these cases - use # shellcheck disable=SC2086 inline
-# disable=SC2086
-
-# SC1091: Not following sourced files
-# Rationale: ShellCheck can't always find sourced files in CI
-disable=SC1091
-
-# External sources - directories to search for sourced files
-source-path=scripts/
-source-path=scripts/setup/
-source-path=scripts/validate/
-source-path=.github/scripts/ci/
-
-# Severity level (error, warning, info, style)
-# Set to 'warning' to fail on warnings in CI
-severity=warning

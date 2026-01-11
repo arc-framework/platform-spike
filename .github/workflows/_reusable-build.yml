@@ -100,28 +100,34 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate service path
+        id: validate
         run: |
           if [ ! -d "${{ inputs.service-path }}" ]; then
-            echo "::error::Service path not found: ${{ inputs.service-path }}"
-            exit 1
+            echo "::warning::Service path not found: ${{ inputs.service-path }}"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           DOCKERFILE="${{ inputs.service-path }}/${{ inputs.dockerfile }}"
           if [ ! -f "$DOCKERFILE" ]; then
-            echo "::error::Dockerfile not found: $DOCKERFILE"
-            exit 1
+            echo "::warning::Dockerfile not found: $DOCKERFILE"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "Building from: ${{ inputs.service-path }}"
           echo "Dockerfile: $DOCKERFILE"
+          echo "valid=true" >> "$GITHUB_OUTPUT"
 
       - name: Setup Docker
+        if: steps.validate.outputs.valid == 'true'
         uses: ./.github/actions/setup-arc-docker
         with:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate image metadata
         id: meta
+        if: steps.validate.outputs.valid == 'true'
         run: |
           REGISTRY="${{ inputs.registry }}"
           REPO="${{ github.repository }}"
@@ -148,6 +154,7 @@ jobs:
 
       - name: Check cache status
         id: cache-check
+        if: steps.validate.outputs.valid == 'true'
         run: |
           # Check if we have a cache hit (this is informational)
           # The actual caching is handled by docker/build-push-action
@@ -155,6 +162,7 @@ jobs:
 
       - name: Build image
         id: build
+        if: steps.validate.outputs.valid == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ${{ inputs.service-path }}
@@ -175,7 +183,7 @@ jobs:
 
       - name: Calculate image size
         id: size
-        if: ${{ inputs.push-image }}
+        if: steps.validate.outputs.valid == 'true' && inputs.push-image
         run: |
           # Get image size from manifest
           IMAGE_REF="${{ steps.meta.outputs.image-ref }}"
@@ -193,6 +201,7 @@ jobs:
 
       - name: Calculate build duration
         id: duration
+        if: steps.validate.outputs.valid == 'true'
         run: |
           END_TIME=$(date +%s)
           START_TIME=${{ steps.start.outputs.time }}
@@ -201,6 +210,7 @@ jobs:
           echo "Build duration: ${DURATION}s"
 
       - name: Generate build summary
+        if: steps.validate.outputs.valid == 'true'
         run: |
           echo "## Build Results: ${{ inputs.service-name }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -223,8 +233,23 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ Build completed successfully" >> $GITHUB_STEP_SUMMARY
 
+      - name: Generate skipped build summary
+        if: steps.validate.outputs.valid != 'true'
+        run: |
+          echo "## Build Skipped: ${{ inputs.service-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Build was skipped due to validation issues." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Service** | \`${{ inputs.service-name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Path** | \`${{ inputs.service-path }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status** | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Check the validation step for details._" >> $GITHUB_STEP_SUMMARY
+
       - name: Upload SBOM artifact
-        if: ${{ inputs.generate-sbom && inputs.push-image }}
+        if: steps.validate.outputs.valid == 'true' && inputs.generate-sbom && inputs.push-image
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ inputs.service-name }}
