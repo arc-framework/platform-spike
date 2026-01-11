@@ -80,6 +80,7 @@ package-lock.json
 yarn.lock
 
 .specify
+.claude
 .github/agents
 .github/instructions
 .github/prompts

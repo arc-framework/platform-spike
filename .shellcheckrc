@@ -22,6 +22,7 @@ disable=SC1091
 source-path=scripts/
 source-path=scripts/setup/
 source-path=scripts/validate/
+source-path=.github/scripts/ci/
 
 # Severity level (error, warning, info, style)
 # Set to 'warning' to fail on warnings in CI

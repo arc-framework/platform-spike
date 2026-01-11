@@ -1,0 +1,17 @@
+# actionlint configuration for A.R.C. Platform
+# https://github.com/rhysd/actionlint
+
+# Self-hosted runners (if any)
+self-hosted-runner:
+  labels: []
+
+# Configuration variables available in the repository
+config-variables: []
+
+# Paths to ignore (glob patterns)
+# ignore:
+#   - '.github/workflows/DEPRECATED/**'
+
+# Patterns to ignore in the entire workflow
+# path-pattern:
+#   - 'DEPRECATED/'

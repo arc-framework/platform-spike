@@ -1,0 +1,83 @@
+name: 'Setup A.R.C. Validation Tools'
+description: 'Install validation tools (hadolint, trivy, shellcheck) for A.R.C. CI/CD'
+
+inputs:
+  hadolint-version:
+    description: 'Hadolint version to install'
+    required: false
+    default: '2.12.0'
+  trivy-version:
+    description: 'Trivy version to install'
+    required: false
+    default: '0.48.0'
+  install-shellcheck:
+    description: 'Install shellcheck (usually pre-installed on ubuntu-latest)'
+    required: false
+    default: 'false'
+
+outputs:
+  hadolint-version:
+    description: 'Installed hadolint version'
+    value: ${{ steps.hadolint.outputs.version }}
+  trivy-version:
+    description: 'Installed trivy version'
+    value: ${{ steps.trivy.outputs.version }}
+  cache-hit:
+    description: 'Whether the tools cache was hit'
+    value: ${{ steps.cache-tools.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache validation tools
+      id: cache-tools
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/bin/hadolint
+          ~/bin/trivy
+        key: validation-tools-${{ runner.os }}-hadolint-${{ inputs.hadolint-version }}-trivy-${{ inputs.trivy-version }}
+        restore-keys: |
+          validation-tools-${{ runner.os }}-
+
+    - name: Create bin directory
+      shell: bash
+      run: mkdir -p ~/bin
+
+    - name: Install hadolint
+      id: hadolint
+      if: steps.cache-tools.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -sL "https://github.com/hadolint/hadolint/releases/download/v${{ inputs.hadolint-version }}/hadolint-Linux-x86_64" -o ~/bin/hadolint
+        chmod +x ~/bin/hadolint
+        echo "version=${{ inputs.hadolint-version }}" >> $GITHUB_OUTPUT
+
+    - name: Install trivy
+      id: trivy
+      if: steps.cache-tools.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -sL "https://github.com/aquasecurity/trivy/releases/download/v${{ inputs.trivy-version }}/trivy_${{ inputs.trivy-version }}_Linux-64bit.tar.gz" | tar xz -C ~/bin trivy
+        chmod +x ~/bin/trivy
+        echo "version=${{ inputs.trivy-version }}" >> $GITHUB_OUTPUT
+
+    - name: Install shellcheck
+      if: ${{ inputs.install-shellcheck == 'true' }}
+      shell: bash
+      run: |
+        if ! command -v shellcheck &> /dev/null; then
+          sudo apt-get update && sudo apt-get install -y shellcheck
+        fi
+
+    - name: Add tools to PATH
+      shell: bash
+      run: echo "$HOME/bin" >> $GITHUB_PATH
+
+    - name: Verify tools
+      shell: bash
+      run: |
+        echo "hadolint version: $(~/bin/hadolint --version)"
+        echo "trivy version: $(~/bin/trivy --version | head -1)"
+        echo "shellcheck version: $(shellcheck --version | head -2)"
+        echo "Cache hit: ${{ steps.cache-tools.outputs.cache-hit }}"

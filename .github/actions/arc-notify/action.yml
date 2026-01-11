@@ -1,0 +1,83 @@
+name: 'A.R.C. Notifications'
+description: 'Send notifications via Slack or create GitHub Issues for A.R.C. CI/CD events'
+
+inputs:
+  notification-type:
+    description: 'Type of notification (github-issue, slack - future)'
+    required: true
+  title:
+    description: 'Notification title'
+    required: true
+  body:
+    description: 'Notification body (markdown supported)'
+    required: true
+  labels:
+    description: 'Labels for GitHub issues (comma-separated)'
+    required: false
+    default: 'ci/cd,automated'
+  assignees:
+    description: 'Assignees for GitHub issues (comma-separated)'
+    required: false
+    default: ''
+  github-token:
+    description: 'GitHub token for creating issues'
+    required: false
+    default: ${{ github.token }}
+  slack-webhook-url:
+    description: 'Slack webhook URL (future feature)'
+    required: false
+    default: ''
+
+outputs:
+  issue-number:
+    description: 'Created GitHub issue number'
+    value: ${{ steps.create-issue.outputs.issue-number }}
+  issue-url:
+    description: 'Created GitHub issue URL'
+    value: ${{ steps.create-issue.outputs.issue-url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create GitHub Issue
+      id: create-issue
+      if: ${{ inputs.notification-type == 'github-issue' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        # Create issue body with metadata
+        BODY="${{ inputs.body }}
+
+        ---
+        **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        **Commit:** [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+        **Branch:** \`${{ github.ref_name }}\`
+        **Triggered by:** @${{ github.actor }}
+
+        _This issue was automatically created by A.R.C. CI/CD._"
+
+        # Create issue
+        ISSUE_URL=$(gh issue create \
+          --repo "${{ github.repository }}" \
+          --title "${{ inputs.title }}" \
+          --body "$BODY" \
+          --label "${{ inputs.labels }}" \
+          ${ASSIGNEES:+--assignee "${{ inputs.assignees }}"})
+
+        ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+
+        echo "issue-number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+        echo "issue-url=$ISSUE_URL" >> $GITHUB_OUTPUT
+        echo "Created issue: $ISSUE_URL"
+
+    - name: Slack notification (future)
+      if: ${{ inputs.notification-type == 'slack' }}
+      shell: bash
+      run: |
+        echo "::warning::Slack notifications are not yet implemented"
+        echo "Webhook URL provided: ${{ inputs.slack-webhook-url != '' }}"
+        # Future implementation:
+        # curl -X POST -H 'Content-type: application/json' \
+        #   --data '{"text":"${{ inputs.title }}\n${{ inputs.body }}"}' \
+        #   "${{ inputs.slack-webhook-url }}"
