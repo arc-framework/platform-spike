@@ -1,0 +1,261 @@
+name: PR Checks
+
+# Orchestration workflow for Pull Request validation
+# Provides fast feedback on PRs through parallel validation jobs
+#
+# Features:
+#   - Dockerfile linting with hadolint
+#   - Structure validation (SERVICE.MD sync)
+#   - Security scanning with Trivy
+#   - Docker build verification (no push)
+#   - Comprehensive job summaries
+#   - Concurrency control (cancels superseded runs)
+#
+# Target: <3 minutes for code-only changes (85%+ cache hit)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'services/**'
+      - 'core/**'
+      - 'plugins/**'
+      - '.docker/**'
+      - '**/Dockerfile'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+
+# Cancel in-progress runs on new push to same PR
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Cache settings
+  CACHE_VERSION: v1
+
+jobs:
+  # ============================================
+  # Job 1: Validation (Dockerfile, Structure, YAML)
+  # ============================================
+  validate:
+    name: Validate
+    uses: ./.github/workflows/_reusable-validate.yml
+    with:
+      paths: 'all'
+      fail-fast: true
+      validate-dockerfiles: true
+      validate-structure: true
+      validate-yaml: true
+
+  # ============================================
+  # Job 2: Security Scan (Filesystem)
+  # ============================================
+  security-scan:
+    name: Security Scan
+    uses: ./.github/workflows/_reusable-security.yml
+    with:
+      scan-type: fs
+      scan-target: '.'
+      severity: 'CRITICAL,HIGH'
+      fail-on-severity: 'CRITICAL'
+      ignore-unfixed: true
+      upload-sarif: true
+      create-issues: false
+      service-name: 'pr-filesystem'
+
+  # ============================================
+  # Job 3: Detect Changed Services
+  # ============================================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      service-count: ${{ steps.detect.outputs.count }}
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate diff
+
+      - name: Detect changed services
+        id: detect
+        run: |
+          # Get base and head refs
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.sha }}"
+
+          echo "Comparing $BASE_SHA to $HEAD_SHA"
+
+          # Run detection script
+          RESULT=$(.github/scripts/ci/detect-changed-services.sh "$BASE_SHA" "$HEAD_SHA")
+
+          echo "Detection result:"
+          echo "$RESULT" | jq '.'
+
+          # Extract values
+          SERVICES=$(echo "$RESULT" | jq -c '.services')
+          COUNT=$(echo "$RESULT" | jq -r '.count')
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Found $COUNT service(s) with changes"
+
+      - name: Generate change summary
+        run: |
+          echo "## Changed Services" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          COUNT="${{ steps.detect.outputs.count }}"
+          if [ "$COUNT" = "0" ]; then
+            echo "No services with Dockerfiles were modified." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Only validation and security scan will run." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Service | Path | Type |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|------|------|" >> $GITHUB_STEP_SUMMARY
+
+            echo '${{ steps.detect.outputs.services }}' | jq -r '.[] | "| \(.name) | \(.path) | \(.type) |"' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================
+  # Job 4: Build Changed Services (No Push)
+  # ============================================
+  build:
+    name: Build
+    needs: [validate, detect-changes]
+    if: ${{ needs.detect-changes.outputs.has-changes == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.detect-changes.outputs.services) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker
+        uses: ./.github/actions/setup-arc-docker
+        with:
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ${{ matrix.service.name }}
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.path }}
+          file: ${{ matrix.service.path }}/Dockerfile
+          push: false
+          tags: ${{ matrix.service.name }}:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+
+      - name: Generate build summary
+        run: |
+          echo "## Build: ${{ matrix.service.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Service** | \`${{ matrix.service.name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Path** | \`${{ matrix.service.path }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Status** | ✅ Built successfully |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Push** | ⏭️ Skipped (PR build) |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
+  # Job 5: Summary
+  # ============================================
+  summary:
+    name: PR Summary
+    needs: [validate, security-scan, detect-changes, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate PR summary
+        run: |
+          echo "## 🚀 A.R.C. PR Checks Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.head_ref }}\` → \`${{ github.base_ref }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** [\`${GITHUB_SHA:0:7}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Validation status
+          VALIDATE_STATUS="${{ needs.validate.outputs.validation-status || needs.validate.result }}"
+          case "$VALIDATE_STATUS" in
+            pass|success) echo "| Validation | ✅ Pass |" >> $GITHUB_STEP_SUMMARY ;;
+            fail|failure) echo "| Validation | ❌ Fail |" >> $GITHUB_STEP_SUMMARY ;;
+            *) echo "| Validation | ⏭️ $VALIDATE_STATUS |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          # Security status
+          SECURITY_STATUS="${{ needs.security-scan.outputs.scan-status || needs.security-scan.result }}"
+          CRITICAL_COUNT="${{ needs.security-scan.outputs.critical-count || '0' }}"
+          case "$SECURITY_STATUS" in
+            pass|success) echo "| Security Scan | ✅ Pass (0 critical) |" >> $GITHUB_STEP_SUMMARY ;;
+            fail|failure) echo "| Security Scan | ❌ Fail ($CRITICAL_COUNT critical) |" >> $GITHUB_STEP_SUMMARY ;;
+            *) echo "| Security Scan | ⏭️ $SECURITY_STATUS |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          # Build status
+          BUILD_STATUS="${{ needs.build.result }}"
+          SERVICE_COUNT="${{ needs.detect-changes.outputs.service-count }}"
+          case "$BUILD_STATUS" in
+            success) echo "| Build ($SERVICE_COUNT services) | ✅ Pass |" >> $GITHUB_STEP_SUMMARY ;;
+            failure) echo "| Build ($SERVICE_COUNT services) | ❌ Fail |" >> $GITHUB_STEP_SUMMARY ;;
+            skipped) echo "| Build | ⏭️ Skipped (no changes) |" >> $GITHUB_STEP_SUMMARY ;;
+            *) echo "| Build | ⏭️ $BUILD_STATUS |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [ "${{ needs.validate.result }}" = "success" ] && \
+             [ "${{ needs.security-scan.result }}" = "success" ] && \
+             ([ "${{ needs.build.result }}" = "success" ] || [ "${{ needs.build.result }}" = "skipped" ]); then
+            echo "### ✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This PR is ready for review." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Some checks failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the failed jobs above and fix any issues." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Set final status
+        if: always()
+        run: |
+          if [ "${{ needs.validate.result }}" != "success" ]; then
+            echo "::error::Validation failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.security-scan.result }}" != "success" ]; then
+            echo "::error::Security scan failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.build.result }}" = "failure" ]; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+
+          echo "All PR checks passed!"

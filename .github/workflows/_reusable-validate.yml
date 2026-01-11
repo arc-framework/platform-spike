@@ -1,0 +1,339 @@
+name: Reusable Validation Workflow
+
+# Reusable workflow for validating Dockerfiles, structure, and YAML files
+# Called by: pr-checks.yml, main-deploy.yml
+#
+# Inputs:
+#   - paths: Paths to validate (default: all)
+#   - fail-fast: Stop on first error (default: true)
+#
+# Outputs:
+#   - validation-status: pass/fail
+#   - errors: JSON array of error messages
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: 'Paths to validate (comma-separated or "all")'
+        required: false
+        type: string
+        default: 'all'
+      fail-fast:
+        description: 'Stop on first validation error'
+        required: false
+        type: boolean
+        default: true
+      validate-dockerfiles:
+        description: 'Run Dockerfile linting with hadolint'
+        required: false
+        type: boolean
+        default: true
+      validate-structure:
+        description: 'Validate SERVICE.MD synchronization'
+        required: false
+        type: boolean
+        default: true
+      validate-yaml:
+        description: 'Validate workflow YAML with actionlint'
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      validation-status:
+        description: 'Overall validation status (pass/fail)'
+        value: ${{ jobs.summary.outputs.status }}
+      dockerfile-errors:
+        description: 'Dockerfile validation errors'
+        value: ${{ jobs.dockerfile-lint.outputs.errors }}
+      structure-errors:
+        description: 'Structure validation errors'
+        value: ${{ jobs.structure-check.outputs.errors }}
+
+jobs:
+  dockerfile-lint:
+    name: Dockerfile Linting
+    if: ${{ inputs.validate-dockerfiles }}
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.lint.outputs.status }}
+      errors: ${{ steps.lint.outputs.errors }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup validation tools
+        uses: ./.github/actions/setup-arc-validation
+
+      - name: Find Dockerfiles
+        id: find
+        run: |
+          if [ "${{ inputs.paths }}" = "all" ]; then
+            DOCKERFILES=$(find . -name "Dockerfile" -o -name "Dockerfile.*" | grep -v node_modules | grep -v .git | sort)
+          else
+            # Convert comma-separated paths to find targets
+            PATHS="${{ inputs.paths }}"
+            DOCKERFILES=""
+            IFS=',' read -ra PATH_ARRAY <<< "$PATHS"
+            for p in "${PATH_ARRAY[@]}"; do
+              FOUND=$(find "$p" -name "Dockerfile" -o -name "Dockerfile.*" 2>/dev/null | grep -v node_modules || true)
+              DOCKERFILES="$DOCKERFILES $FOUND"
+            done
+          fi
+
+          echo "Found Dockerfiles:"
+          echo "$DOCKERFILES" | tr ' ' '\n' | grep -v '^$' || echo "(none)"
+
+          # Convert to JSON array for matrix
+          DOCKERFILE_JSON=$(echo "$DOCKERFILES" | tr ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "dockerfiles=$DOCKERFILE_JSON" >> $GITHUB_OUTPUT
+          echo "count=$(echo "$DOCKERFILES" | tr ' ' '\n' | grep -v '^$' | wc -l | tr -d ' ')" >> $GITHUB_OUTPUT
+
+      - name: Lint Dockerfiles with hadolint
+        id: lint
+        run: |
+          ERRORS=""
+          STATUS="pass"
+          ERROR_COUNT=0
+
+          echo "## Dockerfile Linting Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.find.outputs.count }}" = "0" ]; then
+            echo "No Dockerfiles found to lint" >> $GITHUB_STEP_SUMMARY
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "errors=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "| File | Status | Issues |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          DOCKERFILES='${{ steps.find.outputs.dockerfiles }}'
+          for dockerfile in $(echo "$DOCKERFILES" | jq -r '.[]'); do
+            if [ -f "$dockerfile" ]; then
+              OUTPUT=$(hadolint "$dockerfile" 2>&1) || true
+
+              if [ -z "$OUTPUT" ]; then
+                echo "| \`$dockerfile\` | ✅ | None |" >> $GITHUB_STEP_SUMMARY
+              else
+                STATUS="fail"
+                ERROR_COUNT=$((ERROR_COUNT + 1))
+                ISSUE_COUNT=$(echo "$OUTPUT" | wc -l | tr -d ' ')
+                echo "| \`$dockerfile\` | ❌ | $ISSUE_COUNT issue(s) |" >> $GITHUB_STEP_SUMMARY
+                ERRORS="$ERRORS\n$OUTPUT"
+
+                # Show details
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "<details><summary>Issues in $dockerfile</summary>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+                echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
+                echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+                echo "</details>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS" = "pass" ]; then
+            echo "✅ All Dockerfiles passed linting" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ $ERROR_COUNT Dockerfile(s) have issues" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "errors=$(echo -e "$ERRORS" | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "fail" ] && [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+
+  structure-check:
+    name: Structure Validation
+    if: ${{ inputs.validate-structure }}
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.check.outputs.status }}
+      errors: ${{ steps.check.outputs.errors }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check SERVICE.MD synchronization
+        id: check
+        run: |
+          STATUS="pass"
+          ERRORS=""
+
+          echo "## Structure Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check if SERVICE.MD exists
+          if [ ! -f "SERVICE.MD" ]; then
+            echo "⚠️ SERVICE.MD not found - skipping structure check" >> $GITHUB_STEP_SUMMARY
+            echo "status=pass" >> $GITHUB_OUTPUT
+            echo "errors=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "| Check | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          # Check that each service directory mentioned in SERVICE.MD exists
+          # Extract paths from SERVICE.MD (lines with ./ paths)
+          PATHS=$(grep -oE '\./[a-zA-Z0-9_/-]+' SERVICE.MD | sort -u || true)
+
+          MISSING=""
+          for path in $PATHS; do
+            if [ ! -d "$path" ] && [ ! -f "$path" ]; then
+              MISSING="$MISSING $path"
+              STATUS="fail"
+            fi
+          done
+
+          if [ -z "$MISSING" ]; then
+            echo "| Service paths | ✅ | All paths in SERVICE.MD exist |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Service paths | ❌ | Missing:$MISSING |" >> $GITHUB_STEP_SUMMARY
+            ERRORS="Missing paths:$MISSING"
+          fi
+
+          # Check for required directories
+          REQUIRED_DIRS="core services"
+          for dir in $REQUIRED_DIRS; do
+            if [ -d "$dir" ]; then
+              echo "| Required dir: $dir | ✅ | Exists |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Required dir: $dir | ⚠️ | Not found |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS" = "pass" ]; then
+            echo "✅ Structure validation passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Structure validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "errors=$(echo "$ERRORS" | jq -R -s -c '.')" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "fail" ] && [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+
+  yaml-validation:
+    name: YAML Validation
+    if: ${{ inputs.validate-yaml }}
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.validate.outputs.status }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          curl -sL "https://github.com/rhysd/actionlint/releases/download/v1.6.26/actionlint_1.6.26_linux_amd64.tar.gz" | tar xz -C /tmp
+          sudo mv /tmp/actionlint /usr/local/bin/
+
+      - name: Validate workflow YAML files
+        id: validate
+        run: |
+          echo "## Workflow YAML Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Find workflow files (excluding DEPRECATED)
+          WORKFLOWS=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | grep -v DEPRECATED | sort)
+
+          if [ -z "$WORKFLOWS" ]; then
+            echo "No workflow files found" >> $GITHUB_STEP_SUMMARY
+            echo "status=pass" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "| Workflow | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          STATUS="pass"
+          for workflow in $WORKFLOWS; do
+            OUTPUT=$(actionlint "$workflow" 2>&1) || true
+
+            if [ -z "$OUTPUT" ]; then
+              echo "| \`$workflow\` | ✅ |" >> $GITHUB_STEP_SUMMARY
+            else
+              STATUS="fail"
+              echo "| \`$workflow\` | ❌ |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "<details><summary>Issues in $workflow</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS" = "pass" ]; then
+            echo "✅ All workflow files are valid" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some workflow files have issues" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "fail" ] && [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+
+  summary:
+    name: Validation Summary
+    needs: [dockerfile-lint, structure-check, yaml-validation]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.aggregate.outputs.status }}
+    steps:
+      - name: Aggregate results
+        id: aggregate
+        run: |
+          DOCKERFILE_STATUS="${{ needs.dockerfile-lint.outputs.status || 'skipped' }}"
+          STRUCTURE_STATUS="${{ needs.structure-check.outputs.status || 'skipped' }}"
+          YAML_STATUS="${{ needs.yaml-validation.outputs.status || 'skipped' }}"
+
+          echo "## Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          STATUS="pass"
+
+          case "$DOCKERFILE_STATUS" in
+            pass) echo "| Dockerfile Linting | ✅ Pass |" >> $GITHUB_STEP_SUMMARY ;;
+            fail) echo "| Dockerfile Linting | ❌ Fail |" >> $GITHUB_STEP_SUMMARY; STATUS="fail" ;;
+            *) echo "| Dockerfile Linting | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          case "$STRUCTURE_STATUS" in
+            pass) echo "| Structure Check | ✅ Pass |" >> $GITHUB_STEP_SUMMARY ;;
+            fail) echo "| Structure Check | ❌ Fail |" >> $GITHUB_STEP_SUMMARY; STATUS="fail" ;;
+            *) echo "| Structure Check | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          case "$YAML_STATUS" in
+            pass) echo "| YAML Validation | ✅ Pass |" >> $GITHUB_STEP_SUMMARY ;;
+            fail) echo "| YAML Validation | ❌ Fail |" >> $GITHUB_STEP_SUMMARY; STATUS="fail" ;;
+            *) echo "| YAML Validation | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY ;;
+          esac
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$STATUS" = "pass" ]; then
+            echo "### ✅ All validations passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT

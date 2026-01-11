@@ -295,7 +295,7 @@ logger.info("Starting matrix generation")
 
 #### 3.1 Reusable Validation Workflow
 
-- [ ] T018 [US1] Create reusable validation workflow at `.github/workflows/_reusable-validate.yml`
+- [x] T018 [US1] Create reusable validation workflow at `.github/workflows/_reusable-validate.yml`
   - Workflow input: paths (array of paths to validate)
   - Workflow input: fail-fast (boolean, default true)
   - Job 1: Dockerfile linting with hadolint
@@ -306,7 +306,7 @@ logger.info("Starting matrix generation")
   - Use setup-arc-validation composite action
   - Add job summaries for each validation type
 
-- [ ] T019 [US1] Create reusable build workflow at `.github/workflows/_reusable-build.yml`
+- [x] T019 [US1] Create reusable build workflow at `.github/workflows/_reusable-build.yml`
   - Workflow input: service-name (string)
   - Workflow input: service-path (string)
   - Workflow input: push-image (boolean, default false)
@@ -318,7 +318,7 @@ logger.info("Starting matrix generation")
   - Generate SBOM if push-image=true
   - Workflow output: image-digest, image-size, build-duration
 
-- [ ] T020 [US1] Create reusable security scan workflow at `.github/workflows/_reusable-security.yml`
+- [x] T020 [US1] Create reusable security scan workflow at `.github/workflows/_reusable-security.yml`
   - Workflow input: scan-type (fs or image)
   - Workflow input: scan-target (path or image name)
   - Workflow input: severity (default: "CRITICAL,HIGH")
@@ -331,7 +331,7 @@ logger.info("Starting matrix generation")
 
 #### 3.2 PR Checks Orchestration Workflow
 
-- [ ] T021 [US1] Create PR checks orchestration workflow at `.github/workflows/pr-checks.yml`
+- [x] T021 [US1] Create PR checks orchestration workflow at `.github/workflows/pr-checks.yml`
   - Trigger: pull_request on [opened, synchronize, reopened]
   - Path filters: services/**, core/**, plugins/**, .docker/**, **/Dockerfile, **/requirements.txt, .github/workflows/**
   - Concurrency: group by github.ref, cancel-in-progress: true
@@ -342,7 +342,7 @@ logger.info("Starting matrix generation")
   - Job 5 (summary): Aggregate results and generate PR comment, needs: [validate, security-scan, build-changed], if: always()
   - Set timeout-minutes: 10 for entire workflow
 
-- [ ] T022 [US1] Create changed services detection script at `.github/scripts/ci/detect-changed-services.sh`
+- [x] T022 [US1] Create changed services detection script at `.github/scripts/ci/detect-changed-services.sh`
   ```bash
   #!/bin/bash
   # Detect which services changed based on git diff
@@ -352,12 +352,12 @@ logger.info("Starting matrix generation")
 
 #### 3.3 Caching Optimization
 
-- [ ] T023 [US1] Implement cache key strategy in _reusable-build.yml
+- [x] T023 [US1] Implement cache key strategy in _reusable-build.yml
   - Primary key: hash of Dockerfile + requirements.txt + service code
   - Restore keys: hash of Dockerfile + requirements.txt, hash of Dockerfile
   - Document cache invalidation strategy in workflow comments
 
-- [ ] T024 [US1] Add cache monitoring to job summaries
+- [x] T024 [US1] Add cache monitoring to job summaries
   - Track cache hit/miss per build
   - Show cache hit rate in summary
   - Alert if cache hit rate <80%
