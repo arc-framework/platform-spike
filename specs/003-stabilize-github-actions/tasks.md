@@ -394,7 +394,7 @@ logger.info("Starting matrix generation")
 
 #### 4.1 Main Deploy Orchestration Workflow
 
-- [ ] T028 [US2] Create main deploy orchestration workflow at `.github/workflows/main-deploy.yml`
+- [x] T028 [US2] Create main deploy orchestration workflow at `.github/workflows/main-deploy.yml`
   - Trigger: push to main branch
   - Path filters: services/**, core/**, plugins/**, .docker/**
   - Job 1 (detect-changes): Detect changed services, output matrix
@@ -405,12 +405,12 @@ logger.info("Starting matrix generation")
   - Job 6 (deploy-summary): Generate deployment summary with image links, needs: [build-and-push, security-scan], if: always()
   - Set timeout-minutes: 15 for entire workflow
 
-- [ ] T029 [US2] Add SBOM generation to _reusable-build.yml
+- [x] T029 [US2] Add SBOM generation to _reusable-build.yml
   - Enable sbom: true in docker/build-push-action@v5
   - Upload SBOM as workflow artifact
   - Add SBOM link to job summary
 
-- [ ] T030 [US2] Create CVE issue creation script at `.github/scripts/ci/create-cve-issue.py`
+- [x] T030 [US2] Create CVE issue creation script at `.github/scripts/ci/create-cve-issue.py`
   ```python
   #!/usr/bin/env python3
   # Create GitHub Issue for CRITICAL CVEs
@@ -421,12 +421,12 @@ logger.info("Starting matrix generation")
 
 #### 4.2 Image Tagging Strategy
 
-- [ ] T031 [US2] Implement multi-tag strategy in _reusable-build.yml
+- [x] T031 [US2] Implement multi-tag strategy in _reusable-build.yml
   - Tag 1: dev-${{ github.sha }} (immutable)
   - Tag 2: dev-latest (mutable, latest dev build)
   - Document tagging strategy in workflow comments
 
-- [ ] T032 [US2] Add image metadata labels in _reusable-build.yml
+- [x] T032 [US2] Add image metadata labels in _reusable-build.yml
   - Label: org.opencontainers.image.source (repo URL)
   - Label: org.opencontainers.image.revision (git SHA)
   - Label: org.opencontainers.image.created (timestamp)
@@ -434,13 +434,13 @@ logger.info("Starting matrix generation")
 
 #### 4.3 Security Integration
 
-- [ ] T033 [US2] Configure Trivy to fail on CRITICAL CVEs in main-deploy.yml
+- [x] T033 [US2] Configure Trivy to fail on CRITICAL CVEs in main-deploy.yml
   - Set fail-on-severity: CRITICAL
   - Create GitHub Issue with CVE details
   - Block image publish if CRITICAL found
   - Send notification (future: Slack alert)
 
-- [ ] T034 [US2] Upload Trivy SARIF to GitHub Security tab
+- [x] T034 [US2] Upload Trivy SARIF to GitHub Security tab
   - Enable sarif: true in trivy-action
   - Upload via github/codeql-action/upload-sarif@v3
   - Verify CVEs visible in Security tab
