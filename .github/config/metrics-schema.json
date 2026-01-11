@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-framework.github.io/schemas/ci-metrics.json",
+  "title": "A.R.C. CI/CD Metrics Schema",
+  "description": "Schema for CI/CD workflow metrics collected by the A.R.C. platform",
+  "version": "1.0.0",
+
+  "definitions": {
+    "WorkflowMetrics": {
+      "type": "object",
+      "description": "Metrics for a single workflow run",
+      "properties": {
+        "workflow_run_id": {
+          "type": "integer",
+          "description": "GitHub Actions workflow run ID"
+        },
+        "workflow_name": {
+          "type": "string",
+          "description": "Name of the workflow"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of when metrics were collected"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Git branch name"
+        },
+        "commit_sha": {
+          "type": "string",
+          "description": "Git commit SHA"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failure", "cancelled", "skipped"],
+          "description": "Workflow conclusion status"
+        },
+        "duration_seconds": {
+          "type": "integer",
+          "description": "Total workflow duration in seconds",
+          "minimum": 0
+        },
+        "build_count": {
+          "type": "integer",
+          "description": "Number of builds in this run",
+          "minimum": 0
+        },
+        "build_success_count": {
+          "type": "integer",
+          "description": "Number of successful builds",
+          "minimum": 0
+        },
+        "total_build_time_seconds": {
+          "type": "integer",
+          "description": "Sum of all build durations",
+          "minimum": 0
+        },
+        "avg_build_time_seconds": {
+          "type": "number",
+          "description": "Average build time per service",
+          "minimum": 0
+        },
+        "total_image_size_mb": {
+          "type": "number",
+          "description": "Total size of all built images in MB",
+          "minimum": 0
+        },
+        "cache_hit_rate": {
+          "type": "number",
+          "description": "BuildKit cache hit rate (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "cve_critical": {
+          "type": "integer",
+          "description": "Count of CRITICAL vulnerabilities",
+          "minimum": 0
+        },
+        "cve_high": {
+          "type": "integer",
+          "description": "Count of HIGH vulnerabilities",
+          "minimum": 0
+        },
+        "cve_medium": {
+          "type": "integer",
+          "description": "Count of MEDIUM vulnerabilities",
+          "minimum": 0
+        },
+        "cve_low": {
+          "type": "integer",
+          "description": "Count of LOW vulnerabilities",
+          "minimum": 0
+        },
+        "cve_total": {
+          "type": "integer",
+          "description": "Total vulnerability count",
+          "minimum": 0
+        },
+        "validation_total": {
+          "type": "integer",
+          "description": "Total validation checks run",
+          "minimum": 0
+        },
+        "validation_passed": {
+          "type": "integer",
+          "description": "Validation checks passed",
+          "minimum": 0
+        },
+        "validation_failed": {
+          "type": "integer",
+          "description": "Validation checks failed",
+          "minimum": 0
+        },
+        "validation_pass_rate": {
+          "type": "number",
+          "description": "Validation pass rate (0-100)",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": ["workflow_run_id", "workflow_name", "timestamp", "status"]
+    },
+
+    "MetricsTrend": {
+      "type": "object",
+      "description": "Aggregated metrics over a time period",
+      "properties": {
+        "period_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "period_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "run_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "avg_duration_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "avg_build_time_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "avg_cache_hit_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "avg_validation_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "total_cve_critical": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_cve_high": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "workflow_success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "build_success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    }
+  },
+
+  "sla_targets": {
+    "description": "Service Level Agreement targets for CI/CD performance",
+    "pr_validation_time_seconds": {
+      "target": 180,
+      "description": "PR checks should complete in under 3 minutes"
+    },
+    "main_deploy_time_seconds": {
+      "target": 300,
+      "description": "Main branch deployment should complete in under 5 minutes"
+    },
+    "cache_hit_rate_percent": {
+      "target": 85,
+      "description": "BuildKit cache hit rate should be above 85%"
+    },
+    "validation_pass_rate_percent": {
+      "target": 100,
+      "description": "All validation checks should pass before merge"
+    },
+    "critical_cve_count": {
+      "target": 0,
+      "description": "No CRITICAL CVEs should be present in production images"
+    }
+  },
+
+  "prometheus_metrics": {
+    "description": "Prometheus metric names for monitoring integration",
+    "metrics": [
+      {
+        "name": "arc_ci_duration_seconds",
+        "type": "gauge",
+        "description": "Workflow run duration in seconds",
+        "labels": ["workflow", "branch", "status"]
+      },
+      {
+        "name": "arc_ci_build_time_seconds",
+        "type": "gauge",
+        "description": "Total build time in seconds",
+        "labels": ["workflow", "branch"]
+      },
+      {
+        "name": "arc_ci_cache_hit_rate",
+        "type": "gauge",
+        "description": "BuildKit cache hit rate (0-100)",
+        "labels": ["workflow", "branch"]
+      },
+      {
+        "name": "arc_ci_cve_critical",
+        "type": "gauge",
+        "description": "Number of CRITICAL CVEs detected",
+        "labels": ["workflow", "branch", "service"]
+      },
+      {
+        "name": "arc_ci_cve_high",
+        "type": "gauge",
+        "description": "Number of HIGH CVEs detected",
+        "labels": ["workflow", "branch", "service"]
+      },
+      {
+        "name": "arc_ci_validation_pass_rate",
+        "type": "gauge",
+        "description": "Validation check pass rate (0-100)",
+        "labels": ["workflow", "branch"]
+      },
+      {
+        "name": "arc_ci_image_size_mb",
+        "type": "gauge",
+        "description": "Docker image size in MB",
+        "labels": ["service", "branch"]
+      }
+    ]
+  },
+
+  "alerting_rules": {
+    "description": "Suggested alerting thresholds",
+    "rules": [
+      {
+        "name": "SlowPRChecks",
+        "condition": "arc_ci_duration_seconds{workflow='PR Checks'} > 180",
+        "severity": "warning",
+        "description": "PR checks taking longer than 3 minute target"
+      },
+      {
+        "name": "LowCacheHitRate",
+        "condition": "arc_ci_cache_hit_rate < 80",
+        "severity": "warning",
+        "description": "Cache hit rate below 80% - investigate cache invalidation"
+      },
+      {
+        "name": "CriticalCVEDetected",
+        "condition": "arc_ci_cve_critical > 0",
+        "severity": "critical",
+        "description": "CRITICAL vulnerability detected in production image"
+      },
+      {
+        "name": "ValidationFailures",
+        "condition": "arc_ci_validation_pass_rate < 100",
+        "severity": "warning",
+        "description": "Validation checks failing"
+      }
+    ]
+  }
+}
