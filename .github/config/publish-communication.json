@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Communication Services",
+  "description": "Message brokers, event streaming, and real-time communication",
+  "group": "communication",
+  "priority": 2,
+
+  "images": [
+    {
+      "source": "nats:2.10-alpine",
+      "target": "arc-mercury-messaging",
+      "description": "NATS high-performance messaging",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/healthz",
+      "required": true
+    },
+    {
+      "source": "apachepulsar/pulsar:3.1",
+      "target": "arc-herald-streaming",
+      "description": "Apache Pulsar event streaming",
+      "platforms": ["linux/amd64"],
+      "health_check": "/admin/v2/brokers/healthcheck",
+      "required": false
+    },
+    {
+      "source": "livekit/livekit-server:v1.5",
+      "target": "arc-beacon-realtime",
+      "description": "LiveKit WebRTC and real-time communication",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "health_check": "/",
+      "required": false
+    }
+  ],
+
+  "settings": {
+    "rate_limit_delay_seconds": 30,
+    "retry_attempts": 3,
+    "retry_delay_seconds": 60,
+    "timeout_minutes": 15,
+    "fail_on_required_only": true
+  },
+
+  "labels": {
+    "arc.image.group": "communication",
+    "arc.image.vendor": "true"
+  }
+}
