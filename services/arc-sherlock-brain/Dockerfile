@@ -17,11 +17,11 @@ WORKDIR /build
 
 # Install build dependencies
 RUN apk add --no-cache \
-    build-base \
-    gcc \
-    g++ \
-    musl-dev \
-    postgresql-dev
+    build-base=0.5-r3 \
+    gcc=12.2.1_git20220924-r10 \
+    g++=12.2.1_git20220924-r10 \
+    musl-dev=1.2.3-r0 \
+    postgresql-dev=15.2-r0
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
@@ -40,7 +40,8 @@ LABEL org.opencontainers.image.title="arc-sherlock-brain" \
       arc.service.category="reasoning" \
       arc.service.role="brain" \
       arc.monitoring.enabled="true" \
-      arc.monitoring.type="otel"
+      arc.monitoring.type="otel" \
+      maintainer="maintainer@example.com"
 
 WORKDIR /app
 
