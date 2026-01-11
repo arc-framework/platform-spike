@@ -1,0 +1,49 @@
+# ============================================================================
+# DEPRECATED - DO NOT USE
+# ============================================================================
+# This workflow has been deprecated as of 2026-01-11.
+#
+# REPLACEMENT: _reusable-publish-group.yml
+#   - New reusable workflow for image publishing
+#   - Configuration-driven via JSON config files
+#   - Includes rate limiting and retry logic
+#   - Better error handling and reporting
+#
+# MIGRATION:
+#   Update your workflow to use:
+#   uses: ./.github/workflows/_reusable-publish-group.yml
+#   with:
+#     config_file: .github/config/publish-{group}.json
+#     group_name: {group}
+#
+# REMOVAL DATE: 2026-02-11 (30-day grace period)
+#
+# See: docs/guides/CICD-DEVELOPER-GUIDE.md for details
+# ============================================================================
+
+name: "[DEPRECATED] Reusable Publish"
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+
+jobs:
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecation Warning
+        run: |
+          echo "::warning::This reusable workflow is DEPRECATED and will be removed on 2026-02-11"
+          echo "::warning::Please use '_reusable-publish-group.yml' instead"
+          echo ""
+          echo "Migration instructions:"
+          echo "  uses: ./.github/workflows/_reusable-publish-group.yml"
+          echo "  with:"
+          echo "    config_file: .github/config/publish-{group}.json"
+          echo "    group_name: {group}"
+          echo ""
+          echo "See docs/guides/CICD-DEVELOPER-GUIDE.md for details"
+          exit 1

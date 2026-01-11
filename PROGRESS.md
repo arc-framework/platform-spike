@@ -59,9 +59,13 @@ Successfully completed **Spec 002: A.R.C. Framework Stabilization & Docker Excel
 - `scripts/validate/validate-all.sh` - Master validation orchestrator
 
 **CI/CD Workflows:**
-- `.github/workflows/validate-structure.yml` - Structure validation
-- `.github/workflows/validate-docker.yml` - Dockerfile linting
-- `.github/workflows/security-scan.yml` - Security scanning
+- `.github/workflows/pr-checks.yml` - PR validation (structure, Docker, security)
+- `.github/workflows/main-deploy.yml` - Main branch deployment
+- `.github/workflows/release.yml` - Release pipeline with staging/production
+- `.github/workflows/scheduled-maintenance.yml` - Daily security scans, SBOM
+- `.github/workflows/publish-vendor-images.yml` - Vendor image publishing
+- `.github/workflows/cost-monitoring.yml` - Cost tracking and alerts
+- `.github/workflows/cache-management.yml` - Cache optimization
 - `.github/workflows/build-base-images.yml` - Base image builds
 
 **Base Images:**

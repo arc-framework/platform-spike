@@ -207,8 +207,9 @@ Security scans run automatically:
 
 ### Workflows
 
-- `.github/workflows/validate-docker.yml` - Dockerfile linting
-- `.github/workflows/security-scan.yml` - Vulnerability scanning
+- `.github/workflows/pr-checks.yml` - Dockerfile linting, validation, security scan on PRs
+- `.github/workflows/scheduled-maintenance.yml` - Daily vulnerability scanning, SBOM, CVE tracking
+- `.github/workflows/main-deploy.yml` - Security attestation on deployment
 
 ### Viewing Results
 

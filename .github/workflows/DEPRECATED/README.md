@@ -1,44 +1,92 @@
 # Deprecated Workflows
 
-This directory contains workflows that have been replaced by the new CI/CD architecture.
+This folder contains deprecated GitHub Actions workflows that have been replaced by the new CI/CD system.
 
-## Deprecation Policy
+## Deprecation Timeline
 
-- Workflows are moved here when replaced by new orchestration workflows
-- **30-day grace period** before deletion
-- After grace period, files are archived and removed
+| Deprecated Workflow | Replacement | Deprecated On | Remove After |
+|---------------------|-------------|---------------|--------------|
+| `docker-publish.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `validate-docker.yml` | `pr-checks.yml` | 2026-01-11 | 2026-02-11 |
+| `validate-structure.yml` | `pr-checks.yml` | 2026-01-11 | 2026-02-11 |
+| `security-scan.yml` | `scheduled-maintenance.yml` | 2026-01-11 | 2026-02-11 |
+| `publish-gateway.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `publish-data-services.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `publish-communication.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `publish-observability.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `publish-tools.yml` | `publish-vendor-images.yml` | 2026-01-11 | 2026-02-11 |
+| `reusable-publish.yml` | `_reusable-publish-group.yml` | 2026-01-11 | 2026-02-11 |
 
-## Replaced Workflows
+## Migration Guide
 
-| Old Workflow | Replaced By | Deprecation Date | Delete After |
-|--------------|-------------|------------------|--------------|
-| `docker-publish.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `publish-communication.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `publish-data-services.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `publish-gateway.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `publish-observability.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `publish-tools.yml` | `publish-vendor-images.yml` | TBD | TBD |
-| `reusable-publish.yml` | `_reusable-publish-group.yml` | TBD | TBD |
-| `security-scan.yml` | `scheduled-maintenance.yml` | TBD | TBD |
-| `validate-docker.yml` | `pr-checks.yml` | TBD | TBD |
-| `validate-structure.yml` | `pr-checks.yml` | TBD | TBD |
+### For Image Publishing
 
-## Why Deprecate Instead of Delete?
+**Before (deprecated):**
+```bash
+gh workflow run publish-gateway.yml
+gh workflow run publish-data-services.yml
+gh workflow run publish-observability.yml
+```
 
-1. **Reference**: Developers can see old implementation for comparison
-2. **Rollback**: Emergency fallback if new workflows have issues
-3. **Audit Trail**: Track what changed and when
-4. **Gradual Migration**: Team can adapt to new workflows
+**After (new):**
+```bash
+# Publish specific group
+gh workflow run publish-vendor-images.yml -f groups=gateway
+gh workflow run publish-vendor-images.yml -f groups=data
 
-## Re-enabling a Deprecated Workflow
+# Publish all groups
+gh workflow run publish-vendor-images.yml -f groups=all
+```
 
-In case of emergency:
+### For Validation
 
-1. Copy workflow from `DEPRECATED/` to `../`
-2. Test with `workflow_dispatch`
-3. Create issue documenting the rollback
-4. Investigate root cause of new workflow failure
+**Before (deprecated):**
+- `validate-docker.yml` - Ran on PR for Dockerfile linting
+- `validate-structure.yml` - Ran on PR for structure validation
 
-## Questions?
+**After (new):**
+- `pr-checks.yml` - Runs automatically on all PRs
+  - Includes Dockerfile linting
+  - Includes structure validation
+  - Includes security scanning
+  - Generates comprehensive job summaries
 
-See [CI/CD Developer Guide](../../../docs/guides/CICD-DEVELOPER-GUIDE.md)
+### For Security Scanning
+
+**Before (deprecated):**
+```bash
+gh workflow run security-scan.yml
+```
+
+**After (new):**
+```bash
+gh workflow run scheduled-maintenance.yml
+```
+
+The new workflow includes:
+- Trivy vulnerability scanning
+- SBOM generation (SPDX + CycloneDX)
+- CVE tracking with GitHub Issues
+- License compliance checking
+- Dependency report generation
+
+## Why These Workflows Were Deprecated
+
+1. **Consolidation**: Multiple validation workflows consolidated into `pr-checks.yml`
+2. **Configuration-Driven**: Image publishing now uses JSON configs instead of hardcoded values
+3. **Rate Limiting**: New publish workflow includes delays to avoid GHCR throttling
+4. **Better Observability**: New workflows generate comprehensive job summaries
+5. **Cost Optimization**: Aggressive caching reduces build times by 50%+
+
+## Documentation
+
+- [CI/CD Developer Guide](../../../docs/guides/CICD-DEVELOPER-GUIDE.md)
+- [CI/CD Architecture](../../../docs/architecture/CICD-ARCHITECTURE.md)
+
+## Removal Process
+
+After the grace period (2026-02-11):
+1. Verify no active references to deprecated workflows
+2. Archive this folder for historical reference
+3. Delete deprecated workflow files
+4. Update changelog

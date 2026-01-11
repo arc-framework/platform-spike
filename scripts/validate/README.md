@@ -46,8 +46,9 @@ python scripts/validate/check-structure.py
 ### CI/CD Integration
 
 These scripts are automatically run via GitHub Actions on:
-- Pull requests (`.github/workflows/validate-structure.yml`)
-- Push to main (`.github/workflows/security-scan.yml`)
+- Pull requests (`.github/workflows/pr-checks.yml`)
+- Push to main (`.github/workflows/main-deploy.yml`)
+- Daily schedule (`.github/workflows/scheduled-maintenance.yml`)
 
 ## Output Format
 

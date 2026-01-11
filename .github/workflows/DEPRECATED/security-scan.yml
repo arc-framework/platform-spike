@@ -1,0 +1,46 @@
+# ============================================================================
+# DEPRECATED - DO NOT USE
+# ============================================================================
+# This workflow has been deprecated as of 2026-01-11.
+#
+# REPLACEMENT: scheduled-maintenance.yml
+#   - Comprehensive daily security scanning
+#   - SBOM generation and consolidation
+#   - CVE tracking and issue creation
+#   - License compliance checking
+#
+# MIGRATION:
+#   Security scanning now runs automatically via scheduled-maintenance.yml.
+#   For manual scans, use:
+#   $ gh workflow run scheduled-maintenance.yml
+#
+# REMOVAL DATE: 2026-02-11 (30-day grace period)
+#
+# See: docs/guides/CICD-DEVELOPER-GUIDE.md for details
+# ============================================================================
+
+name: "[DEPRECATED] Security Scan"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deprecated-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deprecation Warning
+        run: |
+          echo "::warning::This workflow is DEPRECATED and will be removed on 2026-02-11"
+          echo "::warning::Please use 'scheduled-maintenance.yml' instead"
+          echo ""
+          echo "Migration instructions:"
+          echo "  gh workflow run scheduled-maintenance.yml"
+          echo ""
+          echo "The new workflow includes:"
+          echo "  - Trivy vulnerability scanning"
+          echo "  - SBOM generation (SPDX + CycloneDX)"
+          echo "  - CVE tracking with GitHub Issues"
+          echo "  - License compliance checking"
+          echo ""
+          echo "See docs/guides/CICD-DEVELOPER-GUIDE.md for details"
+          exit 1

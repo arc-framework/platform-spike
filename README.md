@@ -6,11 +6,11 @@
 [![Security](https://img.shields.io/badge/security-hardened-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-<!-- CI/CD Validation Badges -->
-[![Validate Structure](https://github.com/arc-framework/platform-spike/actions/workflows/validate-structure.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/validate-structure.yml)
-[![Validate Docker](https://github.com/arc-framework/platform-spike/actions/workflows/validate-docker.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/validate-docker.yml)
+<!-- CI/CD Status Badges -->
+[![PR Checks](https://github.com/arc-framework/platform-spike/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/pr-checks.yml)
+[![Main Deploy](https://github.com/arc-framework/platform-spike/actions/workflows/main-deploy.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/main-deploy.yml)
 [![Security Scan](https://github.com/arc-framework/platform-spike/actions/workflows/security-scan.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/security-scan.yml)
-[![Build Performance](https://github.com/arc-framework/platform-spike/actions/workflows/track-build-performance.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/track-build-performance.yml)
+[![Scheduled Maintenance](https://github.com/arc-framework/platform-spike/actions/workflows/scheduled-maintenance.yml/badge.svg)](https://github.com/arc-framework/platform-spike/actions/workflows/scheduled-maintenance.yml)
 
 ---
 
@@ -465,6 +465,69 @@ make up  # Everything including demo apps
 - [Progress Tracker](PROGRESS.md) - Development status
 - [Changelog](CHANGELOG.md) - Version history
 - [Security Baseline](reports/security-baseline.json) - Security status
+
+---
+
+## 🔄 CI/CD Pipeline
+
+The A.R.C. platform includes an enterprise-grade CI/CD system built on GitHub Actions.
+
+### Workflow Overview
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **PR Checks** | Pull Request | Fast validation, build, security scan (<3 min) |
+| **Main Deploy** | Push to main | Build and publish images to GHCR |
+| **Release** | Git tag `v*` | Staged deployment with approval gates |
+| **Security Scan** | Daily schedule | CVE scanning, SBOM generation |
+| **Cost Monitoring** | Daily schedule | Track GitHub Actions usage |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    ORCHESTRATION LAYER                       │
+│  pr-checks │ main-deploy │ release │ scheduled-maintenance   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     REUSABLE LAYER                           │
+│  _reusable-validate │ _reusable-build │ _reusable-security   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    COMPOSITE ACTIONS                         │
+│     arc-setup │ arc-docker-build │ arc-security-scan         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+- **Multi-Architecture**: All images built for linux/amd64 and linux/arm64
+- **Security-First**: SBOM generation, CVE scanning, license compliance
+- **Cost-Aware**: Aggressive caching, usage monitoring, budget alerts
+- **Configuration-Driven**: JSON configs for services, caching, publishing
+
+### Quick Commands
+
+```bash
+# Trigger PR checks manually
+gh workflow run pr-checks.yml --ref your-branch
+
+# View recent workflow runs
+gh run list --limit 10
+
+# Download build artifacts
+gh run download <run-id>
+```
+
+### Documentation
+
+- [CI/CD Developer Guide](docs/guides/CICD-DEVELOPER-GUIDE.md) - How to work with workflows
+- [CI/CD Architecture](docs/architecture/CICD-ARCHITECTURE.md) - System design and diagrams
+- [Security Scanning Guide](docs/guides/SECURITY-SCANNING.md) - Security processes
 
 ---
 
